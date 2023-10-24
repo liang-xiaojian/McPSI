@@ -13,44 +13,45 @@ namespace test {
 
 using PTy = internal::PTy;
 using ATy = internal::ATy;
-using MTy = internal::MTy;
+// using MTy = internal::MTy;
 
-namespace ym = yacl::math;
+// namespace ym = yacl::math;
 
 class Protocol : public State {
  private:
   std::shared_ptr<Context> ctx_;
-  // DY-PRF
+  // SPDZ key
   PTy key_;
-  MTy mod_;
-  MTy g_;
-  MTy k_;
+  // DY-PRF
+  //   MTy mod_;
+  //   MTy g_;
+  //   MTy k_;
 
  public:
   static const std::string id;
 
   Protocol(std::shared_ptr<Context> ctx) : ctx_(ctx) {
-    key_ = PTy(yacl::crypto::RandU64(true));
-    mod_ = ym::MPInt(Prime64 * 2 + 1);
-    YACL_ENFORCE(mod_.IsPrime());
-    uint128_t r128 = ctx_->SyncSeed();
-    auto [high, low] = yacl::DecomposeUInt128(r128);
-    k_ = ym::MPInt(high).Mod(ym::MPInt(Prime64));
-    g_ = ym::MPInt(low).PowMod(ym::MPInt(2), mod_);
+    // key_ = PTy(yacl::crypto::RandU64(true));
+    // mod_ = ym::MPInt(Prime64 * 2 + 1);
+    // YACL_ENFORCE(mod_.IsPrime());
+    // uint128_t r128 = ctx_->SyncSeed();
+    // auto [high, low] = yacl::DecomposeUInt128(r128);
+    // k_ = ym::MPInt(high).Mod(ym::MPInt(Prime64));
+    // g_ = ym::MPInt(low).PowMod(ym::MPInt(2), mod_);
   }
 
   PTy GetKey() const { return key_; }
 
-  MTy GetPrfMod() const { return mod_; }
+  //   MTy GetPrfMod() const { return mod_; }
 
-  MTy GetPrfG() const { return g_; }
+  //   MTy GetPrfG() const { return g_; }
 
-  MTy GetPrfK() const { return k_; }
+  //   MTy GetPrfK() const { return k_; }
 
-  void RefreshPrfK() {
-    uint128_t r128 = ctx_->SyncSeed();
-    k_ = ym::MPInt(r128).Mod(ym::MPInt(Prime64));
-  }
+  // void RefreshPrfK() {
+  //   uint128_t r128 = ctx_->SyncSeed();
+  //   k_ = ym::MPInt(r128).Mod(ym::MPInt(Prime64));
+  // }
 
   // PP evaluation
   std::vector<PTy> Add(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs);

@@ -21,49 +21,49 @@ AES_COPT_FLAGS = select({
     ],
 })
 
-def _psi_copts():
+def _test_copts():
     return select({
-        "@psi//bazel:psi_build_as_release": RELEASE_FLAGS,
-        "@psi//bazel:psi_build_as_debug": DEBUG_FLAGS,
-        "@psi//bazel:psi_build_as_fast": FAST_FLAGS,
+        "@test//bazel:test_build_as_release": RELEASE_FLAGS,
+        "@test//bazel:test_build_as_debug": DEBUG_FLAGS,
+        "@test//bazel:test_build_as_fast": FAST_FLAGS,
         "//conditions:default": FAST_FLAGS,
     }) + WARNING_FLAGS
 
-def psi_cc_binary(
+def test_cc_binary(
         linkopts = [],
         copts = [],
         **kargs):
     cc_binary(
         linkopts = linkopts + ["-lm"],
-        copts = copts + _psi_copts(),
+        copts = copts + _test_copts(),
         **kargs
     )
 
-def psi_cc_library(
+def test_cc_library(
         linkopts = [],
         copts = [],
         deps = [],
         **kargs):
     cc_library(
         linkopts = linkopts,
-        copts = _psi_copts() + copts,
+        copts = _test_copts() + copts,
         deps = deps + [
             "@com_github_gabime_spdlog//:spdlog",
         ],
         **kargs
     )
 
-def psi_cmake_external(**attrs):
+def test_cmake_external(**attrs):
     if "generate_args" not in attrs:
         attrs["generate_args"] = ["-GNinja"]
     return cmake(**attrs)
 
-def psi_configure_make(**attrs):
+def test_configure_make(**attrs):
     if "args" not in attrs:
         attrs["args"] = ["-j 4"]
     return configure_make(**attrs)
 
-def psi_cc_test(
+def test_cc_test(
         linkopts = [],
         copts = [],
         deps = [],
@@ -72,7 +72,7 @@ def psi_cc_test(
     cc_test(
         # -lm for tcmalloc
         linkopts = linkopts + ["-lm"],
-        copts = _psi_copts() + copts,
+        copts = _test_copts() + copts,
         deps = deps + [
             "@com_google_googletest//:gtest_main",
         ],

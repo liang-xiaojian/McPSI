@@ -1,6 +1,6 @@
 #pragma once
 #include "test/utils/field.h"
-#include "yacl/math/mpint/mp_int.h"
+// #include "yacl/math/mpint/mp_int.h"
 
 namespace test::internal {
 
@@ -13,8 +13,8 @@ struct ATy {
 };
 #pragma pack()
 
-namespace ym = yacl::math;
-using MTy = ym::MPInt;
+// namespace ym = yacl::math;
+// using MTy = ym::MPInt;
 
 void inline Pack(absl::Span<const PTy> val, absl::Span<const PTy> mac,
                  absl::Span<ATy> ret) {
