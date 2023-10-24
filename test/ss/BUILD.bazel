@@ -1,0 +1,56 @@
+load("//bazel:test.bzl", "test_cc_library", "test_cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+test_cc_library(
+    name = "ss_type",
+    hdrs = ["type.h"],
+)
+
+test_cc_library(
+    name = "protocol",
+    srcs = [
+        "ashare.cc",
+        "protocol.cc",
+        "public.cc",
+    ],
+    hdrs = [
+        "ashare.h",
+        "protocol.h",
+        "public.h",
+    ],
+    deps = [
+        ":ss_type",
+        "//test/context",
+        "//test/context:state",
+        "//test/cr:fake_cr",
+        "//test/utils:field",
+        "//test/utils:vec_op",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+test_cc_test(
+    name = "public_test",
+    srcs = ["public_test.cc"],
+    deps = [
+        ":protocol",
+        "//test/context:register",
+        "//test/utils:test_util",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)
+
+test_cc_test(
+    name = "ashare_test",
+    srcs = ["ashare_test.cc"],
+    deps = [
+        ":protocol",
+        "//test/context:register",
+        "//test/utils:test_util",
+        "//test/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)
