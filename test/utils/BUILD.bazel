@@ -1,0 +1,53 @@
+load("//bazel:test.bzl", "test_cc_library", "test_cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+test_cc_library(
+    name = "config",
+    hdrs = ["config.h"],
+)
+
+test_cc_library(
+    name = "field",
+    hdrs = ["field.h"],
+    deps = [
+        ":config",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+test_cc_library(
+    name = "vec_op",
+    srcs = ["vec_op.cc"],
+    hdrs = ["vec_op.h"],
+    deps = [
+        ":field",
+        "@yacl//yacl/crypto/tools:prg",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+test_cc_library(
+    name = "test_util",
+    hdrs = ["test_util.h"],
+    deps = [
+        "//test/context",
+        "@yacl//yacl/link",
+    ],
+)
+
+test_cc_test(
+    name = "field_test",
+    srcs = ["field_test.cc"],
+    deps = [
+        ":field",
+    ],
+)
+
+test_cc_test(
+    name = "vec_op_test",
+    srcs = ["vec_op_test.cc"],
+    deps = [
+        ":vec_op",
+    ],
+)
