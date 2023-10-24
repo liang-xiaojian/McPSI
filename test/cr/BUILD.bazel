@@ -1,0 +1,20 @@
+load("//bazel:test.bzl", "test_cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+test_cc_library(
+    name = "fake_cr",
+    srcs = [
+        "fake_cr.cc",
+    ],
+    hdrs = [
+        "fake_cr.h",
+    ],
+    deps = [
+        "//test/context",
+        "//test/context:state",
+        "//test/ss:ss_type",
+        "//test/utils:field",
+        "//test/utils:vec_op",
+    ],
+)
