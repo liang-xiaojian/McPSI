@@ -7,17 +7,19 @@ namespace test::internal {
 using PTy = kFp64;
 
 namespace ym = yacl::math;
-using MTy = ym::MPInt;
+// (DY-PRF) Group Type
+using GTy = ym::MPInt;
 
 #pragma pack(8)
+// Distribute PTy with Mac (additive share)
 struct ATy {
   PTy val;
   PTy mac;
 };
-
-struct AMTy {
-  MTy val;
-  MTy mac;
+// Distribute GTy with Mac (multiplicative share)
+struct MTy {
+  GTy val;
+  GTy mac;
 };
 #pragma pack()
 

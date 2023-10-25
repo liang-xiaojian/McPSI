@@ -4,6 +4,7 @@
 #include "test/context/context.h"
 #include "test/context/state.h"
 #include "test/ss/ashare.h"
+#include "test/ss/gshare.h"
 #include "test/ss/public.h"
 #include "test/ss/type.h"
 #include "test/utils/config.h"
@@ -11,47 +12,53 @@
 
 namespace test {
 
+namespace ym = yacl::math;
+
 using PTy = internal::PTy;
 using ATy = internal::ATy;
-// using MTy = internal::MTy;
-
-// namespace ym = yacl::math;
+using GTy = internal::GTy;
+using MTy = internal::MTy;
 
 class Protocol : public State {
  private:
   std::shared_ptr<Context> ctx_;
   // SPDZ key
   PTy key_;
+
   // DY-PRF
-  //   MTy mod_;
-  //   MTy g_;
-  //   MTy k_;
+  bool init_prf_{false};
+  GTy mod_;  // the module for PRF
+  GTy g_;    // the generator for PRF
+  ATy k_;    // the distributed key for PRF
 
  public:
   static const std::string id;
 
   Protocol(std::shared_ptr<Context> ctx) : ctx_(ctx) {
-    // key_ = PTy(yacl::crypto::RandU64(true));
-    // mod_ = ym::MPInt(Prime64 * 2 + 1);
-    // YACL_ENFORCE(mod_.IsPrime());
-    // uint128_t r128 = ctx_->SyncSeed();
-    // auto [high, low] = yacl::DecomposeUInt128(r128);
-    // k_ = ym::MPInt(high).Mod(ym::MPInt(Prime64));
-    // g_ = ym::MPInt(low).PowMod(ym::MPInt(2), mod_);
+    // SPDZ key setup
+    key_ = PTy(yacl::crypto::RandU64(true));
   }
-
+  // SPDZ key
   PTy GetKey() const { return key_; }
 
-  //   MTy GetPrfMod() const { return mod_; }
+  // DY-PRF
+  void SetupPrf() {
+    if (init_prf_ == true) {
+      return;
+    }
+    // DY-PRF setup
+    mod_ = ym::MPInt(Prime64 * 2 + 1);
+    YACL_ENFORCE(mod_.IsPrime());
+    uint128_t r128 = ctx_->GetState<Connection>()->SyncSeed();
+    g_ = ym::MPInt(r128).PowMod(ym::MPInt(2), mod_);
+    k_ = RandA(1)[0];
+    init_prf_ = true;
+  }
 
-  //   MTy GetPrfG() const { return g_; }
-
-  //   MTy GetPrfK() const { return k_; }
-
-  // void RefreshPrfK() {
-  //   uint128_t r128 = ctx_->SyncSeed();
-  //   k_ = ym::MPInt(r128).Mod(ym::MPInt(Prime64));
-  // }
+  GTy GetPrfMod() const { return mod_; }
+  GTy GetPrfG() const { return g_; }
+  ATy GetPrfK() const { return k_; }
+  void RefreshPrfK() { k_ = RandA(1)[0]; }
 
   // PP evaluation
   std::vector<PTy> Add(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs);
@@ -80,6 +87,9 @@ class Protocol : public State {
   // convert
   std::vector<PTy> A2P(absl::Span<const ATy> in);
   std::vector<ATy> P2A(absl::Span<const PTy> in);
+  std::vector<MTy> A2M(absl::Span<const ATy> in);
+  std::vector<GTy> M2G(absl::Span<const MTy> in);
+  std::vector<GTy> A2G(absl::Span<const ATy> in);
 
   // others
   std::vector<PTy> Inv(absl::Span<const PTy> in);
