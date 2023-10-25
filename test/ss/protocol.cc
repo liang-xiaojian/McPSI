@@ -64,21 +64,16 @@ RegP(Inv);
 RegA(Neg);
 RegA(Inv);
 
-std::vector<PTy> Protocol::A2P(absl::Span<const ATy> in) {
-  return internal::A2P(ctx_, in);
-}
-std::vector<ATy> Protocol::P2A(absl::Span<const PTy> in) {
-  return internal::P2A(ctx_, in);
-}
-std::vector<MTy> Protocol::A2M(absl::Span<const ATy> in) {
-  return internal::A2M(ctx_, in);
-}
-std::vector<GTy> Protocol::M2G(absl::Span<const MTy> in) {
-  return internal::M2G(ctx_, in);
-}
-std::vector<GTy> Protocol::A2G(absl::Span<const ATy> in) {
-  return internal::A2G(ctx_, in);
-}
+#define RegConvert(FROM, TO)                                                 \
+  std::vector<TO##Ty> Protocol::FROM##2##TO(absl::Span<const FROM##Ty> in) { \
+    return internal::FROM##2##TO(ctx_, in);                                  \
+  }
+
+RegConvert(A, P);
+RegConvert(P, A);
+RegConvert(A, M);
+RegConvert(M, G);
+RegConvert(A, G);
 
 std::vector<PTy> Protocol::ZerosP(size_t num) {
   return internal::ZerosP(ctx_, num);
@@ -94,6 +89,14 @@ std::vector<ATy> Protocol::ZerosA(size_t num) {
 
 std::vector<ATy> Protocol::RandA(size_t num) {
   return internal::RandA(ctx_, num);
+}
+
+std::vector<ATy> Protocol::SetA(absl::Span<const PTy> in) {
+  return internal::SetA(ctx_, in);
+}
+
+std::vector<ATy> Protocol::GetA(size_t num) {
+  return internal::GetA(ctx_, num);
 }
 
 // shuffle

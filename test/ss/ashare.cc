@@ -295,4 +295,45 @@ std::vector<ATy> ShuffleA(std::shared_ptr<Context>& ctx,
   return ShuffleASet(ctx, tmp, perm);
 }
 
+// A-share Setter, return A-share ( in , in * key + r )
+std::vector<ATy> SetA(std::shared_ptr<Context>& ctx, absl::Span<const PTy> in) {
+  const size_t num = in.size();
+  auto rand = RandASet(ctx, num);
+  auto [val, mac] = Unpack(absl::MakeConstSpan(rand));
+  // reuse, diff = in - val
+  auto diff = Sub(absl::MakeConstSpan(in), absl::MakeConstSpan(val));
+  ctx->GetLink()->SendAsync(
+      ctx->NextRank(), yacl::ByteContainerView(diff.data(), num * sizeof(PTy)),
+      "SetA");
+  // extra = diff * key
+  auto diff_mac =
+      ScalarMul(ctx->GetState<Protocol>()->GetKey(), absl::MakeConstSpan(diff));
+  // mac = diff_mac + mac
+  Add(absl::MakeConstSpan(mac), absl::MakeConstSpan(diff_mac),
+      absl::MakeSpan(mac));
+  return Pack(absl::MakeConstSpan(in), absl::MakeConstSpan(mac));
+}
+// A-share Getter, return A-share (  0 , in * key - r )
+std::vector<ATy> GetA(std::shared_ptr<Context>& ctx, size_t num) {
+  auto zero = RandAGet(ctx, num);
+  auto [val, mac] = Unpack(absl::MakeConstSpan(zero));
+  auto buff = ctx->GetLink()->Recv(ctx->NextRank(), "SetA");
+  // diff
+  auto diff = absl::MakeSpan(reinterpret_cast<PTy*>(buff.data()), num);
+  auto diff_mac =
+      ScalarMul(ctx->GetState<Protocol>()->GetKey(), absl::MakeConstSpan(diff));
+  // mac = diff_mac + mac
+  Add(absl::MakeConstSpan(mac), absl::MakeConstSpan(diff_mac),
+      absl::MakeSpan(mac));
+  return Pack(absl::MakeConstSpan(val), absl::MakeConstSpan(mac));
+}
+
+std::vector<ATy> RandASet(std::shared_ptr<Context>& ctx, size_t num) {
+  return ctx->GetState<FakeCorrelation>()->RandomSet(num);
+}
+
+std::vector<ATy> RandAGet(std::shared_ptr<Context>& ctx, size_t num) {
+  return ctx->GetState<FakeCorrelation>()->RandomGet(num);
+}
+
 }  // namespace test::internal

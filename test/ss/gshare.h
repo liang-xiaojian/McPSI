@@ -17,6 +17,7 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in);
 
 // [Warning] low efficiency !!!
 // FIX ME: too much Pow Operation
+// Maybe we should use "GMP" instead ???
 // trival, since A2G = M2G( A2M )
 std::vector<GTy> A2G(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in);
 
