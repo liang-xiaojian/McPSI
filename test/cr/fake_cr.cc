@@ -14,11 +14,11 @@ void FakeCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
 
-  auto a0 = Rand(*ctx_->GetState<Prg>()->prg_, num);
-  auto a1 = Rand(*ctx_->GetState<Prg>()->prg_, num);
-  auto b0 = Rand(*ctx_->GetState<Prg>()->prg_, num);
-  auto b1 = Rand(*ctx_->GetState<Prg>()->prg_, num);
-  auto c0 = Rand(*ctx_->GetState<Prg>()->prg_, num);
+  auto a0 = Rand(*ctx_->GetState<Prg>(), num);
+  auto a1 = Rand(*ctx_->GetState<Prg>(), num);
+  auto b0 = Rand(*ctx_->GetState<Prg>(), num);
+  auto b1 = Rand(*ctx_->GetState<Prg>(), num);
+  auto c0 = Rand(*ctx_->GetState<Prg>(), num);
 
   auto aa = Add(absl::MakeConstSpan(a0), absl::MakeConstSpan(a1));
   auto bb = Add(absl::MakeConstSpan(b0), absl::MakeConstSpan(b1));
@@ -42,14 +42,14 @@ void FakeCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
 
 void FakeCorrelation::RandomSet(absl::Span<internal::ATy> out) {
   const size_t num = out.size();
-  auto rands = Rand(*ctx_->GetState<Prg>()->prg_, num);
+  auto rands = Rand(*ctx_->GetState<Prg>(), num);
   auto mac = ScalarMul(key_, absl::MakeSpan(rands));
   internal::Pack(absl::MakeConstSpan(rands), absl::MakeConstSpan(mac), out);
 }
 
 void FakeCorrelation::RandomGet(absl::Span<internal::ATy> out) {
   const size_t num = out.size();
-  auto rands = Rand(*ctx_->GetState<Prg>()->prg_, num);
+  auto rands = Rand(*ctx_->GetState<Prg>(), num);
   auto mac = ScalarMul(key_, absl::MakeSpan(rands));
   auto zeros = Zeros(num);
   internal::Pack(absl::MakeConstSpan(zeros), absl::MakeConstSpan(mac), out);

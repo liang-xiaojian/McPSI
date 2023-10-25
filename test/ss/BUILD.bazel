@@ -5,6 +5,9 @@ package(default_visibility = ["//visibility:public"])
 test_cc_library(
     name = "ss_type",
     hdrs = ["type.h"],
+    deps = [
+        "@yacl//yacl/math/mpint",
+    ],
 )
 
 test_cc_library(

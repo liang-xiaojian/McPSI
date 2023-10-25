@@ -6,50 +6,65 @@
 #include <memory>
 #include <string>
 
+#include "yacl/crypto/base/hash/hash_utils.h"
 #include "yacl/crypto/tools/prg.h"
+#include "yacl/crypto/utils/rand.h"
+#include "yacl/link/link.h"
 
 namespace test {
+
+// class State is just a kind of interface
 class State {
  public:
   virtual ~State() = default;
 };
 
-class Prg : public State {
- public:
-  static const std::string id;
-  std::shared_ptr<yacl::crypto::Prg<uint8_t>> prg_{nullptr};
-
-  template <typename... Args>
-  Prg(Args&&... args) {
-    prg_ = std::make_shared<yacl::crypto::Prg<uint8_t>>(
-        std::forward<Args>(args)...);
-  }
-};
-
-class StateList final {
+class StateContainer final {
  private:
-  std::map<std::string, std::shared_ptr<State>> states_;
+  std::map<std::string, std::shared_ptr<State>> map_;
 
  public:
-  StateList() : states_() {}
+  StateContainer() : map_() {}
 
   template <typename StateTy>
-  void InsertState(std::shared_ptr<StateTy> state) {
-    states_.insert(StateTy::id, state);
+  void AddState(std::shared_ptr<StateTy> state) {
+    map_.insert(StateTy::id, state);
   }
 
   template <typename StateTy, typename... Args>
-  void InsertState(Args&&... args) {
-    states_.emplace(StateTy::id,
-                    std::make_shared<StateTy>(std::forward<Args>(args)...));
+  void AddState(Args&&... args) {
+    map_.emplace(StateTy::id,
+                 std::make_shared<StateTy>(std::forward<Args>(args)...));
   }
 
   template <typename StateTy>
   std::shared_ptr<StateTy> GetState() {
-    auto iter = states_.find(StateTy::id);
-    YACL_ENFORCE(iter != states_.end());
+    auto iter = map_.find(StateTy::id);
+    YACL_ENFORCE(iter != map_.end(), "State id: {} NOT found !!!", StateTy::id);
     return std::dynamic_pointer_cast<StateTy>(iter->second);
   }
+};
+
+// Prg  (yacl::crypto::Prg)
+class Prg : public State, public yacl::crypto::Prg<uint8_t> {
+ public:
+  static const std::string id;
+
+  template <typename... Args>
+  Prg(Args&&... args)
+      : yacl::crypto::Prg<uint8_t>(std::forward<Args>(args)...) {}
+};
+
+// Connection (impl yacl::link::Context)
+class Connection : public State, public yacl::link::Context {
+ public:
+  static const std::string id;
+
+  template <typename... Args>
+  Connection(Args&&... args)
+      : yacl::link::Context(std::forward<Args>(args)...) {}
+
+  uint128_t SyncSeed();
 };
 
 }  // namespace test

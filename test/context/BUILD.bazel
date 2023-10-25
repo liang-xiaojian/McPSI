@@ -21,10 +21,7 @@ test_cc_library(
     hdrs = ["context.h"],
     deps = [
         "//test/context:state",
-        "@yacl//yacl/crypto/base/hash:hash_utils",
-        "@yacl//yacl/crypto/tools:prg",
-        "@yacl//yacl/crypto/utils:rand",
-        "@yacl//yacl/link",
+         "@yacl//yacl/link",
     ],
 )
 
@@ -34,6 +31,9 @@ test_cc_library(
     hdrs = ["state.h"],
     deps = [
         "@yacl//yacl/crypto/tools:prg",
+        "@yacl//yacl/crypto/base/hash:hash_utils",
+        "@yacl//yacl/crypto/utils:rand",
+        "@yacl//yacl/link",
     ],
 )
 

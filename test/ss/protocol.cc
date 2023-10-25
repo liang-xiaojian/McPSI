@@ -71,6 +71,10 @@ std::vector<ATy> Protocol::P2A(absl::Span<const PTy> in) {
   return internal::P2A(ctx_, in);
 }
 
+std::vector<PTy> Protocol::ZerosP(size_t num) {
+  return internal::ZerosP(ctx_, num);
+}
+
 std::vector<PTy> Protocol::RandP(size_t num) {
   return internal::RandP(ctx_, num);
 }

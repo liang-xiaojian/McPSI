@@ -8,11 +8,11 @@
 namespace test {
 
 void inline InitContext(std::shared_ptr<Context> ctx) {
-  uint128_t seed = ctx->SyncSeed();
-  ctx->states_->InsertState<Prg>(seed);
-  ctx->states_->InsertState<Protocol>(ctx);
+  uint128_t seed = ctx->GetState<Connection>()->SyncSeed();
+  ctx->states_->AddState<Prg>(seed);
+  ctx->states_->AddState<Protocol>(ctx);
   auto key = ctx->GetState<Protocol>()->GetKey();
-  ctx->states_->InsertState<FakeCorrelation>(ctx);
+  ctx->states_->AddState<FakeCorrelation>(ctx);
   ctx->GetState<FakeCorrelation>()->SetKey(key);
 }
 
