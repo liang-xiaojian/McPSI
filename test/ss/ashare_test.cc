@@ -285,4 +285,28 @@ TEST(ProtoclTest, ShuffleTwoSideTest) {
   rank1.get();
 };
 
+TEST(ProtoclTest, SetATest) {
+  auto context = MockContext(2);
+  MockInitContext(context);
+  size_t num = 10000;
+  auto rank0 = std::async([&] {
+    auto prot = context[0]->GetState<Protocol>();
+    auto rand = Rand(num);
+    auto ret_a = prot->SetA(rand);
+    [[maybe_unused]] auto ret_p = prot->A2P(ret_a);
+    return rand;
+  });
+  auto rank1 = std::async([&] {
+    auto prot = context[1]->GetState<Protocol>();
+    auto ret_a = prot->GetA(num);
+    auto ret_p = prot->A2P(ret_a);
+    return ret_p;
+  });
+  auto r_b = rank0.get();
+  auto r_a = rank1.get();
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(r_a[i], r_b[i]);
+  }
+}
+
 };  // namespace test

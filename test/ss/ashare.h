@@ -80,4 +80,13 @@ std::vector<ATy> inline ShuffleA(std::shared_ptr<Context>& ctx,
   return ShuffleA(ctx, in, absl::MakeSpan(perm));
 }
 
+// A-share Setter, return A-share ( in , in * key + r )
+std::vector<ATy> SetA(std::shared_ptr<Context>& ctx, absl::Span<const PTy> in);
+// A-share Getter, return A-share (  0 , in * key - r )
+std::vector<ATy> GetA(std::shared_ptr<Context>& ctx, size_t num);
+
+std::vector<ATy> RandASet(std::shared_ptr<Context>& ctx, size_t num);
+
+std::vector<ATy> RandAGet(std::shared_ptr<Context>& ctx, size_t num);
+
 }  // namespace test::internal

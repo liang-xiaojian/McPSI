@@ -102,8 +102,10 @@ class Protocol : public State {
   std::vector<PTy> RandP(size_t num);
   std::vector<ATy> ZerosA(size_t num);
   std::vector<ATy> RandA(size_t num);
-  std::vector<ATy> ShuffleA(absl::Span<const ATy> in);
+  std::vector<ATy> SetA(absl::Span<const PTy> in);
+  std::vector<ATy> GetA(size_t num);
 
+  std::vector<ATy> ShuffleA(absl::Span<const ATy> in);
   // shuffle entry
   std::vector<ATy> ShuffleA(absl::Span<const ATy> in,
                             absl::Span<const size_t> perm);
