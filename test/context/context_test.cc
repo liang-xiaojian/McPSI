@@ -47,11 +47,11 @@ TEST(ContextTest, PrgWork) {
 
   auto rank0 = std::async([&] {
     InitContext(context[0]);
-    return context[0]->GetState<Prg>()->prg_->Seed();
+    return context[0]->GetState<Prg>()->Seed();
   });
   auto rank1 = std::async([&] {
     InitContext(context[1]);
-    return context[1]->GetState<Prg>()->prg_->Seed();
+    return context[1]->GetState<Prg>()->Seed();
   });
 
   auto r_b = rank0.get();

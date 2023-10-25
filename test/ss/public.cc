@@ -48,7 +48,7 @@ std::vector<PTy> ZerosP([[maybe_unused]] std::shared_ptr<Context>& ctx,
 }
 
 std::vector<PTy> RandP(std::shared_ptr<Context>& ctx, size_t num) {
-  return Rand(*ctx->GetState<Prg>()->prg_, num);
+  return Rand(*ctx->GetState<Prg>(), num);
 }
 
 }  // namespace test::internal

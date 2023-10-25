@@ -89,7 +89,7 @@ std::vector<ATy> InvA(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
 std::vector<ATy> ZerosA(std::shared_ptr<Context>& ctx, size_t num) {
   std::vector<ATy> ret(num);
 
-  auto prg_ptr = ctx->GetState<Prg>()->prg_;
+  auto prg_ptr = ctx->GetState<Prg>();
   Rand(*prg_ptr, absl::MakeSpan(reinterpret_cast<PTy*>(ret.data()), num * 2));
   if (ctx->GetRank() == 0) {
     Neg(absl::MakeConstSpan(reinterpret_cast<const PTy*>(ret.data()), num * 2),

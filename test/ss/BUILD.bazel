@@ -5,17 +5,22 @@ package(default_visibility = ["//visibility:public"])
 test_cc_library(
     name = "ss_type",
     hdrs = ["type.h"],
+    deps = [
+        "@yacl//yacl/math/mpint",
+    ],
 )
 
 test_cc_library(
     name = "protocol",
     srcs = [
         "ashare.cc",
+        "gshare.cc",
         "protocol.cc",
         "public.cc",
     ],
     hdrs = [
         "ashare.h",
+        "gshare.h",
         "protocol.h",
         "public.h",
     ],
@@ -45,6 +50,19 @@ test_cc_test(
 test_cc_test(
     name = "ashare_test",
     srcs = ["ashare_test.cc"],
+    deps = [
+        ":protocol",
+        "//test/context:register",
+        "//test/utils:test_util",
+        "//test/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)
+
+test_cc_test(
+    name = "gshare_test",
+    srcs = ["gshare_test.cc"],
     deps = [
         ":protocol",
         "//test/context:register",

@@ -70,6 +70,19 @@ std::vector<PTy> Protocol::A2P(absl::Span<const ATy> in) {
 std::vector<ATy> Protocol::P2A(absl::Span<const PTy> in) {
   return internal::P2A(ctx_, in);
 }
+std::vector<MTy> Protocol::A2M(absl::Span<const ATy> in) {
+  return internal::A2M(ctx_, in);
+}
+std::vector<GTy> Protocol::M2G(absl::Span<const MTy> in) {
+  return internal::M2G(ctx_, in);
+}
+std::vector<GTy> Protocol::A2G(absl::Span<const ATy> in) {
+  return internal::A2G(ctx_, in);
+}
+
+std::vector<PTy> Protocol::ZerosP(size_t num) {
+  return internal::ZerosP(ctx_, num);
+}
 
 std::vector<PTy> Protocol::RandP(size_t num) {
   return internal::RandP(ctx_, num);

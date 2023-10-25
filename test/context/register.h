@@ -8,12 +8,16 @@
 namespace test {
 
 void inline InitContext(std::shared_ptr<Context> ctx) {
-  uint128_t seed = ctx->SyncSeed();
-  ctx->states_->InsertState<Prg>(seed);
-  ctx->states_->InsertState<Protocol>(ctx);
+  uint128_t seed = ctx->GetState<Connection>()->SyncSeed();
+  ctx->AddState<Prg>(seed);
+  ctx->AddState<Protocol>(ctx);
   auto key = ctx->GetState<Protocol>()->GetKey();
-  ctx->states_->InsertState<FakeCorrelation>(ctx);
+  ctx->AddState<FakeCorrelation>(ctx);
   ctx->GetState<FakeCorrelation>()->SetKey(key);
+  // strange !!!
+  // But Prf setup need "RandA" (which need correlated randomness)
+  // TODO: fix it
+  ctx->GetState<Protocol>()->SetupPrf();
 }
 
 void inline MockInitContext(std::vector<std::shared_ptr<Context>>& ctxs) {

@@ -1,20 +1,27 @@
 #pragma once
 #include "test/utils/field.h"
-// #include "yacl/math/mpint/mp_int.h"
+#include "yacl/math/mpint/mp_int.h"
 
 namespace test::internal {
 
 using PTy = kFp64;
 
+namespace ym = yacl::math;
+// (DY-PRF) Group Type
+using GTy = ym::MPInt;
+
 #pragma pack(8)
+// Distribute PTy with Mac (additive share)
 struct ATy {
   PTy val;
   PTy mac;
 };
+// Distribute GTy with Mac (multiplicative share)
+struct MTy {
+  GTy val;
+  GTy mac;
+};
 #pragma pack()
-
-// namespace ym = yacl::math;
-// using MTy = ym::MPInt;
 
 void inline Pack(absl::Span<const PTy> val, absl::Span<const PTy> mac,
                  absl::Span<ATy> ret) {
