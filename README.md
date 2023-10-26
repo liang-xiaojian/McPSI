@@ -61,4 +61,5 @@ bazel run -c opt //test/ss:gshare_test # test g-share (DY-PRF)
 simple example (toy psi)
 ```sh
 bazel run -c opt //test/example:toy_psi # run toy psi
+bazel run -c opt //test/example:toy_mc_psi # run toy circuit psi (sum)
 ```
