@@ -6,11 +6,29 @@ test_cc_binary(
     name = "toy_psi",
     srcs = ["toy_psi.cc"],
     deps = [
-        "//test/ss:protocol",
         "//test/context:register",
+        "//test/ss:protocol",
         "//test/utils:test_util",
         "//test/utils:vec_op",
         "@yacl//yacl/base:int128",
         "@yacl//yacl/utils:serialize",
     ],
+)
+
+test_cc_binary(
+    name = "toy_mc_psi",
+    srcs = ["toy_mc_psi.cc"],
+    deps = [
+        "//test/context:register",
+        "//test/ss:protocol",
+        "//test/utils:test_util",
+        "//test/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)
+
+test_cc_binary(
+    name = "test",
+    srcs = ["test.cc"],
 )
