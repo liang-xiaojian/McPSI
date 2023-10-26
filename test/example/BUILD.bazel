@@ -27,8 +27,3 @@ test_cc_binary(
         "@yacl//yacl/utils:serialize",
     ],
 )
-
-test_cc_binary(
-    name = "test",
-    srcs = ["test.cc"],
-)
