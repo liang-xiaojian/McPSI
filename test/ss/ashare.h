@@ -89,4 +89,10 @@ std::vector<ATy> RandASet(std::shared_ptr<Context>& ctx, size_t num);
 
 std::vector<ATy> RandAGet(std::shared_ptr<Context>& ctx, size_t num);
 
+std::vector<ATy> SumA(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in);
+
+std::vector<ATy> FilterA(std::shared_ptr<Context>& ctx,
+                         absl::Span<const ATy> in,
+                         absl::Span<const size_t> indexes);
+
 }  // namespace test::internal
