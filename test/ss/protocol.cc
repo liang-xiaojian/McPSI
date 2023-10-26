@@ -1,5 +1,7 @@
 #include "test/ss/protocol.h"
 
+#include "protocol.h"
+
 namespace test {
 
 // register string
@@ -97,6 +99,15 @@ std::vector<ATy> Protocol::SetA(absl::Span<const PTy> in) {
 
 std::vector<ATy> Protocol::GetA(size_t num) {
   return internal::GetA(ctx_, num);
+}
+
+std::vector<ATy> Protocol::SumA(absl::Span<const ATy> in) {
+  return internal::SumA(ctx_, in);
+}
+
+std::vector<ATy> Protocol::FilterA(absl::Span<const ATy> in,
+                                   absl::Span<const size_t> indexes) {
+  return internal::FilterA(ctx_, in, indexes);
 }
 
 // shuffle
