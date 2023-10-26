@@ -336,4 +336,28 @@ std::vector<ATy> RandAGet(std::shared_ptr<Context>& ctx, size_t num) {
   return ctx->GetState<FakeCorrelation>()->RandomGet(num);
 }
 
+std::vector<ATy> SumA([[maybe_unused]] std::shared_ptr<Context>& ctx,
+                      absl::Span<const ATy> in) {
+  const size_t num = in.size();
+  std::vector<ATy> ret(1, {0, 0});
+  for (size_t i = 0; i < num; ++i) {
+    ret[0].val = ret[0].val + in[i].val;
+    ret[0].mac = ret[0].mac + in[i].mac;
+  }
+  return ret;
+}
+
+std::vector<ATy> FilterA([[maybe_unused]] std::shared_ptr<Context>& ctx,
+                         absl::Span<const ATy> in,
+                         absl::Span<const size_t> indexes) {
+  const size_t ret_num = indexes.size();
+  const size_t in_num = in.size();
+  YACL_ENFORCE(ret_num <= in_num);
+  std::vector<ATy> ret(ret_num);
+  for (size_t i = 0; i < ret_num; ++i) {
+    ret[i] = in[indexes[i]];
+  }
+  return ret;
+}
+
 }  // namespace test::internal
