@@ -50,16 +50,16 @@ bazel test -c opt //... # run all test (with -O2)
 
 test components
 ```sh
-bazel run -c opt //test/utils:field_test # test field operation 
-bazel run -c opt //test/utils:vec_op_test # test vec field operation 
-bazel run -c opt //test/context:context_test # test context 
-bazel run -c opt //test/ss:public_test # test public (operation between PP)
-bazel run -c opt //test/ss:ashare_test # test a-share (operation between AA,AP,PA) 
-bazel run -c opt //test/ss:gshare_test # test g-share (DY-PRF)
+bazel run -c opt //mcpsi/utils:field_test # test field operation 
+bazel run -c opt //mcpsi/utils:vec_op_test # test vec field operation 
+bazel run -c opt //mcpsi/context:context_test # test context 
+bazel run -c opt //mcpsi/ss:public_test # test public (operation between PP)
+bazel run -c opt //mcpsi/ss:ashare_test # test a-share (operation between AA,AP,PA) 
+bazel run -c opt //mcpsi/ss:gshare_test # test g-share (DY-PRF)
 ```
 
 simple example (toy psi)
 ```sh
-bazel run -c opt //test/example:toy_psi # run toy psi
-bazel run -c opt //test/example:toy_mc_psi # run toy circuit psi (sum)
+bazel run -c opt //mcpsi/example:toy_psi # run toy psi
+bazel run -c opt //mcpsi/example:toy_mc_psi # run toy circuit psi (sum)
 ```
