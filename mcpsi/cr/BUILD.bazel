@@ -1,0 +1,20 @@
+load("//bazel:mcpsi.bzl", "mcpsi_cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+mcpsi_cc_library(
+    name = "fake_cr",
+    srcs = [
+        "fake_cr.cc",
+    ],
+    hdrs = [
+        "fake_cr.h",
+    ],
+    deps = [
+        "//mcpsi/context",
+        "//mcpsi/context:state",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+    ],
+)

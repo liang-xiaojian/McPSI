@@ -1,0 +1,53 @@
+load("//bazel:mcpsi.bzl", "mcpsi_cc_library", "mcpsi_cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+mcpsi_cc_library(
+    name = "config",
+    hdrs = ["config.h"],
+)
+
+mcpsi_cc_library(
+    name = "field",
+    hdrs = ["field.h"],
+    deps = [
+        ":config",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+mcpsi_cc_library(
+    name = "vec_op",
+    srcs = ["vec_op.cc"],
+    hdrs = ["vec_op.h"],
+    deps = [
+        ":field",
+        "@yacl//yacl/crypto/tools:prg",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+mcpsi_cc_library(
+    name = "test_util",
+    hdrs = ["test_util.h"],
+    deps = [
+        "//mcpsi/context",
+        "@yacl//yacl/link",
+    ],
+)
+
+mcpsi_cc_test(
+    name = "field_test",
+    srcs = ["field_test.cc"],
+    deps = [
+        ":field",
+    ],
+)
+
+mcpsi_cc_test(
+    name = "vec_op_test",
+    srcs = ["vec_op_test.cc"],
+    deps = [
+        ":vec_op",
+    ],
+)
