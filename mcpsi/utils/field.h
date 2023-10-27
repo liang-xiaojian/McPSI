@@ -21,7 +21,7 @@ uint64_t inline exgcd(uint64_t a, uint64_t b, uint64_t& x, uint64_t& y) {
 }
 
 // Invert function in GMP is not as efficient as repect
-// 10000 times "Div" ( GMP 27ms v.s. exgcd 12ms)
+// 10000 times "Div" ( GMP 27ms v.s. exgcd 12ms )
 
 // uint64_t inline gmp_invert(uint64_t in) {
 //   mpz_t tmp;

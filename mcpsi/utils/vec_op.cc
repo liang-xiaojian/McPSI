@@ -51,10 +51,8 @@ void Div(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
-
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = lhs[i] / rhs[i];
-  }
+  Inv(rhs, out);
+  Mul(lhs, out, out);
 }
 
 void Neg(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
@@ -65,11 +63,57 @@ void Neg(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
   }
 }
 
+template <size_t N>
+kFp64 BatchInv(absl::Span<const kFp64> in, absl::Span<kFp64> out,
+               kFp64 total = kFp64::One()) {
+  auto inv = BatchInv<N - 1>(in, out, total * in[N - 1]);
+  out[N - 1] = inv * total;
+  return inv * in[N - 1];
+}
+
+template <>
+kFp64 BatchInv<1>(absl::Span<const kFp64> in, absl::Span<kFp64> out,
+                  kFp64 total) {
+  auto inv = kFp64::Inv(total * in[0]);
+  out[0] = total * inv;
+  return inv * in[0];
+}
+
+// Batch Invert Optimize
 void Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
   const size_t size = out.size();
   YACL_ENFORCE(in.size() == size);
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = kFp64::Inv(in[i]);
+  size_t batch = size / 16;
+  size_t bound = batch * 16;
+  size_t remain = size - bound;
+  for (size_t i = 0; i < batch; ++i) {
+    BatchInv<16>(in.subspan(i * 16, 16), out.subspan(i * 16, 16));
+  }
+  switch (remain) {
+#define KASE(T)                                               \
+  case T:                                                     \
+    BatchInv<T>(in.subspan(bound, T), out.subspan(bound, T)); \
+    break;
+    KASE(15);
+    KASE(14);
+    KASE(13);
+    KASE(12);
+    KASE(11);
+    KASE(10);
+    KASE(9);
+    KASE(8);
+    KASE(7);
+    KASE(6);
+    KASE(5);
+    KASE(4);
+    KASE(3);
+    KASE(2);
+    KASE(1);
+#undef KASE
+    case 0:
+      break;
+    default:
+      YACL_ENFORCE(false, "Inv Error");
   }
 }
 

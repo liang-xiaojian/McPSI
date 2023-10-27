@@ -60,6 +60,17 @@ TEST(kFp64Test, DivWork) {
   }
 }
 
+TEST(kFp64Test, InvWork) {
+  size_t num = 10000;
+  auto lhs = Rand(num);
+  auto inv = Inv(absl::MakeSpan(lhs));
+  auto ret3 = Mul(absl::MakeSpan(inv), absl::MakeSpan(lhs));
+
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(ret3[i], kFp64(1));
+  }
+}
+
 TEST(kFp64Test, PrgWork) {
   size_t num = 10000;
   uint128_t seed = yacl::crypto::RandU128(true);
