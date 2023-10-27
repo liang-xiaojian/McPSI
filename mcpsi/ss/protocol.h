@@ -49,8 +49,11 @@ class Protocol : public State {
     // DY-PRF setup
     mod_ = ym::MPInt(Prime64 * 2 + 1);
     YACL_ENFORCE(mod_.IsPrime());
-    uint128_t r128 = ctx_->GetState<Connection>()->SyncSeed();
-    g_ = ym::MPInt(r128).PowMod(ym::MPInt(2), mod_);
+    // avoid communication
+    // TEST ME: whether is secure
+    uint64_t r64 = 0;
+    ctx_->GetState<Prg>()->Fill(absl::MakeSpan(&r64, 1));
+    g_ = ym::MPInt(r64).PowMod(ym::MPInt(2), mod_);
     k_ = RandA(1)[0];
     init_prf_ = true;
   }

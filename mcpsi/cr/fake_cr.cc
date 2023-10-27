@@ -75,39 +75,32 @@ void FakeCorrelation::RandomAuth(absl::Span<internal::ATy> out) {
 
 void FakeCorrelation::ShuffleSet(absl::Span<const size_t> perm,
                                  absl::Span<internal::PTy> delta) {
-  const size_t size = delta.size();
-  std::vector<internal::PTy> a(size);
-  std::vector<internal::PTy> b(size);
+  const size_t num = delta.size();
 
-  Rand(absl::MakeSpan(a));
-  Rand(absl::MakeSpan(b));
+  std::vector<uint128_t> seeds(2);
+  ctx_->GetState<Prg>()->Fill(absl::MakeSpan(seeds));
+  auto a = Rand(seeds[0], num);
+  auto b = Rand(seeds[1], num);
 
-  std::vector<internal::PTy> pi(size);
-  for (size_t i = 0; i < size; ++i) {
+  for (size_t i = 0; i < num; ++i) {
     delta[i] = a[perm[i]] + b[i];
   }
   // delta = - \Pi(a) - b
   Neg(absl::MakeConstSpan(delta), absl::MakeSpan(delta));
-
-  auto lctx = ctx_->GetLink();
-  lctx->SendAsync(
-      ctx_->NextRank(),
-      yacl::ByteContainerView(a.data(), a.size() * sizeof(internal::PTy)),
-      "send:a");
-  lctx->SendAsync(
-      ctx_->NextRank(),
-      yacl::ByteContainerView(b.data(), b.size() * sizeof(internal::PTy)),
-      "send:b");
 }
 
 void FakeCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
                                  absl::Span<internal::PTy> b) {
-  auto lctx = ctx_->GetLink();
-  auto a_buf = lctx->Recv(ctx_->NextRank(), "send:a");
-  auto b_buf = lctx->Recv(ctx_->NextRank(), "send:b");
+  const size_t num = a.size();
+  YACL_ENFORCE(num == b.size());
 
-  memcpy(a.data(), a_buf.data(), a_buf.size());
-  memcpy(b.data(), b_buf.data(), b_buf.size());
+  std::vector<uint128_t> seeds(2);
+  ctx_->GetState<Prg>()->Fill(absl::MakeSpan(seeds));
+  auto a_buf = Rand(seeds[0], num);
+  auto b_buf = Rand(seeds[1], num);
+
+  memcpy(a.data(), a_buf.data(), num * sizeof(internal::PTy));
+  memcpy(b.data(), b_buf.data(), num * sizeof(internal::PTy));
 }
 
 }  // namespace test

@@ -21,11 +21,13 @@ void Mul(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
 void ScalarMul(const kFp64 scalar, absl::Span<const kFp64> in,
                absl::Span<kFp64> out);
 
+// Implement : Mul(lsh , Inv(rhs))
 void Div(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
          absl::Span<kFp64> out);
 
 void Neg(absl::Span<const kFp64> in, absl::Span<kFp64> out);
 
+// fast batch inv
 void Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out);
 
 void Ones(absl::Span<kFp64> out);
@@ -90,14 +92,12 @@ std::vector<kFp64> inline Inv(absl::Span<const kFp64> in) {
 }
 
 std::vector<kFp64> inline Ones(uint32_t num) {
-  std::vector<kFp64> ret(num);
-  Ones(absl::MakeSpan(ret));
+  std::vector<kFp64> ret(num, kFp64::One());
   return ret;
 }
 
 std::vector<kFp64> inline Zeros(uint32_t num) {
-  std::vector<kFp64> ret(num);
-  Zeros(absl::MakeSpan(ret));
+  std::vector<kFp64> ret(num, kFp64::Zero());
   return ret;
 }
 
@@ -111,6 +111,11 @@ std::vector<kFp64> inline Rand(yacl::crypto::Prg<uint8_t>& prg, uint32_t num) {
   std::vector<kFp64> ret(num);
   Rand(prg, absl::MakeSpan(ret));
   return ret;
+}
+
+std::vector<kFp64> inline Rand(uint128_t seed, uint32_t num) {
+  auto prg = yacl::crypto::Prg<uint8_t>(seed);
+  return Rand(prg, num);
 }
 
 // Inner product
