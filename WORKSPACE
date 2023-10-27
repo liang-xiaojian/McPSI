@@ -1,8 +1,8 @@
 workspace(name = "test")
 
-load("//bazel:repositories.bzl", "test_deps")
+load("//bazel:repositories.bzl", "mcpsi_deps")
 
-test_deps()
+mcpsi_deps()
 
 load("@yacl//bazel:repositories.bzl", "yacl_deps")
 

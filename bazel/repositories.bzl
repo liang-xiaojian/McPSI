@@ -8,7 +8,7 @@ YACL_COMMIT_ID = "f933d7ff4caf0d9f7ea84cc3e9f51a9a6ee9eeca"
 
 SKYLIB_VERSION = "1.3.0"
 
-def test_deps():
+def mcpsi_deps():
     maybe(
         git_repository,
         name = "yacl",
@@ -24,4 +24,13 @@ def test_deps():
             "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz".format(version = SKYLIB_VERSION),
             "https://github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz".format(version = SKYLIB_VERSION),
         ],
+    )
+
+    maybe(
+        http_archive,
+        name = "gmp",
+        build_file = "//bazel:gmp.BUILD",
+        # sha256 = "fd4829912cddd12f84181c3451cc752be224643e87fac497b69edddadc49b4f2",
+        strip_prefix = "gmp-6.3.0",
+        urls = ["https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz"],
     )

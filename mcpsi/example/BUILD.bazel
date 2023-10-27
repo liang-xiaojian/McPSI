@@ -1,0 +1,29 @@
+load("//bazel:mcpsi.bzl", "mcpsi_cc_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+mcpsi_cc_binary(
+    name = "toy_psi",
+    srcs = ["toy_psi.cc"],
+    deps = [
+        "//mcpsi/context:register",
+        "//mcpsi/ss:protocol",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)
+
+mcpsi_cc_binary(
+    name = "toy_mc_psi",
+    srcs = ["toy_mc_psi.cc"],
+    deps = [
+        "//mcpsi/context:register",
+        "//mcpsi/ss:protocol",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)

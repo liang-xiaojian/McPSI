@@ -1,0 +1,74 @@
+load("//bazel:mcpsi.bzl", "mcpsi_cc_library", "mcpsi_cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+mcpsi_cc_library(
+    name = "ss_type",
+    hdrs = ["type.h"],
+    deps = [
+        "@yacl//yacl/math/mpint",
+    ],
+)
+
+mcpsi_cc_library(
+    name = "protocol",
+    srcs = [
+        "ashare.cc",
+        "gshare.cc",
+        "protocol.cc",
+        "public.cc",
+    ],
+    hdrs = [
+        "ashare.h",
+        "gshare.h",
+        "protocol.h",
+        "public.h",
+    ],
+    deps = [
+        ":ss_type",
+        "//mcpsi/context",
+        "//mcpsi/context:state",
+        "//mcpsi/cr:fake_cr",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+mcpsi_cc_test(
+    name = "public_test",
+    srcs = ["public_test.cc"],
+    deps = [
+        ":protocol",
+        "//mcpsi/context:register",
+        "//mcpsi/utils:test_util",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)
+
+mcpsi_cc_test(
+    name = "ashare_test",
+    srcs = ["ashare_test.cc"],
+    deps = [
+        ":protocol",
+        "//mcpsi/context:register",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)
+
+mcpsi_cc_test(
+    name = "gshare_test",
+    srcs = ["gshare_test.cc"],
+    deps = [
+        ":protocol",
+        "//mcpsi/context:register",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)
