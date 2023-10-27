@@ -13,8 +13,6 @@ class FakeCorrelation : public State {
   std::shared_ptr<Context> ctx_;
   kFp64 key_;
   kFp64 remote_key_;
-  // kFp64 seed_;
-  // kFp64 remote_seed_;
 
  public:
   static const std::string id;

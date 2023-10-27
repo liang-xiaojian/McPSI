@@ -113,6 +113,11 @@ std::vector<kFp64> inline Rand(yacl::crypto::Prg<uint8_t>& prg, uint32_t num) {
   return ret;
 }
 
+std::vector<kFp64> inline Rand(uint128_t seed, uint32_t num) {
+  auto prg = yacl::crypto::Prg<uint8_t>(seed);
+  return Rand(prg, num);
+}
+
 // Inner product
 kFp64 inline InPro(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs) {
   YACL_ENFORCE(lhs.size() == rhs.size());
