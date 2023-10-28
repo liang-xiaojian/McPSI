@@ -175,6 +175,8 @@ std::vector<ATy> DivPA(std::shared_ptr<Context>& ctx, absl::Span<const PTy> lhs,
 std::vector<PTy> A2P(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   // FIX ME !!!
   // insecure implementation without commitment
+
+  // TODO: Generate Prg Seed After Value open
   const size_t size = in.size();
   auto [val, mac] = Unpack(absl::MakeSpan(in));
   auto lctx = ctx->GetLink();
