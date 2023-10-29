@@ -5,14 +5,20 @@
 #include "mcpsi/cr/fake_cr.h"
 #include "mcpsi/ss/protocol.h"
 
-namespace test {
+namespace mcpsi {
 
 void inline InitContext(std::shared_ptr<Context> ctx) {
+  // Generate a same seed
   uint128_t seed = ctx->GetState<Connection>()->SyncSeed();
+  // Shared Prg, all parities own a same Prg (with same seed)
   ctx->AddState<Prg>(seed);
+  // Create Basic Protocol
   ctx->AddState<Protocol>(ctx);
+  // Get SPDZ key
   auto key = ctx->GetState<Protocol>()->GetKey();
+  // Create Correlated Randomness Generator
   ctx->AddState<FakeCorrelation>(ctx);
+  // Set SPDZ key
   ctx->GetState<FakeCorrelation>()->SetKey(key);
   // strange !!!
   // But Prf setup need "RandA" (which need correlated randomness)
@@ -28,4 +34,4 @@ void inline MockInitContext(std::vector<std::shared_ptr<Context>>& ctxs) {
   task1.get();
 }
 
-}  // namespace test
+}  // namespace mcpsi

@@ -2,7 +2,7 @@
 
 #include "field.h"
 #include "gtest/gtest.h"
-namespace test {
+namespace mcpsi {
 
 TEST(kFp64Test, AddWork) {
   size_t num = 10000;
@@ -114,4 +114,4 @@ TEST(kFp64Test, ShuffleWork) {
   }
 }
 
-}  // namespace test
+}  // namespace mcpsi

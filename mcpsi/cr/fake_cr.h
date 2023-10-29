@@ -6,7 +6,7 @@
 #include "mcpsi/context/state.h"
 #include "mcpsi/ss/type.h"
 
-namespace test {
+namespace mcpsi {
 
 class FakeCorrelation : public State {
  private:
@@ -84,4 +84,4 @@ class FakeCorrelation : public State {
   }
 };
 
-}  // namespace test
+}  // namespace mcpsi

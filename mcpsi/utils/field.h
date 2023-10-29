@@ -5,7 +5,7 @@
 #include "yacl/base/int128.h"
 #include "yacl/crypto/utils/rand.h"
 
-namespace test {
+namespace mcpsi {
 
 namespace {
 
@@ -98,4 +98,4 @@ class kFp64 {
   uint64_t val_;
 };
 
-};  // namespace test
+};  // namespace mcpsi

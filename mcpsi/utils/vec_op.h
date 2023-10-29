@@ -7,7 +7,7 @@
 #include "mcpsi/utils/field.h"
 #include "yacl/crypto/tools/prg.h"
 
-namespace test {
+namespace mcpsi {
 
 void Add(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
          absl::Span<kFp64> out);
@@ -132,4 +132,4 @@ kFp64 inline InPro(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs) {
 // Index Shuffle
 std::vector<size_t> GenPerm(uint32_t num);
 
-};  // namespace test
+};  // namespace mcpsi

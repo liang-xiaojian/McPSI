@@ -4,7 +4,7 @@
 #include "mcpsi/ss/protocol.h"
 #include "mcpsi/utils/test_util.h"
 
-using namespace test;
+using namespace mcpsi;
 
 std::vector<uint64_t> intersection(std::vector<uint64_t>& lhs,
                                    std::vector<uint64_t>& rhs) {

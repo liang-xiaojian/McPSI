@@ -2,7 +2,7 @@
 
 #include "field.h"
 
-namespace test {
+namespace mcpsi {
 void Add(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
          absl::Span<kFp64> out) {
   const uint32_t size = out.size();
@@ -168,4 +168,4 @@ std::vector<size_t> GenPerm(uint32_t num) {
   return perm;
 }
 
-}  // namespace test
+}  // namespace mcpsi

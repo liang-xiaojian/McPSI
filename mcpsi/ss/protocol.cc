@@ -2,7 +2,7 @@
 
 #include "protocol.h"
 
-namespace test {
+namespace mcpsi {
 
 // register string
 const std::string Protocol::id = std::string("Protocol");
@@ -128,4 +128,4 @@ std::vector<ATy> Protocol::ShuffleAGet(absl::Span<const ATy> in) {
   return internal::ShuffleAGet(ctx_, in);
 }
 
-}  // namespace test
+}  // namespace mcpsi

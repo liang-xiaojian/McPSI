@@ -7,7 +7,7 @@
 #include "mcpsi/utils/field.h"
 #include "mcpsi/utils/vec_op.h"
 
-namespace test::internal {
+namespace mcpsi::internal {
 
 // pure A-share operation
 
@@ -95,4 +95,4 @@ std::vector<ATy> FilterA(std::shared_ptr<Context>& ctx,
                          absl::Span<const ATy> in,
                          absl::Span<const size_t> indexes);
 
-}  // namespace test::internal
+}  // namespace mcpsi::internal

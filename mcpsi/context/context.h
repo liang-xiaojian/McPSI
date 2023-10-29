@@ -5,7 +5,7 @@
 #include "mcpsi/context/state.h"
 #include "yacl/link/link.h"
 
-namespace test {
+namespace mcpsi {
 
 class Context {
  public:
@@ -18,9 +18,7 @@ class Context {
     rank_ = lctx_->Rank();
   }
 
-  std::shared_ptr<yacl::link::Context> GetLink() {
-    return GetState<Connection>();
-  }
+  std::shared_ptr<Connection> GetConnection() { return GetState<Connection>(); }
 
   uint32_t NextRank() { return GetState<Connection>()->NextRank(); }
 
@@ -46,4 +44,4 @@ class Context {
   uint32_t rank_;
 };
 
-};  // namespace test
+};  // namespace mcpsi

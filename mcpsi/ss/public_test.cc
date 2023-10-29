@@ -5,7 +5,7 @@
 #include "mcpsi/ss/protocol.h"
 #include "mcpsi/utils/test_util.h"
 
-namespace test {
+namespace mcpsi {
 
 namespace yc = yacl::crypto;
 
@@ -34,4 +34,4 @@ DECLARE_PP_TEST(Sub);
 DECLARE_PP_TEST(Mul);
 DECLARE_PP_TEST(Div);
 
-};  // namespace test
+};  // namespace mcpsi

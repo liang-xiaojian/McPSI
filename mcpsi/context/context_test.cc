@@ -9,7 +9,7 @@
 #include "yacl/crypto/utils/rand.h"
 #include "yacl/utils/serialize.h"
 
-namespace test {
+namespace mcpsi {
 
 namespace yc = yacl::crypto;
 
@@ -22,14 +22,14 @@ TEST(ContextTest, LinkWork) {
   uint128_t r_b;
 
   auto rank0 = std::async([&] {
-    auto lctx = context[0]->GetLink();
+    auto lctx = context[0]->GetConnection();
     lctx->SendAsync(lctx->NextRank(), yacl::SerializeUint128(s_a), "s_a");
     auto buff = lctx->Recv(lctx->NextRank(), "s_b");
     return yacl::DeserializeUint128(buff);
   });
 
   auto rank1 = std::async([&] {
-    auto lctx = context[1]->GetLink();
+    auto lctx = context[1]->GetConnection();
     auto buff = lctx->Recv(lctx->NextRank(), "s_a");
     lctx->SendAsync(lctx->NextRank(), yacl::SerializeUint128(s_b), "s_b");
     return yacl::DeserializeUint128(buff);
@@ -60,4 +60,4 @@ TEST(ContextTest, PrgWork) {
   EXPECT_EQ(r_a, r_b);
 };
 
-};  // namespace test
+};  // namespace mcpsi

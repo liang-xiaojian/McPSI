@@ -2,7 +2,7 @@
 #include "mcpsi/utils/field.h"
 #include "yacl/math/mpint/mp_int.h"
 
-namespace test::internal {
+namespace mcpsi::internal {
 
 using PTy = kFp64;
 
@@ -85,4 +85,4 @@ std::vector<PTy> inline ExtractMac(absl::Span<const ATy> in) {
   }
   return mac;
 }
-}  // namespace test::internal
+}  // namespace mcpsi::internal

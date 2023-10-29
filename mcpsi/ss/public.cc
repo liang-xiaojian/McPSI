@@ -5,7 +5,7 @@
 #include "mcpsi/utils/field.h"
 #include "mcpsi/utils/vec_op.h"
 
-namespace test::internal {
+namespace mcpsi::internal {
 
 std::vector<PTy> AddPP([[maybe_unused]] std::shared_ptr<Context>& ctx,
                        absl::Span<const PTy> lhs, absl::Span<const PTy> rhs) {
@@ -51,4 +51,4 @@ std::vector<PTy> RandP(std::shared_ptr<Context>& ctx, size_t num) {
   return Rand(*ctx->GetState<Prg>(), num);
 }
 
-}  // namespace test::internal
+}  // namespace mcpsi::internal
