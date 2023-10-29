@@ -7,15 +7,16 @@
 
 using namespace mcpsi;
 
-std::vector<uint64_t> intersection(std::vector<uint64_t>& lhs,
-                                   std::vector<uint64_t>& rhs) {
-  std::sort(lhs.begin(), lhs.end());
-  std::sort(rhs.begin(), rhs.end());
+// return the set such that all elements "e"
+// satisyfing "e in set0" && "e in set1"
+std::vector<uint64_t> intersection(std::vector<uint64_t>& set0,
+                                   std::vector<uint64_t>& set1) {
+  std::sort(set0.begin(), set0.end());
+  std::sort(set1.begin(), set1.end());
 
   std::vector<uint64_t> ret;
-  std::set_intersection(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
+  std::set_intersection(set0.begin(), set0.end(), set1.begin(), set1.end(),
                         std::back_inserter(ret));
-
   return ret;
 }
 
@@ -47,11 +48,11 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
     auto psi = intersection(lhs, rhs);
 
     std::vector<size_t> indexes;
-    for (auto const e : psi) {
-      auto ptr = std::find(reveal1.begin(), reveal1.end(), GTy(e));
-      YACL_ENFORCE(ptr != reveal1.end());
-      auto idx = ptr - reveal1.begin();
-      indexes.emplace_back(idx);
+    for (size_t i = 0; i < reveal1.size(); ++i) {
+      auto ptr = std::find(psi.begin(), psi.end(), reveal1[i].Get<uint64_t>());
+      if (ptr != psi.end()) {
+        indexes.emplace_back(i);
+      }
     }
 
     auto selected = prot->FilterA(absl::MakeConstSpan(shuffle_secret),
@@ -65,7 +66,7 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
   });
   auto rank1 = std::async([&] {
     auto prot = context[1]->GetState<Protocol>();
-    std::vector<PTy> set1{2, 4, 6, 8, 10, 12, 14, 16, 18, 20};
+    std::vector<PTy> set1{2, 4, 6, 8, 10, 12, 14, 16, 18, 2};
     std::vector<PTy> val1{3, 6, 9, 12, 15, 18, 21, 24, 27, 30};
 
     auto share0 = prot->GetA(10);
@@ -90,11 +91,11 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
     auto psi = intersection(lhs, rhs);
 
     std::vector<size_t> indexes;
-    for (auto const e : psi) {
-      auto ptr = std::find(reveal1.begin(), reveal1.end(), GTy(e));
-      YACL_ENFORCE(ptr != reveal1.end());
-      auto idx = ptr - reveal1.begin();
-      indexes.emplace_back(idx);
+    for (size_t i = 0; i < reveal1.size(); ++i) {
+      auto ptr = std::find(psi.begin(), psi.end(), reveal1[i].Get<uint64_t>());
+      if (ptr != psi.end()) {
+        indexes.emplace_back(i);
+      }
     }
 
     auto selected = prot->FilterA(absl::MakeConstSpan(shuffle_secret),
@@ -117,7 +118,7 @@ int main() {
   std::cout << "Experiment: " << std::endl;
   std::cout << "Set0          --> {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}";
   std::cout << std::endl;
-  std::cout << "Set1          --> {2, 4, 6, 8, 10, 12, 14, 16, 18, 20}";
+  std::cout << "Set1          --> {2, 4, 6, 8, 10, 12, 14, 16, 18,  2}";
   std::cout << std::endl;
   std::cout << "                   |  |  |  |   |   |   |   |   |   | ";
   std::cout << std::endl;
@@ -125,9 +126,10 @@ int main() {
   std::cout << std::endl;
   std::cout << "                 { 3, 6, 9, 12, 15, 18, 21, 24, 27, 30}";
   std::cout << std::endl << std::endl;
-  std::cout << "sum( result ) --> 3 + 6 + 9 + 12 + 15 = 45";
+  std::cout << "sum( result ) --> 3 + 6 + 9 + 12 + 15 + 30 = 75";
   std::cout << std::endl;
 
+  // execute malicious circuit PSI (and sum the result)
   auto [result0, result1] = toy_mc_psi();
 
   std::cout << std::endl;
