@@ -1,7 +1,10 @@
 #pragma once
 
+#include "absl/strings/match.h"
+#include "absl/strings/str_split.h"
 #include "mcpsi/context/context.h"
 #include "yacl/link/test_util.h"
+
 
 namespace mcpsi {
 
@@ -66,4 +69,17 @@ std::vector<std::shared_ptr<Context>> MockContext(size_t world_size,
   }
   return result;
 }
+
+std::shared_ptr<Context> MakeContext(const std::string& parties, size_t rank) {
+  yl::ContextDesc lctx_desc;
+  std::vector<std::string> hosts = absl::StrSplit(parties, ',');
+  for (size_t rank = 0; rank < hosts.size(); rank++) {
+    const auto id = fmt::format("party{}", rank);
+    lctx_desc.parties.emplace_back(id, hosts[rank]);
+  }
+  auto lctx = yl::FactoryBrpc().CreateContext(lctx_desc, rank);
+  lctx->ConnectToMesh();
+  return std::make_shared<Context>(lctx);
+}
+
 };  // namespace mcpsi

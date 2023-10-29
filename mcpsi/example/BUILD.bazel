@@ -39,5 +39,7 @@ mcpsi_cc_binary(
         "//mcpsi/utils:vec_op",
         "@yacl//yacl/base:int128",
         "@yacl//yacl/utils:serialize",
+         "@llvm-project//llvm:Support",
+         "@com_google_absl//absl/strings",
     ],
 )
