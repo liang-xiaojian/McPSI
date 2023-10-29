@@ -96,4 +96,49 @@ std::vector<GTy> A2G(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
 //   return std::vector<GTy>(in.size());
 // }
 
+std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
+                      absl::Span<const ATy> set1, absl::Span<const ATy> data) {
+  YACL_ENFORCE(set1.size() == data.size());
+  auto prot = ctx->GetState<Protocol>();
+  // TODO:
+  auto perm0 = GenPerm(set0.size());
+  auto perm1 = GenPerm(set1.size());
+
+  auto shuffle0 = prot->ShuffleA(set0, perm0);
+  auto shuffle1 = prot->ShuffleA(set1, perm1);
+  auto shuffle_data = prot->ShuffleA(data, perm1);
+
+  auto reveal0 = prot->A2G(shuffle0);
+  auto reveal1 = prot->A2G(shuffle1);
+
+  std::vector<uint64_t> lhs(reveal0.size());
+  std::vector<uint64_t> rhs(reveal1.size());
+
+  std::transform(
+      reveal0.begin(), reveal0.end(), lhs.begin(),
+      [](const auto& e) -> uint64_t { return e.template Get<uint64_t>(); });
+  std::transform(
+      reveal1.begin(), reveal1.end(), rhs.begin(),
+      [](const auto& e) -> uint64_t { return e.template Get<uint64_t>(); });
+
+  std::sort(lhs.begin(), lhs.end());
+  std::sort(rhs.begin(), rhs.end());
+
+  std::vector<uint64_t> psi;
+  std::set_intersection(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
+                        std::back_inserter(psi));
+
+  std::vector<size_t> indexes;
+  for (size_t i = 0; i < reveal1.size(); ++i) {
+    auto ptr = std::find(psi.begin(), psi.end(), reveal1[i].Get<uint64_t>());
+    if (ptr != psi.end()) {
+      indexes.emplace_back(i);
+    }
+  }
+
+  auto selected_data = prot->FilterA(absl::MakeConstSpan(shuffle_data),
+                                     absl::MakeConstSpan(indexes));
+  return selected_data;
+}
+
 }  // namespace mcpsi::internal

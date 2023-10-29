@@ -6,15 +6,16 @@
 
 using namespace mcpsi;
 
-std::vector<uint64_t> intersection(std::vector<uint64_t>& lhs,
-                                   std::vector<uint64_t>& rhs) {
-  std::sort(lhs.begin(), lhs.end());
-  std::sort(rhs.begin(), rhs.end());
+// return the set such that all elements "e"
+// satisyfing "e in set0" && "e in set1"
+std::vector<uint64_t> intersection(std::vector<uint64_t>& set0,
+                                   std::vector<uint64_t>& set1) {
+  std::sort(set0.begin(), set0.end());
+  std::sort(set1.begin(), set1.end());
 
   std::vector<uint64_t> ret;
-  std::set_intersection(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
+  std::set_intersection(set0.begin(), set0.end(), set1.begin(), set1.end(),
                         std::back_inserter(ret));
-
   return ret;
 }
 

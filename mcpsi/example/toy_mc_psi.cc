@@ -7,19 +7,6 @@
 
 using namespace mcpsi;
 
-// return the set such that all elements "e"
-// satisyfing "e in set0" && "e in set1"
-std::vector<uint64_t> intersection(std::vector<uint64_t>& set0,
-                                   std::vector<uint64_t>& set1) {
-  std::sort(set0.begin(), set0.end());
-  std::sort(set1.begin(), set1.end());
-
-  std::vector<uint64_t> ret;
-  std::set_intersection(set0.begin(), set0.end(), set1.begin(), set1.end(),
-                        std::back_inserter(ret));
-  return ret;
-}
-
 auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
   auto context = MockContext(2);
   MockInitContext(context);
@@ -30,35 +17,7 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
     auto share1 = prot->GetA(10);
     auto secret = prot->GetA(10);
 
-    auto perm0 = GenPerm(10);
-    auto perm1 = GenPerm(10);
-    auto shuffle0 = prot->ShuffleA(share0, perm0);
-    auto shuffle1 = prot->ShuffleA(share1, perm1);
-    auto shuffle_secret = prot->ShuffleA(secret, perm1);
-
-    auto reveal0 = prot->A2G(shuffle0);
-    auto reveal1 = prot->A2G(shuffle1);
-
-    std::vector<uint64_t> lhs(10);
-    std::vector<uint64_t> rhs(10);
-    for (size_t i = 0; i < 10; ++i) {
-      lhs[i] = reveal0[i].Get<uint64_t>();
-      rhs[i] = reveal1[i].Get<uint64_t>();
-    }
-    auto psi = intersection(lhs, rhs);
-
-    std::vector<size_t> indexes;
-    for (size_t i = 0; i < reveal1.size(); ++i) {
-      auto ptr = std::find(psi.begin(), psi.end(), reveal1[i].Get<uint64_t>());
-      if (ptr != psi.end()) {
-        indexes.emplace_back(i);
-      }
-    }
-
-    auto selected = prot->FilterA(absl::MakeConstSpan(shuffle_secret),
-                                  absl::MakeConstSpan(indexes));
-
-    auto result_s = prot->SumA(selected);
+    auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
     auto ret = std::vector<uint64_t>(1);
     ret[0] = result_p[0].GetVal();
@@ -73,35 +32,7 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
     auto share1 = prot->SetA(set1);
     auto secret = prot->SetA(val1);
 
-    auto perm0 = GenPerm(10);
-    auto perm1 = GenPerm(10);
-    auto shuffle0 = prot->ShuffleA(share0, perm0);
-    auto shuffle1 = prot->ShuffleA(share1, perm1);
-    auto shuffle_secret = prot->ShuffleA(secret, perm1);
-
-    auto reveal0 = prot->A2G(shuffle0);
-    auto reveal1 = prot->A2G(shuffle1);
-
-    std::vector<uint64_t> lhs(10);
-    std::vector<uint64_t> rhs(10);
-    for (size_t i = 0; i < 10; ++i) {
-      lhs[i] = reveal0[i].Get<uint64_t>();
-      rhs[i] = reveal1[i].Get<uint64_t>();
-    }
-    auto psi = intersection(lhs, rhs);
-
-    std::vector<size_t> indexes;
-    for (size_t i = 0; i < reveal1.size(); ++i) {
-      auto ptr = std::find(psi.begin(), psi.end(), reveal1[i].Get<uint64_t>());
-      if (ptr != psi.end()) {
-        indexes.emplace_back(i);
-      }
-    }
-
-    auto selected = prot->FilterA(absl::MakeConstSpan(shuffle_secret),
-                                  absl::MakeConstSpan(indexes));
-
-    auto result_s = prot->SumA(selected);
+    auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
     auto ret = std::vector<uint64_t>(1);
     ret[0] = result_p[0].GetVal();

@@ -128,4 +128,10 @@ std::vector<ATy> Protocol::ShuffleAGet(absl::Span<const ATy> in) {
   return internal::ShuffleAGet(ctx_, in);
 }
 
+std::vector<ATy> Protocol::CPSI(absl::Span<const ATy> set0,
+                                absl::Span<const ATy> set1,
+                                absl::Span<const ATy> data) {
+  return internal::CPSI(ctx_, set0, set1, data);
+}
+
 }  // namespace mcpsi

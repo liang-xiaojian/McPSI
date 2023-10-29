@@ -120,6 +120,10 @@ class Protocol : public State {
   std::vector<ATy> ShuffleASet(absl::Span<const ATy> in,
                                absl::Span<const size_t> perm);
   std::vector<ATy> ShuffleAGet(absl::Span<const ATy> in);
+
+  // circuit PSI entry
+  std::vector<ATy> CPSI(absl::Span<const ATy> set0, absl::Span<const ATy> set1,
+                        absl::Span<const ATy> data);
 };
 
 }  // namespace mcpsi

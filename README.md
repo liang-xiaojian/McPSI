@@ -60,6 +60,7 @@ bazel run -c opt //mcpsi/ss:gshare_test # test g-share (DY-PRF)
 
 simple example (toy psi)
 ```sh
-bazel run -c opt //mcpsi/example:toy_psi # run toy psi
-bazel run -c opt //mcpsi/example:toy_mc_psi # run toy circuit psi (sum)
+bazel run -c opt //mcpsi/example:toy_psi # run toy psi // PoC
+bazel run -c opt //mcpsi/example:toy_mc_psi # run toy circuit psi (sum) // PoC
+bazel run -c opt //mcpsi/example:mc_psi -- --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset # run circuit psi
 ```
