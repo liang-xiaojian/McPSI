@@ -5,7 +5,7 @@
 #include "mcpsi/utils/field.h"
 #include "yacl/base/int128.h"
 
-namespace test {
+namespace mcpsi {
 
 constexpr static uint64_t Prime64 = 2305843009213697249;    // safe prime
 constexpr static uint128_t Prime128 = 4611686018427394499;  // Prime64 * 2 + 1
@@ -20,4 +20,4 @@ constexpr static uint128_t Prime128 = 4611686018427394499;  // Prime64 * 2 + 1
 
 // const static bool init_flag = GlobalInit();
 
-};  // namespace test
+};  // namespace mcpsi

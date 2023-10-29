@@ -11,7 +11,7 @@
 #include "yacl/crypto/utils/rand.h"
 #include "yacl/link/link.h"
 
-namespace test {
+namespace mcpsi {
 
 // class State is just a kind of interface
 class State {
@@ -75,4 +75,4 @@ class Connection : public State, public yacl::link::Context {
   T _ExchangeWithCommit(T val);
 };
 
-}  // namespace test
+}  // namespace mcpsi

@@ -2,7 +2,7 @@
 
 #include "mcpsi/utils/vec_op.h"
 
-namespace test {
+namespace mcpsi {
 
 // register string
 const std::string FakeCorrelation::id = std::string("FakeCorrelation");
@@ -103,4 +103,4 @@ void FakeCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
   memcpy(b.data(), b_buf.data(), num * sizeof(internal::PTy));
 }
 
-}  // namespace test
+}  // namespace mcpsi

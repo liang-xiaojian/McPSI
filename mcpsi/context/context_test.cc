@@ -9,7 +9,7 @@
 #include "yacl/crypto/utils/rand.h"
 #include "yacl/utils/serialize.h"
 
-namespace test {
+namespace mcpsi {
 
 namespace yc = yacl::crypto;
 
@@ -60,4 +60,4 @@ TEST(ContextTest, PrgWork) {
   EXPECT_EQ(r_a, r_b);
 };
 
-};  // namespace test
+};  // namespace mcpsi

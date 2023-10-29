@@ -10,7 +10,7 @@
 #include "mcpsi/utils/config.h"
 #include "yacl/crypto/utils/rand.h"
 
-namespace test {
+namespace mcpsi {
 
 namespace ym = yacl::math;
 
@@ -122,4 +122,4 @@ class Protocol : public State {
   std::vector<ATy> ShuffleAGet(absl::Span<const ATy> in);
 };
 
-}  // namespace test
+}  // namespace mcpsi

@@ -6,7 +6,7 @@
 #include "mcpsi/utils/test_util.h"
 #include "mcpsi/utils/vec_op.h"
 
-namespace test {
+namespace mcpsi {
 
 namespace yc = yacl::crypto;
 
@@ -309,4 +309,4 @@ TEST(ProtoclTest, SetATest) {
   }
 }
 
-};  // namespace test
+};  // namespace mcpsi

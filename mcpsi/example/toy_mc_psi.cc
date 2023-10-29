@@ -5,7 +5,7 @@
 #include "mcpsi/utils/test_util.h"
 #include "mcpsi/utils/vec_op.h"
 
-using namespace test;
+using namespace mcpsi;
 
 std::vector<uint64_t> intersection(std::vector<uint64_t>& lhs,
                                    std::vector<uint64_t>& rhs) {

@@ -7,7 +7,7 @@
 #include "mcpsi/utils/field.h"
 #include "mcpsi/utils/vec_op.h"
 
-namespace test::internal {
+namespace mcpsi::internal {
 std::vector<ATy> AddAA([[maybe_unused]] std::shared_ptr<Context>& ctx,
                        absl::Span<const ATy> lhs, absl::Span<const ATy> rhs) {
   YACL_ENFORCE(lhs.size() == rhs.size());
@@ -351,4 +351,4 @@ std::vector<ATy> FilterA([[maybe_unused]] std::shared_ptr<Context>& ctx,
   return ret;
 }
 
-}  // namespace test::internal
+}  // namespace mcpsi::internal

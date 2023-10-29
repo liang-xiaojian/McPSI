@@ -4,7 +4,7 @@
 #include "yacl/base/byte_container_view.h"
 #include "yacl/math/mpint/mp_int.h"
 
-namespace test::internal {
+namespace mcpsi::internal {
 
 std::vector<MTy> A2M(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   const size_t num = in.size();
@@ -96,4 +96,4 @@ std::vector<GTy> A2G(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
 //   return std::vector<GTy>(in.size());
 // }
 
-}  // namespace test::internal
+}  // namespace mcpsi::internal

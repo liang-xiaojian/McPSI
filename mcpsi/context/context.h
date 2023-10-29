@@ -5,7 +5,7 @@
 #include "mcpsi/context/state.h"
 #include "yacl/link/link.h"
 
-namespace test {
+namespace mcpsi {
 
 class Context {
  public:
@@ -44,4 +44,4 @@ class Context {
   uint32_t rank_;
 };
 
-};  // namespace test
+};  // namespace mcpsi

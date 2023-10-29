@@ -8,7 +8,7 @@
 #include "mcpsi/utils/field.h"
 #include "mcpsi/utils/vec_op.h"
 
-namespace test::internal {
+namespace mcpsi::internal {
 
 // core
 std::vector<MTy> A2M(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in);
@@ -24,4 +24,4 @@ std::vector<GTy> A2G(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in);
 // std::vector<GTy> P2G(std::shared_ptr<Context>& ctx, absl::Span<const PTy>
 // in);
 
-}  // namespace test::internal
+}  // namespace mcpsi::internal

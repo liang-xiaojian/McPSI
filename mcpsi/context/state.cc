@@ -1,6 +1,6 @@
 #include "mcpsi/context/state.h"
 
-namespace test {
+namespace mcpsi {
 // register string
 const std::string Prg::id = std::string("Prg");
 // register string
@@ -60,4 +60,4 @@ T Connection::_ExchangeWithCommit(T val) {
 
 ExchangeWithCommitImpl(uint128_t);
 ExchangeWithCommitImpl(uint64_t);
-}  // namespace test
+}  // namespace mcpsi

@@ -5,7 +5,7 @@
 #include "mcpsi/ss/type.h"
 #include "mcpsi/utils/field.h"
 
-namespace test::internal {
+namespace mcpsi::internal {
 
 std::vector<PTy> AddPP(std::shared_ptr<Context>& ctx, absl::Span<const PTy> lhs,
                        absl::Span<const PTy> rhs);
@@ -29,4 +29,4 @@ std::vector<PTy> ZerosP(std::shared_ptr<Context>& ctx, size_t num);
 
 std::vector<PTy> RandP(std::shared_ptr<Context>& ctx, size_t num);
 
-}  // namespace test::internal
+}  // namespace mcpsi::internal

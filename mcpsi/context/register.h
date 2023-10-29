@@ -5,7 +5,7 @@
 #include "mcpsi/cr/fake_cr.h"
 #include "mcpsi/ss/protocol.h"
 
-namespace test {
+namespace mcpsi {
 
 void inline InitContext(std::shared_ptr<Context> ctx) {
   // Generate a same seed
@@ -34,4 +34,4 @@ void inline MockInitContext(std::vector<std::shared_ptr<Context>>& ctxs) {
   task1.get();
 }
 
-}  // namespace test
+}  // namespace mcpsi
