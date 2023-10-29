@@ -18,9 +18,7 @@ class Context {
     rank_ = lctx_->Rank();
   }
 
-  std::shared_ptr<yacl::link::Context> GetLink() {
-    return GetState<Connection>();
-  }
+  std::shared_ptr<Connection> GetConnection() { return GetState<Connection>(); }
 
   uint32_t NextRank() { return GetState<Connection>()->NextRank(); }
 
