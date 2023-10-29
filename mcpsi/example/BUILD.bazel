@@ -27,3 +27,17 @@ mcpsi_cc_binary(
         "@yacl//yacl/utils:serialize",
     ],
 )
+
+
+mcpsi_cc_binary(
+    name = "mc_psi",
+    srcs = ["mc_psi.cc"],
+    deps = [
+        "//mcpsi/context:register",
+        "//mcpsi/ss:protocol",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/utils:serialize",
+    ],
+)

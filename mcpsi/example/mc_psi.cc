@@ -7,15 +7,22 @@
 
 using namespace mcpsi;
 
-auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
+auto mc_psi(size_t n0, size_t n1)
+    -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
   auto context = MockContext(2);
   MockInitContext(context);
+
+  size_t min_num = std::min(n0, n1) / 4;
+  std::vector<PTy> force = Rand(min_num);
+
   auto rank0 = std::async([&] {
+    std::vector<PTy> set0 = Rand(n0);
+    memcpy(set0.data(), force.data(), min_num * sizeof(PTy));
+
     auto prot = context[0]->GetState<Protocol>();
-    std::vector<PTy> set0{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     auto share0 = prot->SetA(set0);
-    auto share1 = prot->GetA(10);
-    auto secret = prot->GetA(10);
+    auto share1 = prot->GetA(n1);
+    auto secret = prot->GetA(n1);
 
     auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
@@ -24,11 +31,13 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
     return ret;
   });
   auto rank1 = std::async([&] {
-    auto prot = context[1]->GetState<Protocol>();
-    std::vector<PTy> set1{2, 4, 6, 8, 10, 12, 14, 16, 18, 2};
-    std::vector<PTy> val1{3, 6, 9, 12, 15, 18, 21, 24, 27, 30};
+    std::vector<PTy> set1 = Rand(n1);
+    std::vector<PTy> val1 = Rand(n1);
+    memcpy(set1.data(), force.data(), min_num * sizeof(PTy));
 
-    auto share0 = prot->GetA(10);
+    auto prot = context[1]->GetState<Protocol>();
+
+    auto share0 = prot->GetA(n0);
     auto share1 = prot->SetA(set1);
     auto secret = prot->SetA(val1);
 
@@ -46,26 +55,14 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
 }
 
 int main() {
-  std::cout << "Experiment: " << std::endl;
-  std::cout << "Set0          --> {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}";
-  std::cout << std::endl;
-  std::cout << "Set1          --> {2, 4, 6, 8, 10, 12, 14, 16, 18,  2}";
-  std::cout << std::endl;
-  std::cout << "                   |  |  |  |   |   |   |   |   |   | ";
-  std::cout << std::endl;
-  std::cout << "                   v  v  v  v   v   v   v   v   v   v ";
-  std::cout << std::endl;
-  std::cout << "                 { 3, 6, 9, 12, 15, 18, 21, 24, 27, 30}";
-  std::cout << std::endl << std::endl;
-  std::cout << "sum( result ) --> 3 + 6 + 9 + 12 + 15 + 30 = 75";
-  std::cout << std::endl;
-
+  size_t n0 = 10000;
+  size_t n1 = 10000;
   // execute malicious circuit PSI (and sum the result)
-  auto [result0, result1] = toy_mc_psi();
+  auto [result0, result1] = mc_psi(n0, n1);
 
-  std::cout << std::endl;
+  std::cout << "Current Task --> P0 with size ( " << n0
+            << " ) && P1 with size ( " << n1 << " )" << std::endl;
   std::cout << "P0 result (sum): " << result0[0] << std::endl;
   std::cout << "P1 result (sum): " << result1[0] << std::endl;
-
   return 0;
 }
