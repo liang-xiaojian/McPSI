@@ -11,8 +11,8 @@ namespace mcpsi {
 class FakeCorrelation : public State {
  private:
   std::shared_ptr<Context> ctx_;
+
   kFp64 key_;
-  kFp64 remote_key_;
 
  public:
   static const std::string id;
@@ -20,14 +20,8 @@ class FakeCorrelation : public State {
   FakeCorrelation(std::shared_ptr<Context> ctx) : ctx_(ctx) {}
 
   kFp64 GetKey() const { return key_; }
-  // kFp64 GetSeed() const { return seed_; }
-  void SetKey(kFp64 key) { key_ = key; }
-  // kFp64 SetSeed(kFp64 seed) { seed_ = seed; }
 
-  kFp64 GetRemoteKey() const { return remote_key_; }
-  // kFp64 GetRemoteSeed() const { return remote_seed_; }
-  void SetRemoteKey(kFp64 remote_key) { remote_key_ = remote_key; }
-  // kFp64 SetRemoteSeed(kFp64 remote_seed) { remote_seed_ = remote_seed; }
+  void SetKey(kFp64 key) { key_ = key; }
 
   // entry
   void BeaverTriple(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
