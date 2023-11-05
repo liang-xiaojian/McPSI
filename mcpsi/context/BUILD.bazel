@@ -44,6 +44,7 @@ mcpsi_cc_library(
         ":context",
         ":state",
         "//mcpsi/cr:fake_cr",
+        "//mcpsi/cr:cr",
         "//mcpsi/ss:protocol",
     ],
 )

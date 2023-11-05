@@ -2,6 +2,7 @@
 
 #include "mcpsi/context/context.h"
 #include "mcpsi/context/state.h"
+#include "mcpsi/cr/cr.h"
 #include "mcpsi/cr/fake_cr.h"
 #include "mcpsi/ss/protocol.h"
 
@@ -17,9 +18,9 @@ void inline InitContext(std::shared_ptr<Context> ctx) {
   // Get SPDZ key
   auto key = ctx->GetState<Protocol>()->GetKey();
   // Create Correlated Randomness Generator
-  ctx->AddState<FakeCorrelation>(ctx);
+  ctx->AddState<Correlation>(ctx);
   // Set SPDZ key
-  ctx->GetState<FakeCorrelation>()->SetKey(key);
+  ctx->GetState<Correlation>()->SetKey(key);
   // strange !!!
   // But Prf setup need "RandA" (which need correlated randomness)
   // TODO: fix it

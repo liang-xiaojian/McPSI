@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "mcpsi/cr/cr.h"
 #include "mcpsi/cr/fake_cr.h"
 #include "mcpsi/ss/protocol.h"
 #include "mcpsi/utils/field.h"
@@ -38,7 +39,7 @@ std::vector<ATy> MulAA(std::shared_ptr<Context>& ctx, absl::Span<const ATy> lhs,
                        absl::Span<const ATy> rhs) {
   YACL_ENFORCE(lhs.size() == rhs.size());
   const size_t size = lhs.size();
-  auto [a, b, c] = ctx->GetState<FakeCorrelation>()->BeaverTriple(size);
+  auto [a, b, c] = ctx->GetState<Correlation>()->BeaverTriple(size);
   auto u = SubAA(ctx, lhs, a);  // x-a
   auto v = SubAA(ctx, rhs, b);  // y-b
   auto u_p = A2P(ctx, u);
@@ -99,7 +100,7 @@ std::vector<ATy> ZerosA(std::shared_ptr<Context>& ctx, size_t num) {
 }
 
 std::vector<ATy> RandA(std::shared_ptr<Context>& ctx, size_t num) {
-  return ctx->GetState<FakeCorrelation>()->RandomAuth(num);
+  return ctx->GetState<Correlation>()->RandomAuth(num);
 }
 
 std::vector<ATy> AddAP([[maybe_unused]] std::shared_ptr<Context>& ctx,
@@ -223,8 +224,8 @@ std::vector<ATy> ShuffleAGet(std::shared_ptr<Context>& ctx,
                              absl::Span<const ATy> in) {
   const size_t num = in.size();
   // correlation
-  auto [val_a, val_b] = ctx->GetState<FakeCorrelation>()->ShuffleGet(num);
-  auto [mac_a, mac_b] = ctx->GetState<FakeCorrelation>()->ShuffleGet(num);
+  auto [val_a, val_b] = ctx->GetState<Correlation>()->ShuffleGet(num);
+  auto [mac_a, mac_b] = ctx->GetState<Correlation>()->ShuffleGet(num);
 
   auto [val_in, mac_in] = Unpack(absl::MakeConstSpan(in));
 
@@ -252,8 +253,8 @@ std::vector<ATy> ShuffleASet(std::shared_ptr<Context>& ctx,
   const size_t num = in.size();
   YACL_ENFORCE(num == perm.size());
   // correlation
-  auto val_delta = ctx->GetState<FakeCorrelation>()->ShuffleSet(perm);
-  auto mac_delta = ctx->GetState<FakeCorrelation>()->ShuffleSet(perm);
+  auto val_delta = ctx->GetState<Correlation>()->ShuffleSet(perm);
+  auto mac_delta = ctx->GetState<Correlation>()->ShuffleSet(perm);
 
   auto lctx = ctx->GetConnection();
   auto val_buf = lctx->Recv(ctx->NextRank(), "send:a");
@@ -320,11 +321,11 @@ std::vector<ATy> GetA(std::shared_ptr<Context>& ctx, size_t num) {
 }
 
 std::vector<ATy> RandASet(std::shared_ptr<Context>& ctx, size_t num) {
-  return ctx->GetState<FakeCorrelation>()->RandomSet(num);
+  return ctx->GetState<Correlation>()->RandomSet(num);
 }
 
 std::vector<ATy> RandAGet(std::shared_ptr<Context>& ctx, size_t num) {
-  return ctx->GetState<FakeCorrelation>()->RandomGet(num);
+  return ctx->GetState<Correlation>()->RandomGet(num);
 }
 
 std::vector<ATy> SumA([[maybe_unused]] std::shared_ptr<Context>& ctx,

@@ -85,4 +85,5 @@ std::vector<PTy> inline ExtractMac(absl::Span<const ATy> in) {
   }
   return mac;
 }
+
 }  // namespace mcpsi::internal

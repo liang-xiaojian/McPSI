@@ -1,4 +1,4 @@
-load("//bazel:mcpsi.bzl", "mcpsi_cc_library")
+load("//bazel:mcpsi.bzl", "mcpsi_cc_library" , "mcpsi_cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,5 +16,35 @@ mcpsi_cc_library(
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
+    ],
+)
+
+mcpsi_cc_library(
+    name = "cr",
+    srcs = [
+        "cr.cc",
+    ],
+    hdrs = [
+        "cr.h",
+    ],
+    deps = [
+        "//mcpsi/context",
+        "//mcpsi/context:state",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+        ":fake_cr",
+        "//mcpsi/cr/utils:ot_adapter",
+    ],
+)
+
+mcpsi_cc_test(
+    name = "cr_test",
+    srcs = ["cr_test.cc"],
+    deps = [
+        ":cr",
+        "//mcpsi/context:register",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/ss:ss_type",
     ],
 )
