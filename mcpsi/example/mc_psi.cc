@@ -39,31 +39,40 @@ auto mc_psi(size_t n0, size_t n1, size_t interset_size)
     memcpy(set0.data(), force.data(), interset_size * sizeof(PTy));
 
     auto prot = context[0]->GetState<Protocol>();
+    SPDLOG_INFO("[P0] upload data");
     auto share0 = prot->SetA(set0);
     auto share1 = prot->GetA(n1);
     auto secret = prot->GetA(n1);
-
+    SPDLOG_INFO("[P0] Begin Circuit-PSI, set0 {} && set1 {}", share0.size(),
+                share1.size());
     auto result_s = prot->CPSI(share0, share1, secret);
-    auto result_p = prot->A2P(result_s);
+    SPDLOG_INFO("[P0] interset size {}", result_s.size());
+    auto sum_s = prot->SumA(result_s);
+    auto result_p = prot->A2P(sum_s);
     auto ret = std::vector<uint64_t>(1);
     ret[0] = result_p[0].GetVal();
+    SPDLOG_INFO("[P0] sum is {}", ret[0]);
     return ret;
   });
   auto rank1 = std::async([&] {
     std::vector<PTy> set1 = Rand(n1);
-    std::vector<PTy> val1 = Rand(n1);
+    std::vector<PTy> val1 = Ones(n1);
     memcpy(set1.data(), force.data(), interset_size * sizeof(PTy));
 
     auto prot = context[1]->GetState<Protocol>();
-
+    SPDLOG_INFO("[P1] upload data");
     auto share0 = prot->GetA(n0);
     auto share1 = prot->SetA(set1);
     auto secret = prot->SetA(val1);
-
+    SPDLOG_INFO("[P1] Begin Circuit-PSI, set0 {} && set1 {}", share0.size(),
+                share1.size());
     auto result_s = prot->CPSI(share0, share1, secret);
-    auto result_p = prot->A2P(result_s);
+    SPDLOG_INFO("[P1] interset size {}", result_s.size());
+    auto sum_s = prot->SumA(result_s);
+    auto result_p = prot->A2P(sum_s);
     auto ret = std::vector<uint64_t>(1);
     ret[0] = result_p[0].GetVal();
+    SPDLOG_INFO("[P1] sum is {}", ret[0]);
     return ret;
   });
 
@@ -81,7 +90,8 @@ int main(int argc, char** argv) {
   size_t interset_size = cl_interset_size.getValue();
 
   if (interset_size > std::min(size0, size1)) {
-    std::cout << "[Warning] interset size (" << interset_size
+    std::cout << std::endl
+              << "[Warning] interset size (" << interset_size
               << ") is greater than the size of size0 (" << size0
               << ") / size1 (" << size1 << ")" << std::endl;
     interset_size = std::min(size0, size1);
