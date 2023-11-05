@@ -5,9 +5,10 @@
 #include "mcpsi/context/context.h"
 #include "mcpsi/context/state.h"
 #include "mcpsi/cr/fake_cr.h"
+#include "mcpsi/cr/utils/ot_adapter.h"
 #include "mcpsi/ss/type.h"
 
-namespace test {
+namespace mcpsi {
 
 class Correlation : public State {
  private:
@@ -20,8 +21,30 @@ class Correlation : public State {
   // use fake correlation
   std::shared_ptr<FakeCorrelation> fake_cr_ptr_;
 
+  // OT generator
+  std::shared_ptr<ot::OtAdapter> ot_sender_;
+  std::shared_ptr<ot::OtAdapter> ot_receiver_;
+
   Correlation(std::shared_ptr<Context> ctx) : ctx_(ctx) {
     fake_cr_ptr_ = std::make_shared<FakeCorrelation>(ctx);
+
+    if (ctx->GetRank() == 0) {
+      ot_sender_ = std::make_shared<ot::YaclKosOtAdapter>(
+          ctx->GetConnection()->Spawn(), true);
+      ot_sender_->OneTimeSetup();
+
+      ot_receiver_ = std::make_shared<ot::YaclKosOtAdapter>(
+          ctx->GetConnection()->Spawn(), false);
+      ot_receiver_->OneTimeSetup();
+    } else {
+      ot_receiver_ = std::make_shared<ot::YaclKosOtAdapter>(
+          ctx->GetConnection()->Spawn(), false);
+      ot_receiver_->OneTimeSetup();
+
+      ot_sender_ = std::make_shared<ot::YaclKosOtAdapter>(
+          ctx->GetConnection()->Spawn(), true);
+      ot_sender_->OneTimeSetup();
+    }
   }
 
   kFp64 GetKey() const { return key_; }
@@ -41,6 +64,10 @@ class Correlation : public State {
     BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
     return {a, b, c};
   }
+
+  void AuthSet(absl::Span<const internal::PTy> in,
+               absl::Span<internal::ATy> out);
+  void AuthGet(absl::Span<internal::ATy> out);
 
   // entry
   void RandomSet(absl::Span<internal::ATy> out);
@@ -83,6 +110,11 @@ class Correlation : public State {
     ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b));
     return std::make_pair(a, b);
   }
+
+ public:
+  void MulPPSender(absl::Span<internal::PTy> a, absl::Span<internal::PTy> c);
+
+  void MulPPReceiver(absl::Span<internal::PTy> b, absl::Span<internal::PTy> c);
 };
 
-}  // namespace test
+}  // namespace mcpsi

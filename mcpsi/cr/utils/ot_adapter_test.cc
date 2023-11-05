@@ -7,7 +7,7 @@
 namespace mcpsi::ot {
 
 TEST(OtAdapterTest, ROT) {
-  size_t num = 10000;
+  size_t num = 640000 * 4;
   std::vector<uint128_t> recv_data(num);
   std::vector<std::array<uint128_t, 2>> send_data(num);
   yacl::dynamic_bitset<uint128_t> choices(num);
@@ -32,7 +32,7 @@ TEST(OtAdapterTest, ROT) {
 };
 
 TEST(OtAdapterTest, COT) {
-  size_t num = 10000;
+  size_t num = 640000 * 4;
   std::vector<uint128_t> recv_data(num);
   std::vector<uint128_t> send_data(num);
   yacl::dynamic_bitset<uint128_t> choices(num);

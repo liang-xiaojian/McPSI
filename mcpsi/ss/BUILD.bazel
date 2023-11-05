@@ -29,6 +29,7 @@ mcpsi_cc_library(
         "//mcpsi/context",
         "//mcpsi/context:state",
         "//mcpsi/cr:fake_cr",
+        "//mcpsi/cr:cr",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
         "@yacl//yacl/crypto/utils:rand",
