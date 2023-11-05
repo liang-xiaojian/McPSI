@@ -149,7 +149,8 @@ void Correlation::BeaverTriple(absl::Span<internal::ATy> a,
   std::vector<internal::ATy> auth_a(num);
   std::vector<internal::ATy> auth_b(num);
   std::vector<internal::ATy> auth_c(num);
-
+  // TODO: fix it
+  // It need choose-and-cut strategy
   if (ctx_->GetRank() == 0) {
     AuthSet(absl::MakeSpan(p_a).subspan(0, num), absl::MakeSpan(auth_a));
     AuthSet(absl::MakeSpan(p_b).subspan(0, num), absl::MakeSpan(auth_b));

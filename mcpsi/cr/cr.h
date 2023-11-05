@@ -10,6 +10,7 @@
 
 namespace mcpsi {
 
+// TODO: It might be better to create a "CorrelationInterface" ?
 class Correlation : public State {
  private:
   std::shared_ptr<Context> ctx_;
