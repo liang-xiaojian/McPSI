@@ -35,6 +35,7 @@ mcpsi_cc_library(
         "//mcpsi/utils:vec_op",
         ":fake_cr",
         "//mcpsi/cr/utils:ot_adapter",
+        "//mcpsi/cr/utils:beaver_helper",
     ],
 )
 

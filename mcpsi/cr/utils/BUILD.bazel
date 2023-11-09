@@ -29,3 +29,20 @@ name = "ot_adapter_test",
         "//mcpsi/utils:test_util",
     ],
 )
+
+mcpsi_cc_library(
+    name = "beaver_helper",
+    srcs = [
+        "beaver_helper.cc",
+    ],
+    hdrs = [
+        "beaver_helper.h",
+    ],
+    deps = [
+        ":ot_adapter",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/context:state",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+    ],
+)
