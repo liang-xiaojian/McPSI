@@ -1,7 +1,7 @@
 #include "mcpsi/cr/cr.h"
 
 #include "mcpsi/cr/fake_cr.h"
-#include "mcpsi/cr/utils/beaver_helper.h"
+#include "mcpsi/cr/utils/ot_helper.h"
 #include "mcpsi/ss/type.h"
 #include "mcpsi/utils/vec_op.h"
 
@@ -22,7 +22,7 @@ void Correlation::BeaverTriple(absl::Span<internal::ATy> a,
   auto p_c = Zeros(num * 2);
 
   auto conn = ctx_->GetConnection();
-  ot::BeaverHelper(ot_sender_, ot_receiver_)
+  ot::OtHelper(ot_sender_, ot_receiver_)
       .BeaverTriple(conn, absl::MakeSpan(p_a), absl::MakeSpan(p_b),
                     absl::MakeSpan(p_c));
 

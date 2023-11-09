@@ -31,12 +31,12 @@ name = "ot_adapter_test",
 )
 
 mcpsi_cc_library(
-    name = "beaver_helper",
+    name = "ot_helper",
     srcs = [
-        "beaver_helper.cc",
+        "ot_helper.cc",
     ],
     hdrs = [
-        "beaver_helper.h",
+        "ot_helper.h",
     ],
     deps = [
         ":ot_adapter",
@@ -48,12 +48,14 @@ mcpsi_cc_library(
 )
 
 mcpsi_cc_test(
-name = "beaver_helper_test",
+name = "ot_helper_test",
     srcs = [
-        "beaver_helper.cc",
+        "ot_helper_test.cc",
     ],
     deps = [
-        ":beaver_helper",
+        ":ot_helper",
         "//mcpsi/utils:test_util",
+        "//mcpsi/cr",
+        "//mcpsi/context:register",
     ],
 )
