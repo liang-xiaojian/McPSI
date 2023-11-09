@@ -46,3 +46,14 @@ mcpsi_cc_library(
         "//mcpsi/utils:vec_op",
     ],
 )
+
+mcpsi_cc_test(
+name = "beaver_helper_test",
+    srcs = [
+        "beaver_helper.cc",
+    ],
+    deps = [
+        ":beaver_helper",
+        "//mcpsi/utils:test_util",
+    ],
+)
