@@ -29,3 +29,33 @@ name = "ot_adapter_test",
         "//mcpsi/utils:test_util",
     ],
 )
+
+mcpsi_cc_library(
+    name = "ot_helper",
+    srcs = [
+        "ot_helper.cc",
+    ],
+    hdrs = [
+        "ot_helper.h",
+    ],
+    deps = [
+        ":ot_adapter",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/context:state",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+    ],
+)
+
+mcpsi_cc_test(
+name = "ot_helper_test",
+    srcs = [
+        "ot_helper_test.cc",
+    ],
+    deps = [
+        ":ot_helper",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/cr",
+        "//mcpsi/context:register",
+    ],
+)

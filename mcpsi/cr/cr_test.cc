@@ -49,35 +49,6 @@ TEST(CrTest, SetValueWork) {
   }
 }
 
-TEST(CrTest, BeaverWork) {
-  auto context = MockContext(2);
-  MockInitContext(context);
-  const size_t num = 10000;
-
-  auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    std::vector<internal::PTy> a(num, 0);
-    std::vector<internal::PTy> c(num, 0);
-    cr->MulPPSender(absl::MakeSpan(a), absl::MakeSpan(c));
-    return std::make_tuple(a, c);
-  });
-  auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    std::vector<internal::PTy> b(num, 0);
-    std::vector<internal::PTy> c(num, 0);
-    cr->MulPPReceiver(absl::MakeSpan(b), absl::MakeSpan(c));
-    return std::make_tuple(b, c);
-  });
-
-  auto [a, c0] = rank0.get();
-  auto [b, c1] = rank1.get();
-
-  auto c = Add(absl::MakeConstSpan(c0), absl::MakeConstSpan(c1));
-  for (size_t i = 0; i < num; ++i) {
-    EXPECT_EQ(a[i] * b[i], c[i]);
-  }
-}
-
 TEST(CrTest, AuthBeaverWork) {
   auto context = MockContext(2);
   MockInitContext(context);

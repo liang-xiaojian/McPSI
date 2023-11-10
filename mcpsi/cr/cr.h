@@ -111,11 +111,6 @@ class Correlation : public State {
     ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b));
     return std::make_pair(a, b);
   }
-
- public:
-  void MulPPSender(absl::Span<internal::PTy> a, absl::Span<internal::PTy> c);
-
-  void MulPPReceiver(absl::Span<internal::PTy> b, absl::Span<internal::PTy> c);
 };
 
 }  // namespace mcpsi
