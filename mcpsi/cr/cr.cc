@@ -71,32 +71,6 @@ void Correlation::BeaverTriple(absl::Span<internal::ATy> a,
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_c.data()),
                           2 * num),
       absl::MakeSpan(reinterpret_cast<internal::PTy*>(c.data()), 2 * num));
-
-  auto p_ab = Mul(absl::MakeConstSpan(p_a), absl::MakeConstSpan(p_b));
-  std::vector<internal::ATy> auth_ab(num);
-  if (ctx_->GetRank() == 0) {
-    AuthSet(absl::MakeConstSpan(p_ab).subspan(0, num), absl::MakeSpan(auth_ab));
-  } else {
-    AuthGet(absl::MakeSpan(auth_ab));
-  }
-
-  Add(absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(c.data()),
-                          2 * num),
-      absl::MakeConstSpan(
-          reinterpret_cast<const internal::PTy*>(auth_ab.data()), 2 * num),
-      absl::MakeSpan(reinterpret_cast<internal::PTy*>(c.data()), 2 * num));
-
-  if (ctx_->GetRank() != 0) {
-    AuthSet(absl::MakeConstSpan(p_ab).subspan(0, num), absl::MakeSpan(auth_ab));
-  } else {
-    AuthGet(absl::MakeSpan(auth_ab));
-  }
-
-  Add(absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(c.data()),
-                          2 * num),
-      absl::MakeConstSpan(
-          reinterpret_cast<const internal::PTy*>(auth_ab.data()), 2 * num),
-      absl::MakeSpan(reinterpret_cast<internal::PTy*>(c.data()), 2 * num));
 }
 
 void Correlation::AuthSet(absl::Span<const internal::PTy> in,

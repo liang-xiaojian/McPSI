@@ -121,8 +121,6 @@ void OtHelper::MulPPRecv(std::shared_ptr<Connection> conn,
   }
 }
 
-// [warning] this functionality only satisfies that a0 * b1 + a1 * b0 = c0 + c1
-// TODO:  fix it !!!
 void OtHelper::BeaverTriple(std::shared_ptr<Connection> conn,
                             absl::Span<internal::PTy> a,
                             absl::Span<internal::PTy> b,
@@ -141,6 +139,9 @@ void OtHelper::BeaverTriple(std::shared_ptr<Connection> conn,
     MulPPSend(conn, absl::MakeSpan(b), absl::MakeSpan(c1));
   }
   Add(absl::MakeConstSpan(c0), absl::MakeConstSpan(c1), absl::MakeSpan(c));
+  // a*b
+  Mul(absl::MakeConstSpan(a), absl::MakeConstSpan(b), absl::MakeSpan(c0));
+  Add(absl::MakeConstSpan(c), absl::MakeConstSpan(c0), absl::MakeSpan(c));
 }
 
 void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
