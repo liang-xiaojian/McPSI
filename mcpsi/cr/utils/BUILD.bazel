@@ -87,3 +87,40 @@ mcpsi_cc_test(
         "//mcpsi/ss:ss_type",
     ],
 )
+
+mcpsi_cc_library(
+    name = "vole",
+    srcs = [
+        "vole.cc",
+    ],
+    hdrs = [
+        "vole.h",
+    ],
+    deps = [
+        "@yacl//yacl/crypto/primitives/ot:ot_store",
+        "@yacl//yacl/crypto/primitives/ot:gywz_ote",
+        "@yacl//yacl/crypto/utils:rand",
+        "@yacl//yacl/crypto/tools:random_permutation",
+        "@yacl//yacl/math:gadget",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+        "//mcpsi/context:state",
+        "@yacl//yacl/base:byte_container_view",
+    ],
+)
+
+mcpsi_cc_test(
+name = "vole_test",
+    srcs = [
+        "vole_test.cc",
+    ],
+    deps = [
+        ":vole",
+        "//mcpsi/context:register",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
+        "//mcpsi/cr",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)

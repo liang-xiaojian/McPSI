@@ -61,6 +61,8 @@ class kFp64 {
 
   bool operator==(const kFp64& rhs) const { return this->val_ == rhs.val_; }
 
+  bool operator!=(const kFp64& rhs) const { return !(*this == rhs); }
+
   uint64_t GetVal() const { return val_; }
 
   static kFp64 Add(const kFp64& lhs, const kFp64& rhs) { return lhs + rhs; }
