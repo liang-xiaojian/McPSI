@@ -1,8 +1,10 @@
 #pragma once
 
+#include "mcpsi/cr/utils/ot_adapter.h"
+#include "mcpsi/cr/utils/ot_helper.h"
+#include "mcpsi/cr/utils/vole.h"
+#include "mcpsi/ss/type.h"
 #include "yacl/base/dynamic_bitset.h"
-#include "yacl/crypto/primitives/ot/base_ot.h"
-#include "yacl/crypto/primitives/ot/kos_ote.h"
 #include "yacl/crypto/primitives/ot/ot_store.h"
 #include "yacl/crypto/utils/rand.h"
 
@@ -21,10 +23,9 @@ class VoleAdapter {
                      absl::Span<internal::PTy> b) = 0;
 
   virtual void OneTimeSetup() = 0;
-  virtual void OneTimeSetup(internal::PTy delta) = 0;
 
   internal::PTy delta_{0};
-  virtual uint128_t GetDelta() const { return delta_; }
+  virtual internal::PTy GetDelta() const { return delta_; }
 };
 
 class WolverineVoleAdapter : public VoleAdapter {
@@ -34,17 +35,27 @@ class WolverineVoleAdapter : public VoleAdapter {
                        internal::PTy delta) {
     ot_ptr_ = ot_ptr;
     conn_ = conn;
-    is_sender_ = ot_ptr_.IsSender();
+    is_sender_ = ot_ptr_->IsSender();
     YACL_ENFORCE(is_sender_ == true);  // Vole Sender has delta
     delta_ = delta;
+    lpn_param_ = LpnParam::GetDefault();
+
+    // a_ = std::vector<internal::PTy>(lpn_param_.n_, 0);
+    // b_ = std::vector<internal::PTy>(lpn_param_.n_, 0);
+    c_ = std::vector<internal::PTy>(lpn_param_.n_, 0);
   }
 
   WolverineVoleAdapter(const std::shared_ptr<Connection>& conn,
                        std::shared_ptr<ot::OtAdapter> ot_ptr) {
     ot_ptr_ = ot_ptr;
     conn_ = conn;
-    is_sender_ = ot_ptr_.IsSender();
+    is_sender_ = ot_ptr_->IsSender();
     YACL_ENFORCE(is_sender_ == false);  // Vole Receiver
+    lpn_param_ = LpnParam::GetDefault();
+
+    a_ = std::vector<internal::PTy>(lpn_param_.n_, 0);
+    b_ = std::vector<internal::PTy>(lpn_param_.n_, 0);
+    // c_ = std::vector<internal::PTy>(lpn_param_.n_, 0);
   }
 
   void rsend(absl::Span<internal::PTy> c) override;
@@ -77,6 +88,7 @@ class WolverineVoleAdapter : public VoleAdapter {
   uint64_t reserve_num_{0};
   uint64_t buff_used_num_{0};
   uint64_t buff_upper_bound_{0};
+  LpnParam lpn_param_;
 };
 
 }  // namespace mcpsi::vole

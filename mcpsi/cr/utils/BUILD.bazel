@@ -103,12 +103,7 @@ mcpsi_cc_library(
         "@yacl//yacl/crypto/tools:random_permutation",
         "@yacl//yacl/crypto/utils:rand",
         "@yacl//yacl/math:gadget",
-    ] + select({
-        "@platforms//cpu:aarch64": [
-            "@com_github_dltcollab_sse2neon//:sse2neon",
-        ],
-        "//conditions:default": [],
-    }),
+    ],
 )
 
 mcpsi_cc_test(
@@ -118,6 +113,46 @@ mcpsi_cc_test(
     ],
     deps = [
         ":vole",
+        "//mcpsi/context:register",
+        "//mcpsi/cr",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+
+mcpsi_cc_library(
+    name = "vole_adapter",
+    srcs = [
+        "vole_adapter.cc",
+    ],
+    hdrs = [
+        "vole_adapter.h",
+    ],
+    deps = [
+        ":vole",
+        ":linear_code",
+        ":ot_adapter",
+        ":ot_helper",
+        "//mcpsi/context:state",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/crypto/primitives/ot:ot_store",
+    ],
+)
+
+mcpsi_cc_test(
+    name = "vole_adapter_test",
+    srcs = [
+        "vole_adapter_test.cc",
+    ],
+    deps = [
+        ":vole",
+        ":vole_adapter",
+        ":ot_adapter",
+        ":ot_helper",
         "//mcpsi/context:register",
         "//mcpsi/cr",
         "//mcpsi/utils:test_util",
