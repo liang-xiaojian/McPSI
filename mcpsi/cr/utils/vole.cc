@@ -122,7 +122,7 @@ void WolverineVoleSend(const std::shared_ptr<Connection>& conn,
 
   auto seed = conn->SyncSeed();
   auto llc = code::LocalLinearCode<10>(seed, param.n_, param.k_);
-  llc.Encode(pre_c, c);
+  llc.Encode(pre_c.subspan(0, param.k_), c.subspan(0, param.n_));
 }
 
 void WolverineVoleRecv(const std::shared_ptr<Connection>& conn,
@@ -147,7 +147,8 @@ void WolverineVoleRecv(const std::shared_ptr<Connection>& conn,
 
   auto seed = conn->SyncSeed();
   auto llc = code::LocalLinearCode<10>(seed, param.n_, param.k_);
-  llc.Encode2(pre_a, a, pre_b, b);
+  llc.Encode2(pre_a.subspan(0, param.k_), a.subspan(0, param.n_),
+              pre_b.subspan(0, param.k_), b.subspan(0, param.n_));
 }
 
 }  // namespace mcpsi::vole
