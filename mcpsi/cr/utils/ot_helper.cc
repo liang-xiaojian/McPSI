@@ -252,7 +252,7 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
     b[i] = internal::PTy::Zero();
     for (size_t j = 0; j < kExtFactor; ++j) {
       a[i] = a[i] + ext_a[i * kExtFactor + j];
-      b[i] = b[i] + ext_b[i * kExtFactor + j];
+      b[i] = b[i] - ext_b[i * kExtFactor + j];
     }
   }
 }

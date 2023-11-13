@@ -1,4 +1,4 @@
-load("//bazel:mcpsi.bzl", "mcpsi_cc_library" , "mcpsi_cc_test")
+load("//bazel:mcpsi.bzl", "mcpsi_cc_library", "mcpsi_cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -11,16 +11,16 @@ mcpsi_cc_library(
         "ot_adapter.h",
     ],
     deps = [
+        "@yacl//yacl/base:dynamic_bitset",
+        "@yacl//yacl/crypto/primitives/ot:base_ot",
         "@yacl//yacl/crypto/primitives/ot:kos_ote",
         "@yacl//yacl/crypto/primitives/ot:ot_store",
-        "@yacl//yacl/crypto/primitives/ot:base_ot",
         "@yacl//yacl/crypto/utils:rand",
-        "@yacl//yacl/base:dynamic_bitset",
     ],
 )
 
 mcpsi_cc_test(
-name = "ot_adapter_test",
+    name = "ot_adapter_test",
     srcs = [
         "ot_adapter_test.cc",
     ],
@@ -40,23 +40,23 @@ mcpsi_cc_library(
     ],
     deps = [
         ":ot_adapter",
-        "//mcpsi/ss:ss_type",
         "//mcpsi/context:state",
+        "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
     ],
 )
 
 mcpsi_cc_test(
-name = "ot_helper_test",
+    name = "ot_helper_test",
     srcs = [
         "ot_helper_test.cc",
     ],
     deps = [
         ":ot_helper",
-        "//mcpsi/utils:test_util",
-        "//mcpsi/cr",
         "//mcpsi/context:register",
+        "//mcpsi/cr",
+        "//mcpsi/utils:test_util",
     ],
 )
 
@@ -64,18 +64,13 @@ mcpsi_cc_library(
     name = "linear_code",
     hdrs = ["linear_code.h"],
     deps = [
-        "@yacl//yacl/crypto/tools:random_permutation",
-        "@yacl//yacl/base:int128",
-        "@yacl//yacl/utils:thread_pool",
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
-    ] + select({
-        "@platforms//cpu:aarch64": [
-            "@com_github_dltcollab_sse2neon//:sse2neon",
-        ],
-        "//conditions:default": [],
-    }),
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/crypto/tools:random_permutation",
+        "@yacl//yacl/utils:thread_pool",
+    ],
 )
 
 mcpsi_cc_test(
@@ -83,8 +78,8 @@ mcpsi_cc_test(
     srcs = ["linear_code_test.cc"],
     deps = [
         ":linear_code",
-        "//mcpsi/utils:vec_op",
         "//mcpsi/ss:ss_type",
+        "//mcpsi/utils:vec_op",
     ],
 )
 
@@ -97,30 +92,71 @@ mcpsi_cc_library(
         "vole.h",
     ],
     deps = [
-        "@yacl//yacl/crypto/primitives/ot:ot_store",
-        "@yacl//yacl/crypto/primitives/ot:gywz_ote",
-        "@yacl//yacl/crypto/utils:rand",
-        "@yacl//yacl/crypto/tools:random_permutation",
-        "@yacl//yacl/math:gadget",
+        ":linear_code",
+        "//mcpsi/context:state",
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
-        "//mcpsi/context:state",
         "@yacl//yacl/base:byte_container_view",
+        "@yacl//yacl/crypto/primitives/ot:gywz_ote",
+        "@yacl//yacl/crypto/primitives/ot:ot_store",
+        "@yacl//yacl/crypto/tools:random_permutation",
+        "@yacl//yacl/crypto/utils:rand",
+        "@yacl//yacl/math:gadget",
     ],
 )
 
 mcpsi_cc_test(
-name = "vole_test",
+    name = "vole_test",
     srcs = [
         "vole_test.cc",
     ],
     deps = [
         ":vole",
         "//mcpsi/context:register",
+        "//mcpsi/cr",
         "//mcpsi/utils:test_util",
         "//mcpsi/utils:vec_op",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+
+mcpsi_cc_library(
+    name = "vole_adapter",
+    srcs = [
+        "vole_adapter.cc",
+    ],
+    hdrs = [
+        "vole_adapter.h",
+    ],
+    deps = [
+        ":vole",
+        ":linear_code",
+        ":ot_adapter",
+        ":ot_helper",
+        "//mcpsi/context:state",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/crypto/primitives/ot:ot_store",
+    ],
+)
+
+mcpsi_cc_test(
+    name = "vole_adapter_test",
+    srcs = [
+        "vole_adapter_test.cc",
+    ],
+    deps = [
+        ":vole",
+        ":vole_adapter",
+        ":ot_adapter",
+        ":ot_helper",
+        "//mcpsi/context:register",
         "//mcpsi/cr",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
         "@yacl//yacl/crypto/utils:rand",
     ],
 )

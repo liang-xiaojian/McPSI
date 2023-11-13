@@ -34,6 +34,7 @@ class OtAdapter {
 
   uint128_t Delta{0};
   virtual uint128_t GetDelta() const { return Delta; }
+  virtual bool IsSender() const = 0;
 };
 
 class YaclKosOtAdapter : public OtAdapter {
@@ -77,6 +78,8 @@ class YaclKosOtAdapter : public OtAdapter {
                 const yacl::dynamic_bitset<uint128_t>& choices) override;
 
   uint128_t GetDelta() const override { return Delta; }
+
+  bool IsSender() const override { return is_sender_; }
 
  private:
   std::shared_ptr<yl::Context> ctx_{nullptr};

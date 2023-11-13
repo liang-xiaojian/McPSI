@@ -94,7 +94,7 @@ TEST(OtHelperTest, BaseVoleWork) {
   auto [a, b] = rank1.get();
 
   for (size_t i = 0; i < num; ++i) {
-    EXPECT_EQ(a[i] * delta, b[i] + c[i]);
+    EXPECT_EQ(a[i] * delta + b[i], c[i]);
   }
 }
 
