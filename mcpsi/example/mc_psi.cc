@@ -39,12 +39,12 @@ auto mc_psi(size_t n0, size_t n1, size_t interset_size)
     memcpy(set0.data(), force.data(), interset_size * sizeof(PTy));
 
     auto prot = context[0]->GetState<Protocol>();
-    SPDLOG_INFO("[P0] upload data");
+    SPDLOG_INFO("[P0] uploading data");
     auto share0 = prot->SetA(set0);
     auto share1 = prot->GetA(n1);
     auto secret = prot->GetA(n1);
-    SPDLOG_INFO("[P0] Begin Circuit-PSI, set0 {} && set1 {}", share0.size(),
-                share1.size());
+    SPDLOG_INFO("[P0] Then, executing Circuit-PSI, set0 {} && set1 {}",
+                share0.size(), share1.size());
     auto result_s = prot->CPSI(share0, share1, secret);
     SPDLOG_INFO("[P0] interset size {}", result_s.size());
     auto sum_s = prot->SumA(result_s);
@@ -60,12 +60,12 @@ auto mc_psi(size_t n0, size_t n1, size_t interset_size)
     memcpy(set1.data(), force.data(), interset_size * sizeof(PTy));
 
     auto prot = context[1]->GetState<Protocol>();
-    SPDLOG_INFO("[P1] upload data");
+    SPDLOG_INFO("[P1] uploading data");
     auto share0 = prot->GetA(n0);
     auto share1 = prot->SetA(set1);
     auto secret = prot->SetA(val1);
-    SPDLOG_INFO("[P1] Begin Circuit-PSI, set0 {} && set1 {}", share0.size(),
-                share1.size());
+    SPDLOG_INFO("[P1] then, executing Circuit-PSI, set0 {} && set1 {}",
+                share0.size(), share1.size());
     auto result_s = prot->CPSI(share0, share1, secret);
     SPDLOG_INFO("[P1] interset size {}", result_s.size());
     auto sum_s = prot->SumA(result_s);

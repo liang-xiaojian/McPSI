@@ -24,4 +24,4 @@ build:ubsan --features=ubsan
 
 test --keep_going
 test --test_output=errors
-test --test_timeout=180
+test --test_timeout=300

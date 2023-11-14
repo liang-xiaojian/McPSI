@@ -6,6 +6,7 @@
 #include "mcpsi/context/state.h"
 #include "mcpsi/cr/fake_cr.h"
 #include "mcpsi/cr/utils/ot_adapter.h"
+#include "mcpsi/cr/utils/vole_adapter.h"
 #include "mcpsi/ss/type.h"
 
 namespace mcpsi {
@@ -15,6 +16,8 @@ class Correlation : public State {
  private:
   std::shared_ptr<Context> ctx_;
   kFp64 key_;
+  bool setup_ot_{false};
+  bool setup_vole_{false};  // useless
 
  public:
   static const std::string id;
@@ -22,36 +25,81 @@ class Correlation : public State {
   // use fake correlation
   std::shared_ptr<FakeCorrelation> fake_cr_ptr_;
 
-  // OT generator
+  // OT adapter
   std::shared_ptr<ot::OtAdapter> ot_sender_;
   std::shared_ptr<ot::OtAdapter> ot_receiver_;
+  // Vole adapter
+  std::shared_ptr<vole::VoleAdapter> vole_sender_;
+  std::shared_ptr<vole::VoleAdapter> vole_receiver_;
 
   Correlation(std::shared_ptr<Context> ctx) : ctx_(ctx) {
     fake_cr_ptr_ = std::make_shared<FakeCorrelation>(ctx);
+  }
 
-    if (ctx->GetRank() == 0) {
-      ot_sender_ = std::make_shared<ot::YaclKosOtAdapter>(
-          ctx->GetConnection()->Spawn(), true);
+  void InitOtAdapter() {
+    if (setup_ot_ == true) return;
+
+    auto conn = ctx_->GetConnection();
+    if (ctx_->GetRank() == 0) {
+      ot_sender_ = std::make_shared<ot::YaclKosOtAdapter>(conn->Spawn(), true);
       ot_sender_->OneTimeSetup();
 
-      ot_receiver_ = std::make_shared<ot::YaclKosOtAdapter>(
-          ctx->GetConnection()->Spawn(), false);
+      ot_receiver_ =
+          std::make_shared<ot::YaclKosOtAdapter>(conn->Spawn(), false);
       ot_receiver_->OneTimeSetup();
     } else {
-      ot_receiver_ = std::make_shared<ot::YaclKosOtAdapter>(
-          ctx->GetConnection()->Spawn(), false);
+      ot_receiver_ =
+          std::make_shared<ot::YaclKosOtAdapter>(conn->Spawn(), false);
       ot_receiver_->OneTimeSetup();
 
-      ot_sender_ = std::make_shared<ot::YaclKosOtAdapter>(
-          ctx->GetConnection()->Spawn(), true);
+      ot_sender_ = std::make_shared<ot::YaclKosOtAdapter>(conn->Spawn(), true);
       ot_sender_->OneTimeSetup();
     }
+
+    setup_ot_ = true;
+  }
+
+  void InitVoleAdapter() {
+    YACL_ENFORCE(setup_vole_ == false);
+    if (setup_ot_ == false) InitOtAdapter();
+
+    auto conn = ctx_->GetConnection();
+    if (ctx_->GetRank() == 0) {
+      vole_sender_ =
+          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_sender_, key_);
+      vole_sender_->OneTimeSetup();
+
+      vole_receiver_ =
+          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_receiver_);
+      vole_receiver_->OneTimeSetup();
+    } else {
+      vole_receiver_ =
+          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_receiver_);
+      vole_receiver_->OneTimeSetup();
+
+      vole_sender_ =
+          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_sender_, key_);
+      vole_sender_->OneTimeSetup();
+    }
+    setup_vole_ = true;
+  }
+
+  void OneTimeSetup() {
+    if (setup_ot_ == true) return;
+    InitOtAdapter();
+    if (setup_vole_ == true) return;
+    InitVoleAdapter();
   }
 
   kFp64 GetKey() const { return key_; }
+
   void SetKey(kFp64 key) {
     key_ = key;
     fake_cr_ptr_->SetKey(key);
+
+    setup_vole_ = false;  // set it as false
+    InitVoleAdapter();
+    YACL_ENFORCE(setup_vole_ == true);
   }
 
   // entry

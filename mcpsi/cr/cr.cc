@@ -110,20 +110,52 @@ void Correlation::AuthGet(absl::Span<internal::ATy> out) {
   memcpy(out.data(), ret.data(), ret.size() * sizeof(internal::ATy));
 }
 
-// use fake correlation to generate RandomAuth && Shuffle
-// TODO: remote fake cr
 void Correlation::RandomSet(absl::Span<internal::ATy> out) {
-  fake_cr_ptr_->RandomSet(out);
+  const size_t num = out.size();
+  std::vector<internal::PTy> a(num);
+  std::vector<internal::PTy> b(num);
+  // a * remote_key + b = remote_c
+  vole_receiver_->rrecv(absl::MakeSpan(a), absl::MakeSpan(b));
+  // mac = a * key_
+  auto mac = ScalarMul(key_, absl::MakeConstSpan(a));
+  // a's mac = a * local_key - b
+  Sub(absl::MakeConstSpan(mac), absl::MakeConstSpan(b), absl::MakeSpan(mac));
+  // Pack
+  internal::Pack(absl::MakeConstSpan(a), absl::MakeConstSpan(mac),
+                 absl::MakeSpan(out));
 }
 
 void Correlation::RandomGet(absl::Span<internal::ATy> out) {
-  fake_cr_ptr_->RandomGet(out);
+  const size_t num = out.size();
+  std::vector<internal::PTy> c(num);
+  // remote_a * key_ + remote_b = c
+  vole_sender_->rsend(absl::MakeSpan(c));
+  // Pack
+  auto zeros = Zeros(num);
+  internal::Pack(absl::MakeConstSpan(zeros), absl::MakeConstSpan(c),
+                 absl::MakeSpan(out));
 }
 
 void Correlation::RandomAuth(absl::Span<internal::ATy> out) {
-  fake_cr_ptr_->RandomAuth(out);
+  const size_t num = out.size();
+  std::vector<internal::ATy> zeros(num);
+  std::vector<internal::ATy> rands(num);
+  if (ctx_->GetRank() == 0) {
+    RandomSet(absl::MakeSpan(rands));
+    RandomGet(absl::MakeSpan(zeros));
+  } else {
+    RandomGet(absl::MakeSpan(zeros));
+    RandomSet(absl::MakeSpan(rands));
+  }
+  Add(absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(zeros.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(rands.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(out.data()), 2 * num));
 }
 
+// use fake correlation to generate Shuffle
+// TODO: remove fake cr
 void Correlation::ShuffleSet(absl::Span<const size_t> perm,
                              absl::Span<internal::PTy> delta) {
   fake_cr_ptr_->ShuffleSet(perm, delta);

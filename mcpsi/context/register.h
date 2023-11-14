@@ -19,6 +19,9 @@ void inline InitContext(std::shared_ptr<Context> ctx) {
   auto key = ctx->GetState<Protocol>()->GetKey();
   // Create Correlated Randomness Generator
   ctx->AddState<Correlation>(ctx);
+  // FIX ME: maybe?
+  // 1. ctx->AddState<Correlation>(ctx,key);
+  // 2. ctx->GetState<Correlation>()->OneTimeSetup();
   // Set SPDZ key
   ctx->GetState<Correlation>()->SetKey(key);
   // strange !!!
