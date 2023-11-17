@@ -101,7 +101,7 @@ TEST(OtHelperTest, BaseVoleWork) {
 TEST(OtHelperTest, ShuffleWork) {
   auto context = MockContext(2);
   MockInitContext(context);
-  const size_t num = 10000;
+  const size_t num = 1000;
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();

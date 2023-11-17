@@ -224,6 +224,7 @@ std::vector<ATy> ShuffleAGet(std::shared_ptr<Context>& ctx,
                              absl::Span<const ATy> in) {
   const size_t num = in.size();
   // correlation
+  // [Warning] low efficiency!!! optimize it
   auto [val_a, val_b] = ctx->GetState<Correlation>()->ShuffleGet(num);
   auto [mac_a, mac_b] = ctx->GetState<Correlation>()->ShuffleGet(num);
 
@@ -253,6 +254,7 @@ std::vector<ATy> ShuffleASet(std::shared_ptr<Context>& ctx,
   const size_t num = in.size();
   YACL_ENFORCE(num == perm.size());
   // correlation
+  // [Warning] low efficiency!!! optimize it
   auto val_delta = ctx->GetState<Correlation>()->ShuffleSet(perm);
   auto mac_delta = ctx->GetState<Correlation>()->ShuffleSet(perm);
 

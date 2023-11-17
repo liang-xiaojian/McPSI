@@ -1,6 +1,5 @@
 #include "mcpsi/cr/cr.h"
 
-#include "mcpsi/cr/fake_cr.h"
 #include "mcpsi/cr/utils/ot_helper.h"
 #include "mcpsi/ss/type.h"
 #include "mcpsi/utils/vec_op.h"
@@ -158,12 +157,14 @@ void Correlation::RandomAuth(absl::Span<internal::ATy> out) {
 // TODO: remove fake cr
 void Correlation::ShuffleSet(absl::Span<const size_t> perm,
                              absl::Span<internal::PTy> delta) {
-  fake_cr_ptr_->ShuffleSet(perm, delta);
+  auto conn = ctx_->GetConnection();
+  ot::OtHelper(ot_sender_, ot_receiver_).ShuffleSend(conn, perm, delta);
 }
 
 void Correlation::ShuffleGet(absl::Span<internal::PTy> a,
                              absl::Span<internal::PTy> b) {
-  fake_cr_ptr_->ShuffleGet(a, b);
+  auto conn = ctx_->GetConnection();
+  ot::OtHelper(ot_sender_, ot_receiver_).ShuffleRecv(conn, a, b);
 }
 
 }  // namespace mcpsi

@@ -9,9 +9,7 @@ void Add(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
 
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = lhs[i] + rhs[i];
-  }
+  std::transform(lhs.begin(), lhs.end(), rhs.begin(), out.begin(), std::plus());
 }
 
 void Sub(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
@@ -20,9 +18,8 @@ void Sub(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
 
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = lhs[i] - rhs[i];
-  }
+  std::transform(lhs.begin(), lhs.end(), rhs.begin(), out.begin(),
+                 std::minus());
 }
 
 void Mul(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
@@ -31,19 +28,15 @@ void Mul(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
 
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = lhs[i] * rhs[i];
-  }
+  std::transform(lhs.begin(), lhs.end(), rhs.begin(), out.begin(),
+                 std::multiplies());
 }
 
 void ScalarMul(const kFp64 scalar, absl::Span<const kFp64> in,
                absl::Span<kFp64> out) {
-  const uint32_t size = out.size();
-  YACL_ENFORCE(size == in.size());
-
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = scalar * in[i];
-  }
+  YACL_ENFORCE(out.size() == in.size());
+  std::transform(in.begin(), in.end(), out.begin(),
+                 [&scalar](kFp64 val) { return scalar * val; });
 }
 
 void Div(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
@@ -56,11 +49,8 @@ void Div(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
 }
 
 void Neg(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
-  const size_t size = out.size();
-  YACL_ENFORCE(in.size() == size);
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = kFp64::Neg(in[i]);
-  }
+  YACL_ENFORCE(in.size() == out.size());
+  std::transform(in.begin(), in.end(), out.begin(), kFp64::Neg);
 }
 
 template <size_t N>

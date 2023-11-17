@@ -268,21 +268,22 @@ void OtHelper::ShuffleSend(std::shared_ptr<Connection> conn,
                            absl::Span<internal::PTy> delta) {
   const size_t num = perm.size();
   YACL_ENFORCE(delta.size() == num);
-  // const size_t required_ot = num * yacl::math::Log2Ceil(num);
+  const size_t ot_num = ym::Log2Ceil(num);
+  const size_t required_ot = num * ot_num;
 
   std::vector<internal::PTy> a(num, internal::PTy(0));
   std::vector<internal::PTy> b(num, internal::PTy(0));
   std::vector<internal::PTy> opv(num);
   std::vector<uint128_t> punctured_msgs(num);
 
+  std::vector<uint128_t> ot_buff(required_ot);
+  yacl::dynamic_bitset<uint128_t> choices(required_ot);
+
+  ot_receiver_->recv_rcot(absl::MakeSpan(ot_buff), choices);
+  auto ot_store = yc::MakeOtRecvStore(choices, ot_buff);
+
   for (size_t i = 0; i < num; ++i) {
-    auto ot_num = ym::Log2Ceil(num);
-    std::vector<uint128_t> ot_buff(ot_num);
-    yacl::dynamic_bitset<uint128_t> choices(ot_num);
-
-    ot_receiver_->recv_rcot(absl::MakeSpan(ot_buff), choices);
-    auto ot_recv = yc::MakeOtRecvStore(choices, ot_buff);
-
+    auto ot_recv = ot_store.NextSlice(ot_num);
     yc::GywzOtExtRecv(conn, ot_recv, num, perm[i],
                       absl::MakeSpan(punctured_msgs));
     // break correlation
@@ -306,19 +307,19 @@ void OtHelper::ShuffleRecv(std::shared_ptr<Connection> conn,
                            absl::Span<internal::PTy> b) {
   const size_t num = a.size();
   YACL_ENFORCE(b.size() == num);
-  // const size_t required_ot = num * yacl::math::Log2Ceil(num);
+  const size_t ot_num = ym::Log2Ceil(num);
+  const size_t required_ot = num * ot_num;
 
   std::memset(a.data(), 0, num * sizeof(internal::PTy));
   std::vector<internal::PTy> opv(num);
   std::vector<uint128_t> all_msgs(num);
 
+  std::vector<uint128_t> ot_buff(required_ot);
+  ot_sender_->send_rcot(absl::MakeSpan(ot_buff));
+  auto ot_store = yc::MakeCompactOtSendStore(ot_buff, ot_sender_->GetDelta());
+
   for (size_t i = 0; i < num; ++i) {
-    auto ot_num = ym::Log2Ceil(num);
-    std::vector<uint128_t> ot_buff(ot_num);
-
-    ot_sender_->send_rcot(absl::MakeSpan(ot_buff));
-    auto ot_send = yc::MakeCompactOtSendStore(ot_buff, ot_sender_->GetDelta());
-
+    auto ot_send = ot_store.NextSlice(ot_num);
     yc::GywzOtExtSend(conn, ot_send, num, absl::MakeSpan(all_msgs));
     // break correlation
     yc::ParaCrHashInplace_128(absl::MakeSpan(all_msgs));

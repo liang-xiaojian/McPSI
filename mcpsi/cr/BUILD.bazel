@@ -33,7 +33,6 @@ mcpsi_cc_library(
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
-        ":fake_cr",
         "//mcpsi/cr/utils:ot_adapter",
         "//mcpsi/cr/utils:ot_helper",
         "//mcpsi/cr/utils:vole_adapter",
