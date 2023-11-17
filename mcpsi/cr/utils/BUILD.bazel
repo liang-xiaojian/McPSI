@@ -44,6 +44,9 @@ mcpsi_cc_library(
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
+        "@yacl//yacl/crypto/primitives/ot:gywz_ote",
+        "@yacl//yacl/math:gadget",
+        "@yacl//yacl/crypto/tools:random_permutation",
     ],
 )
 
