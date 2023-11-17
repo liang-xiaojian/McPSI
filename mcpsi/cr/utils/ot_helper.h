@@ -30,6 +30,13 @@ class OtHelper {
   void BaseVoleRecv(std::shared_ptr<Connection> conn,
                     absl::Span<internal::PTy> a, absl::Span<internal::PTy> b);
 
+  void ShuffleSend(std::shared_ptr<Connection> conn,
+                   absl::Span<const size_t> perm,
+                   absl::Span<internal::PTy> delta);
+
+  void ShuffleRecv(std::shared_ptr<Connection> conn,
+                   absl::Span<internal::PTy> a, absl::Span<internal::PTy> b);
+
  private:
   std::shared_ptr<OtAdapter> ot_sender_{nullptr};
   std::shared_ptr<OtAdapter> ot_receiver_{nullptr};

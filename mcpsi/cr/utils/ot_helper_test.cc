@@ -61,7 +61,7 @@ TEST(OtHelperTest, BeaverWork) {
 TEST(OtHelperTest, BaseVoleWork) {
   auto context = MockContext(2);
   MockInitContext(context);
-  const size_t num = 2;
+  const size_t num = 10000;
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();
@@ -95,6 +95,46 @@ TEST(OtHelperTest, BaseVoleWork) {
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(a[i] * delta + b[i], c[i]);
+  }
+}
+
+TEST(OtHelperTest, ShuffleWork) {
+  auto context = MockContext(2);
+  MockInitContext(context);
+  const size_t num = 1000;
+
+  auto rank0 = std::async([&] {
+    auto cr = context[0]->GetState<Correlation>();
+    auto conn = context[0]->GetConnection();
+    auto ot_sender = cr->ot_sender_;
+    auto ot_receiver = cr->ot_receiver_;
+
+    auto helper = OtHelper(ot_sender, ot_receiver);
+
+    auto perm = GenPerm(num);
+    std::vector<internal::PTy> delta(num);
+    helper.ShuffleSend(conn, absl::MakeSpan(perm), absl::MakeSpan(delta));
+    return std::make_tuple(perm, delta);
+  });
+  auto rank1 = std::async([&] {
+    auto cr = context[1]->GetState<Correlation>();
+    auto conn = context[1]->GetConnection();
+    auto ot_sender = cr->ot_sender_;
+    auto ot_receiver = cr->ot_receiver_;
+
+    auto helper = OtHelper(ot_sender, ot_receiver);
+
+    std::vector<internal::PTy> a(num);
+    std::vector<internal::PTy> b(num);
+    helper.ShuffleRecv(conn, absl::MakeSpan(a), absl::MakeSpan(b));
+    return std::make_tuple(a, b);
+  });
+
+  auto [perm, delta] = rank0.get();
+  auto [a, b] = rank1.get();
+
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(delta[i] + a[perm[i]] + b[i], internal::PTy(0));
   }
 }
 

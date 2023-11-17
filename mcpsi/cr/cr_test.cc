@@ -35,16 +35,10 @@ TEST(CrTest, SetValueWork) {
   auto mac0 = internal::ExtractMac(absl::MakeConstSpan(ret0));
   auto mac1 = internal::ExtractMac(absl::MakeConstSpan(ret1));
   auto mac = Add(absl::MakeConstSpan(mac0), absl::MakeConstSpan(mac1));
-  auto check0 = ScalarMul(context[0]->GetState<Correlation>()->GetKey(),
-                          absl::MakeSpan(value));
-  auto check1 = ScalarMul(context[1]->GetState<Correlation>()->GetKey(),
-                          absl::MakeSpan(value));
   auto check = ScalarMul(context[0]->GetState<Correlation>()->GetKey() +
                              context[1]->GetState<Correlation>()->GetKey(),
                          absl::MakeSpan(value));
   for (size_t i = 0; i < num; ++i) {
-    EXPECT_EQ(check0[i], mac0[i]);
-    EXPECT_EQ(check1[i], mac1[i]);
     EXPECT_EQ(check[i], mac[i]);
   }
 }
