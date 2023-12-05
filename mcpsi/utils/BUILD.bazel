@@ -13,7 +13,9 @@ mcpsi_cc_library(
     deps = [
         ":config",
         "@yacl//yacl/crypto/utils:rand",
+        "@boost//:multiprecision",
     ],
+    defines = ["BOOST_ALL_NO_LIB"],
 )
 
 mcpsi_cc_library(

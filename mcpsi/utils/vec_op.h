@@ -29,13 +29,9 @@ void Neg(absl::Span<const kFp64> in, absl::Span<kFp64> out);
 
 // fast batch inv
 void Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out);
-
 void Ones(absl::Span<kFp64> out);
-
 void Zeros(absl::Span<kFp64> out);
-
 void Rand(absl::Span<kFp64> out);
-
 void Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp64> out);
 
 std::vector<kFp64> inline Add(absl::Span<const kFp64> lhs,
