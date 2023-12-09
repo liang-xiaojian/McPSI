@@ -25,7 +25,7 @@ class TestParam {
 
   static std::vector<std::shared_ptr<Context>> Setup() {
     auto ctx = MockContext(2);
-    MockInitContext(ctx);
+    MockSetupContext(ctx);
     return ctx;
   }
 };
@@ -151,7 +151,7 @@ TEST(ProtocolTest, ZeroTest) {
   auto r_a = rank1.get();
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(r_a[i], r_b[i]);
-    EXPECT_EQ(r_a[i], kFp64::Zero());
+    EXPECT_EQ(r_a[i], PTy::Zero());
   }
 };
 
@@ -200,7 +200,7 @@ TEST(ProtocolTest, InvATest) {
   auto r_a = rank1.get();
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(r_a[i], r_b[i]);
-    EXPECT_EQ(r_a[i], kFp64::One());
+    EXPECT_EQ(r_a[i], PTy::One());
   }
 };
 
@@ -260,6 +260,10 @@ TEST(ProtocolTest, ShuffleOneSideTest) {
 TEST(ProtocolTest, ShuffleTwoSideTest) {
   auto context = TestParam::GetContext();
   size_t num = 10000;
+
+  // back-end integer
+  typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
+
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
     auto r_p = prot->RandP(num);
@@ -267,8 +271,8 @@ TEST(ProtocolTest, ShuffleTwoSideTest) {
     auto s_a = prot->ShuffleA(r_a);
     auto s_p = prot->A2P(s_a);
 
-    std::vector<uint64_t> sort_r(num);
-    std::vector<uint64_t> sort_s(num);
+    std::vector<INTEGER> sort_r(num);
+    std::vector<INTEGER> sort_s(num);
     memcpy(sort_r.data(), r_p.data(), num * sizeof(internal::PTy));
     memcpy(sort_s.data(), s_p.data(), num * sizeof(internal::PTy));
 
@@ -287,8 +291,8 @@ TEST(ProtocolTest, ShuffleTwoSideTest) {
     auto s_a = prot->ShuffleA(r_a);
     auto s_p = prot->A2P(s_a);
 
-    std::vector<uint64_t> sort_r(num);
-    std::vector<uint64_t> sort_s(num);
+    std::vector<INTEGER> sort_r(num);
+    std::vector<INTEGER> sort_s(num);
     memcpy(sort_r.data(), r_p.data(), num * sizeof(internal::PTy));
     memcpy(sort_s.data(), s_p.data(), num * sizeof(internal::PTy));
 

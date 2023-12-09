@@ -13,6 +13,7 @@
 namespace mcpsi {
 
 namespace ym = yacl::math;
+namespace yc = yacl::crypto;
 
 using PTy = internal::PTy;
 using ATy = internal::ATy;
@@ -28,9 +29,9 @@ class Protocol : public State {
 
   // DY-PRF
   bool init_prf_{false};
-  GTy mod_;  // the module for PRF
-  GTy g_;    // the generator for PRF
-  ATy k_;    // the distributed key for PRF
+  std::shared_ptr<yc::EcGroup> group_{nullptr};
+  GTy g_;  // the generator for PRF
+  ATy k_;  // the distributed key for PRF
 
  public:
   static const std::string id;
@@ -47,19 +48,15 @@ class Protocol : public State {
     if (init_prf_ == true) {
       return;
     }
-    // DY-PRF setup
-    mod_ = ym::MPInt(Prime64 * 2 + 1);
-    YACL_ENFORCE(mod_.IsPrime());
     // avoid communication
-    // TEST ME: whether is secure
-    uint64_t r64 = 0;
-    ctx_->GetState<Prg>()->Fill(absl::MakeSpan(&r64, 1));
-    g_ = ym::MPInt(r64).PowMod(ym::MPInt(2), mod_);
+    group_ = yc::EcGroupFactory::Instance().Create("secp128r2",
+                                                   yacl::ArgLib = "openssl");
+    g_ = group_->GetGenerator();
     k_ = RandA(1)[0];
     init_prf_ = true;
   }
 
-  GTy GetPrfMod() const { return mod_; }
+  std::shared_ptr<yc::EcGroup> GetGroup() const { return group_; }
   GTy GetPrfG() const { return g_; }
   ATy GetPrfK() const { return k_; }
   void RefreshPrfK() { k_ = RandA(1)[0]; }

@@ -30,7 +30,7 @@ auto mc_psi(size_t n0, size_t n1, size_t interset_size)
     -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
   auto flag = cl_mode.getValue() == 0;  // 0 for memory, otherwise localhost
   auto context = MockContext(2, flag);
-  MockInitContext(context);
+  MockSetupContext(context);
 
   std::vector<PTy> force = OP::Rand(interset_size);
 

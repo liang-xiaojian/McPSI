@@ -26,7 +26,7 @@ uint64_t inline exgcd64(uint64_t a, uint64_t b, uint64_t& x, uint64_t& y) {
 uint128_t inline exgcd128(uint128_t a, uint128_t b, uint128_t& x,
                           uint128_t& y) {
   uint128_t x1 = 1, x2 = 0, x3 = 0, x4 = 1;
-  while (b != 0) {
+  while (b != static_cast<uint128_t>(0)) {
     uint128_t c = a / b;
     std::tie(x1, x2, x3, x4, a, b) =
         std::make_tuple(x3, x4, x1 - x3 * c, x2 - x4 * c, b, a - b * c);
@@ -159,7 +159,7 @@ class kFp128 {
     // uint64_t result = gmp_invert(in.val_);
     uint128_t result = 0, _ = 0;
     uint128_t check = exgcd128(in.val_, Prime128, result, _);
-    YACL_ENFORCE(check == 1);
+    YACL_ENFORCE(check == 1, "current check is {}", check);
     return kFp128(result + Prime128);
   }
 

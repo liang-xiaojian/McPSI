@@ -12,16 +12,16 @@ class FakeCorrelation : public State {
  private:
   std::shared_ptr<Context> ctx_;
 
-  kFp64 key_;
+  internal::PTy key_;
 
  public:
   static const std::string id;
 
   FakeCorrelation(std::shared_ptr<Context> ctx) : ctx_(ctx) {}
 
-  kFp64 GetKey() const { return key_; }
+  internal::PTy GetKey() const { return key_; }
 
-  void SetKey(kFp64 key) { key_ = key; }
+  void SetKey(internal::PTy key) { key_ = key; }
 
   // entry
   void BeaverTriple(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,

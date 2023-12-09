@@ -12,7 +12,7 @@ namespace mcpsi::ot {
 
 TEST(OtHelperTest, BeaverWork) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   const size_t num = 1;
 
   auto rank0 = std::async([&] {
@@ -60,7 +60,7 @@ TEST(OtHelperTest, BeaverWork) {
 
 TEST(OtHelperTest, BaseVoleWork) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   const size_t num = 10000;
 
   auto rank0 = std::async([&] {
@@ -100,7 +100,7 @@ TEST(OtHelperTest, BaseVoleWork) {
 
 TEST(OtHelperTest, ShuffleWork) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   const size_t num = 1000;
 
   auto rank0 = std::async([&] {

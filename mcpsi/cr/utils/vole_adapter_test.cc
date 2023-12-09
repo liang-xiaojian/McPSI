@@ -27,7 +27,7 @@ class VoleAdapterTest : public ::testing::TestWithParam<VoleTestParam> {};
 // TODO: Fix Link Problem !!!
 TEST_P(VoleAdapterTest, Work) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   const size_t vole_num = GetParam().num;
   auto deltas = internal::op::Rand(1);
   auto delta = deltas[0];

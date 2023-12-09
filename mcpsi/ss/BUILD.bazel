@@ -7,6 +7,8 @@ mcpsi_cc_library(
     hdrs = ["type.h"],
     deps = [
         "@yacl//yacl/math/mpint",
+        "@yacl//yacl/utils/spi:spi",
+        "@yacl//yacl/crypto/base/ecc",
         "//mcpsi/utils:vec_op",
         "//mcpsi/utils:field",
     ],

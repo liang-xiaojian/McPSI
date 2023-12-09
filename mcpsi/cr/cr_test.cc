@@ -9,9 +9,35 @@
 
 namespace mcpsi {
 
+class TestParam {
+ public:
+  static std::vector<std::shared_ptr<Context>> ctx;
+
+  // Getter
+  static std::vector<std::shared_ptr<Context>>& GetContext() {
+    if (ctx.empty()) {
+      ctx = Setup();
+    }
+    return ctx;
+  }
+
+  static std::vector<std::shared_ptr<Context>> Setup() {
+    auto ctx = MockContext(2);
+    MockSetupContext(ctx);
+    return ctx;
+  }
+};
+
+std::vector<std::shared_ptr<Context>> TestParam::ctx =
+    std::vector<std::shared_ptr<Context>>();
+
+TEST(Setup, InitializeWork) {
+  auto context = TestParam::GetContext();
+  EXPECT_EQ(context.size(), 2);
+}
+
 TEST(CrTest, SetValueWork) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
   auto value = internal::op::Rand(num);
@@ -46,8 +72,7 @@ TEST(CrTest, SetValueWork) {
 }
 
 TEST(CrTest, AuthBeaverWork) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
   auto rank0 = std::async([&] {

@@ -1,16 +1,29 @@
 #pragma once
 #include "mcpsi/utils/field.h"
 #include "mcpsi/utils/vec_op.h"
+#include "yacl/crypto/base/ecc/ecc_spi.h"
+#include "yacl/crypto/base/ecc/openssl/openssl_group.h"
 #include "yacl/math/mpint/mp_int.h"
+#include "yacl/utils/spi/spi_factory.h"
 
 namespace mcpsi::internal {
 
-using PTy = kFp64;
-using op = op64;
-
 namespace ym = yacl::math;
+namespace yc = yacl::crypto;
+
+// using PTy = kFp64;
+// using op = op64;
 // (DY-PRF) Group Type
-using GTy = ym::MPInt;
+// using GTy = ym::MPInt;
+
+using PTy = kFp128;
+using op = op128;
+using GTy = yc::EcPoint;
+
+// static auto Ggroup = yc::EcGroupFactory::Instance().Create(
+//     "secp128r2", yacl::ArgLib = "openssl");
+// static auto Ggroup =
+//     yc::openssl::OpensslGroup::Create(yc::GetCurveMetaByName("secp128r2"));
 
 #pragma pack(8)
 // Distribute PTy with Mac (additive share)

@@ -59,16 +59,16 @@ void op64::Neg(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
 }
 
 template <size_t N>
-kFp64 BatchInv(absl::Span<const kFp64> in, absl::Span<kFp64> out,
-               kFp64 total = kFp64::One()) {
-  auto inv = BatchInv<N - 1>(in, out, total * in[N - 1]);
+kFp64 BatchInv64(absl::Span<const kFp64> in, absl::Span<kFp64> out,
+                 kFp64 total = kFp64::One()) {
+  auto inv = BatchInv64<N - 1>(in, out, total * in[N - 1]);
   out[N - 1] = inv * total;
   return inv * in[N - 1];
 }
 
 template <>
-kFp64 BatchInv<1>(absl::Span<const kFp64> in, absl::Span<kFp64> out,
-                  kFp64 total) {
+kFp64 BatchInv64<1>(absl::Span<const kFp64> in, absl::Span<kFp64> out,
+                    kFp64 total) {
   auto inv = kFp64::Inv(total * in[0]);
   out[0] = total * inv;
   return inv * in[0];
@@ -82,29 +82,29 @@ void op64::Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
   size_t bound = batch * 16;
   size_t remain = size - bound;
   for (size_t i = 0; i < batch; ++i) {
-    BatchInv<16>(in.subspan(i * 16, 16), out.subspan(i * 16, 16));
+    BatchInv64<16>(in.subspan(i * 16, 16), out.subspan(i * 16, 16));
   }
   switch (remain) {
-#define KASE(T)                                               \
-  case T:                                                     \
-    BatchInv<T>(in.subspan(bound, T), out.subspan(bound, T)); \
+#define KASE64(T)                                               \
+  case T:                                                       \
+    BatchInv64<T>(in.subspan(bound, T), out.subspan(bound, T)); \
     break;
-    KASE(15);
-    KASE(14);
-    KASE(13);
-    KASE(12);
-    KASE(11);
-    KASE(10);
-    KASE(9);
-    KASE(8);
-    KASE(7);
-    KASE(6);
-    KASE(5);
-    KASE(4);
-    KASE(3);
-    KASE(2);
-    KASE(1);
-#undef KASE
+    KASE64(15);
+    KASE64(14);
+    KASE64(13);
+    KASE64(12);
+    KASE64(11);
+    KASE64(10);
+    KASE64(9);
+    KASE64(8);
+    KASE64(7);
+    KASE64(6);
+    KASE64(5);
+    KASE64(4);
+    KASE64(3);
+    KASE64(2);
+    KASE64(1);
+#undef KASE64
     case 0:
       break;
     default:
@@ -207,16 +207,16 @@ void op128::Neg(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
 }
 
 template <size_t N>
-kFp128 BatchInv(absl::Span<const kFp128> in, absl::Span<kFp128> out,
-                kFp128 total = kFp128::One()) {
-  auto inv = BatchInv<N - 1>(in, out, total * in[N - 1]);
+kFp128 BatchInv128(absl::Span<const kFp128> in, absl::Span<kFp128> out,
+                   kFp128 total = kFp128::One()) {
+  auto inv = BatchInv128<N - 1>(in, out, total * in[N - 1]);
   out[N - 1] = inv * total;
   return inv * in[N - 1];
 }
 
 template <>
-kFp128 BatchInv<1>(absl::Span<const kFp128> in, absl::Span<kFp128> out,
-                   kFp128 total) {
+kFp128 BatchInv128<1>(absl::Span<const kFp128> in, absl::Span<kFp128> out,
+                      kFp128 total) {
   auto inv = kFp128::Inv(total * in[0]);
   out[0] = total * inv;
   return inv * in[0];
@@ -230,29 +230,29 @@ void op128::Inv(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
   size_t bound = batch * 16;
   size_t remain = size - bound;
   for (size_t i = 0; i < batch; ++i) {
-    BatchInv<16>(in.subspan(i * 16, 16), out.subspan(i * 16, 16));
+    BatchInv128<16>(in.subspan(i * 16, 16), out.subspan(i * 16, 16));
   }
   switch (remain) {
-#define KASE(T)                                               \
-  case T:                                                     \
-    BatchInv<T>(in.subspan(bound, T), out.subspan(bound, T)); \
+#define KASE128(T)                                               \
+  case T:                                                        \
+    BatchInv128<T>(in.subspan(bound, T), out.subspan(bound, T)); \
     break;
-    KASE(15);
-    KASE(14);
-    KASE(13);
-    KASE(12);
-    KASE(11);
-    KASE(10);
-    KASE(9);
-    KASE(8);
-    KASE(7);
-    KASE(6);
-    KASE(5);
-    KASE(4);
-    KASE(3);
-    KASE(2);
-    KASE(1);
-#undef KASE
+    KASE128(15);
+    KASE128(14);
+    KASE128(13);
+    KASE128(12);
+    KASE128(11);
+    KASE128(10);
+    KASE128(9);
+    KASE128(8);
+    KASE128(7);
+    KASE128(6);
+    KASE128(5);
+    KASE128(4);
+    KASE128(3);
+    KASE128(2);
+    KASE128(1);
+#undef KASE128
     case 0:
       break;
     default:

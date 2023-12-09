@@ -70,9 +70,13 @@ class Connection : public State, public yacl::link::Context {
 
   uint64_t ExchangeWithCommit(uint64_t val);
 
+  yacl::Buffer ExchangeWithCommit(yacl::ByteContainerView bv);
+
  private:
   template <typename T>
-  T _ExchangeWithCommit(T val);
+  T _ExchangeWithCommit_T(T val);
+
+  yacl::Buffer _ExchangeWithCommit_Buffer(yacl::ByteContainerView bv);
 };
 
 }  // namespace mcpsi

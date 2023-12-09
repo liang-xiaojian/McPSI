@@ -210,7 +210,7 @@ std::vector<PTy> A2P(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   auto zero_mac = mac_affine - real_val_affine * key;
 
   auto remote_mac_u64 = lctx->ExchangeWithCommit(zero_mac.GetVal());
-  YACL_ENFORCE(zero_mac + kFp64(remote_mac_u64) == kFp64::Zero());
+  YACL_ENFORCE(zero_mac + PTy(remote_mac_u64) == PTy::Zero());
   return real_val;
 }
 

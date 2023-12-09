@@ -24,7 +24,7 @@ class TestParam {
 
   static std::vector<std::shared_ptr<Context>> Setup() {
     auto ctx = MockContext(2);
-    MockInitContext(ctx);
+    MockSetupContext(ctx);
     return ctx;
   }
 };
@@ -60,8 +60,11 @@ TEST(ProtocolTest, A2GTest) {
   });
   auto r_b = rank0.get();
   auto r_a = rank1.get();
+
+  auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
+                                                     yacl::ArgLib = "openssl");
   for (size_t i = 0; i < num; ++i) {
-    EXPECT_EQ(r_a[i], r_b[i]);
+    EXPECT_TRUE(group->PointEqual(r_a[i], r_b[i]));
   }
 };
 

@@ -24,7 +24,7 @@ class MpVoleTest : public ::testing::TestWithParam<MpVoleTestParam> {};
 
 TEST_P(MpVoleTest, Work) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   const size_t mp_vole_size = GetParam().mp_vole_size;
   const size_t noise_num = GetParam().noise_num;
 
@@ -78,7 +78,7 @@ TEST_P(MpVoleTest, Work) {
 
 TEST(WolverineVoleTest, PreWork) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
 
   auto param = LpnParam::GetPreDefault();
   param.mp_param_.GenIndexes();
@@ -124,7 +124,7 @@ TEST(WolverineVoleTest, PreWork) {
 
 TEST(WolverineVoleTest, BootStrapWork) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
 
   auto param = LpnParam::GetDefault();
   param.mp_param_.GenIndexes();

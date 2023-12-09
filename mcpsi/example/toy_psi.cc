@@ -21,7 +21,7 @@ std::vector<uint64_t> intersection(std::vector<uint64_t>& set0,
 
 auto toy_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
     std::vector<PTy> set0{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};

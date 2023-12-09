@@ -23,7 +23,7 @@ class TestParam {
 
   static std::vector<std::shared_ptr<Context>> Setup() {
     auto ctx = MockContext(2);
-    MockInitContext(ctx);
+    MockSetupContext(ctx);
     return ctx;
   }
 };
