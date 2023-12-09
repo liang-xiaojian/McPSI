@@ -4,15 +4,13 @@
 #include "gtest/gtest.h"
 namespace mcpsi {
 
-namespace vec64 {
-
 TEST(kFp64Test, AddWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto rhs = Rand(num);
+  auto lhs = op64::Rand(num);
+  auto rhs = op64::Rand(num);
 
-  auto ret = Add(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto ret2 = Add(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  auto ret = op64::Add(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto ret2 = op64::Add(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], ret2[i]);
@@ -21,13 +19,13 @@ TEST(kFp64Test, AddWork) {
 
 TEST(kFp64Test, SubWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto rhs = Rand(num);
+  auto lhs = op64::Rand(num);
+  auto rhs = op64::Rand(num);
 
-  auto ret = Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto ret2 = Sub(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  auto ret = op64::Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto ret2 = op64::Sub(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
-  auto ret3 = Add(absl::MakeSpan(ret), absl::MakeSpan(ret2));
+  auto ret3 = op64::Add(absl::MakeSpan(ret), absl::MakeSpan(ret2));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp64(0));
@@ -36,11 +34,11 @@ TEST(kFp64Test, SubWork) {
 
 TEST(kFp64Test, MulWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto rhs = Rand(num);
+  auto lhs = op64::Rand(num);
+  auto rhs = op64::Rand(num);
 
-  auto ret = Mul(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto ret2 = Mul(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  auto ret = op64::Mul(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto ret2 = op64::Mul(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], ret2[i]);
@@ -49,13 +47,13 @@ TEST(kFp64Test, MulWork) {
 
 TEST(kFp64Test, DivWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto rhs = Rand(num);
+  auto lhs = op64::Rand(num);
+  auto rhs = op64::Rand(num);
 
-  auto ret = Div(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto ret2 = Div(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  auto ret = op64::Div(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto ret2 = op64::Div(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
-  auto ret3 = Mul(absl::MakeSpan(ret), absl::MakeSpan(ret2));
+  auto ret3 = op64::Mul(absl::MakeSpan(ret), absl::MakeSpan(ret2));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp64(1));
@@ -64,9 +62,9 @@ TEST(kFp64Test, DivWork) {
 
 TEST(kFp64Test, InvWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto inv = Inv(absl::MakeSpan(lhs));
-  auto ret3 = Mul(absl::MakeSpan(inv), absl::MakeSpan(lhs));
+  auto lhs = op64::Rand(num);
+  auto inv = op64::Inv(absl::MakeSpan(lhs));
+  auto ret3 = op64::Mul(absl::MakeSpan(inv), absl::MakeSpan(lhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp64(1));
@@ -80,8 +78,8 @@ TEST(kFp64Test, PrgWork) {
   yacl::crypto::Prg<uint8_t> prg0(seed);
   yacl::crypto::Prg<uint8_t> prg1(seed);
 
-  auto lhs = Rand(prg0, num);
-  auto rhs = Rand(prg1, num);
+  auto lhs = op64::Rand(prg0, num);
+  auto rhs = op64::Rand(prg1, num);
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(lhs[i], rhs[i]);
@@ -91,41 +89,24 @@ TEST(kFp64Test, PrgWork) {
 TEST(kFp64Test, OneZeroWork) {
   size_t num = 10000;
 
-  auto lhs = Ones(num);
-  auto rhs = Ones(num);
+  auto lhs = op64::Ones(num);
+  auto rhs = op64::Ones(num);
 
-  auto ret = Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto zeros = Zeros(num);
+  auto ret = op64::Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto zeros = op64::Zeros(num);
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], zeros[i]);
   }
 }
 
-TEST(kFp64Test, ShuffleWork) {
-  size_t num = 10000;
-
-  auto p0 = GenPerm(num);
-  auto p1 = GenPerm(num);
-
-  std::sort(p0.begin(), p0.end());
-  std::sort(p1.begin(), p1.end());
-
-  for (size_t i = 0; i < num; ++i) {
-    EXPECT_EQ(p0[i], p1[i]);
-  }
-}
-
-};  // namespace vec64
-
-namespace vec128 {
 TEST(kFp128Test, AddWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto rhs = Rand(num);
+  auto lhs = op128::Rand(num);
+  auto rhs = op128::Rand(num);
 
-  auto ret = Add(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto ret2 = Add(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  auto ret = op128::Add(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto ret2 = op128::Add(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], ret2[i]);
@@ -134,13 +115,13 @@ TEST(kFp128Test, AddWork) {
 
 TEST(kFp128Test, SubWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto rhs = Rand(num);
+  auto lhs = op128::Rand(num);
+  auto rhs = op128::Rand(num);
 
-  auto ret = Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto ret2 = Sub(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  auto ret = op128::Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto ret2 = op128::Sub(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
-  auto ret3 = Add(absl::MakeSpan(ret), absl::MakeSpan(ret2));
+  auto ret3 = op128::Add(absl::MakeSpan(ret), absl::MakeSpan(ret2));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp128(0));
@@ -149,11 +130,11 @@ TEST(kFp128Test, SubWork) {
 
 TEST(kFp128Test, MulWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto rhs = Rand(num);
+  auto lhs = op128::Rand(num);
+  auto rhs = op128::Rand(num);
 
-  auto ret = Mul(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto ret2 = Mul(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  auto ret = op128::Mul(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto ret2 = op128::Mul(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], ret2[i]);
@@ -162,13 +143,13 @@ TEST(kFp128Test, MulWork) {
 
 TEST(kFp128Test, DivWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto rhs = Rand(num);
+  auto lhs = op128::Rand(num);
+  auto rhs = op128::Rand(num);
 
-  auto ret = Div(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto ret2 = Div(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  auto ret = op128::Div(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto ret2 = op128::Div(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
-  auto ret3 = Mul(absl::MakeSpan(ret), absl::MakeSpan(ret2));
+  auto ret3 = op128::Mul(absl::MakeSpan(ret), absl::MakeSpan(ret2));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp128(1));
@@ -177,9 +158,9 @@ TEST(kFp128Test, DivWork) {
 
 TEST(kFp128Test, InvWork) {
   size_t num = 10000;
-  auto lhs = Rand(num);
-  auto inv = Inv(absl::MakeSpan(lhs));
-  auto ret3 = Mul(absl::MakeSpan(inv), absl::MakeSpan(lhs));
+  auto lhs = op128::Rand(num);
+  auto inv = op128::Inv(absl::MakeSpan(lhs));
+  auto ret3 = op128::Mul(absl::MakeSpan(inv), absl::MakeSpan(lhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp128(1));
@@ -193,8 +174,8 @@ TEST(kFp128Test, PrgWork) {
   yacl::crypto::Prg<uint8_t> prg0(seed);
   yacl::crypto::Prg<uint8_t> prg1(seed);
 
-  auto lhs = Rand(prg0, num);
-  auto rhs = Rand(prg1, num);
+  auto lhs = op128::Rand(prg0, num);
+  auto rhs = op128::Rand(prg1, num);
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(lhs[i], rhs[i]);
@@ -204,18 +185,18 @@ TEST(kFp128Test, PrgWork) {
 TEST(kFp128Test, OneZeroWork) {
   size_t num = 10000;
 
-  auto lhs = Ones(num);
-  auto rhs = Ones(num);
+  auto lhs = op128::Ones(num);
+  auto rhs = op128::Ones(num);
 
-  auto ret = Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-  auto zeros = Zeros(num);
+  auto ret = op128::Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  auto zeros = op128::Zeros(num);
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], zeros[i]);
   }
 }
 
-TEST(kFp128Test, ShuffleWork) {
+TEST(Test, ShuffleWork) {
   size_t num = 10000;
 
   auto p0 = GenPerm(num);
@@ -228,7 +209,5 @@ TEST(kFp128Test, ShuffleWork) {
     EXPECT_EQ(p0[i], p1[i]);
   }
 }
-
-};  // namespace vec128
 
 }  // namespace mcpsi

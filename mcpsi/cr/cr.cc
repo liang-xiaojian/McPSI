@@ -16,9 +16,9 @@ void Correlation::BeaverTriple(absl::Span<internal::ATy> a,
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
 
-  auto p_a = vec64::Zeros(num * 2);
-  auto p_b = vec64::Zeros(num * 2);
-  auto p_c = vec64::Zeros(num * 2);
+  auto p_a = internal::op::Zeros(num * 2);
+  auto p_b = internal::op::Zeros(num * 2);
+  auto p_c = internal::op::Zeros(num * 2);
 
   auto conn = ctx_->GetConnection();
   ot::OtHelper(ot_sender_, ot_receiver_)
@@ -54,20 +54,20 @@ void Correlation::BeaverTriple(absl::Span<internal::ATy> a,
     AuthGet(absl::MakeSpan(auth_c));
   }
 
-  vec64::Add(
+  internal::op::Add(
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
                           2 * num),
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_a.data()),
                           2 * num),
       absl::MakeSpan(reinterpret_cast<internal::PTy*>(a.data()), 2 * num));
-  vec64::Add(
+  internal::op::Add(
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(b.data()),
                           2 * num),
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_b.data()),
                           2 * num),
       absl::MakeSpan(reinterpret_cast<internal::PTy*>(b.data()), 2 * num));
 
-  vec64::Add(
+  internal::op::Add(
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(c.data()),
                           2 * num),
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_c.data()),
@@ -80,8 +80,8 @@ void Correlation::AuthSet(absl::Span<const internal::PTy> in,
   RandomSet(out);
   auto [val, mac] = internal::Unpack(out);
   // val = in - val
-  vec64::Sub(absl::MakeConstSpan(in), absl::MakeConstSpan(val),
-             absl::MakeSpan(val));
+  internal::op::Sub(absl::MakeConstSpan(in), absl::MakeConstSpan(val),
+                    absl::MakeSpan(val));
 
   auto conn = ctx_->GetConnection();
   conn->SendAsync(
@@ -89,9 +89,10 @@ void Correlation::AuthSet(absl::Span<const internal::PTy> in,
       yacl::ByteContainerView(val.data(), val.size() * sizeof(internal::PTy)),
       "AuthSet");
 
-  vec64::Add(absl::MakeConstSpan(mac),
-             absl::MakeConstSpan(vec64::ScalarMul(key_, absl::MakeSpan(val))),
-             absl::MakeSpan(mac));
+  internal::op::Add(
+      absl::MakeConstSpan(mac),
+      absl::MakeConstSpan(internal::op::ScalarMul(key_, absl::MakeSpan(val))),
+      absl::MakeSpan(mac));
   auto ret = internal::Pack(in, mac);
   memcpy(out.data(), ret.data(), out.size() * sizeof(internal::ATy));
 }
@@ -107,9 +108,9 @@ void Correlation::AuthGet(absl::Span<internal::ATy> out) {
   auto diff = absl::MakeSpan(reinterpret_cast<internal::PTy*>(recv_buf.data()),
                              out.size());
 
-  vec64::Add(absl::MakeConstSpan(mac),
-             absl::MakeConstSpan(vec64::ScalarMul(key_, diff)),
-             absl::MakeSpan(mac));
+  internal::op::Add(absl::MakeConstSpan(mac),
+                    absl::MakeConstSpan(internal::op::ScalarMul(key_, diff)),
+                    absl::MakeSpan(mac));
   auto ret = internal::Pack(val, mac);
   memcpy(out.data(), ret.data(), ret.size() * sizeof(internal::ATy));
 }
@@ -121,10 +122,10 @@ void Correlation::RandomSet(absl::Span<internal::ATy> out) {
   // a * remote_key + b = remote_c
   vole_receiver_->rrecv(absl::MakeSpan(a), absl::MakeSpan(b));
   // mac = a * key_
-  auto mac = vec64::ScalarMul(key_, absl::MakeConstSpan(a));
+  auto mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(a));
   // a's mac = a * local_key - b
-  vec64::Sub(absl::MakeConstSpan(mac), absl::MakeConstSpan(b),
-             absl::MakeSpan(mac));
+  internal::op::Sub(absl::MakeConstSpan(mac), absl::MakeConstSpan(b),
+                    absl::MakeSpan(mac));
   // Pack
   internal::Pack(absl::MakeConstSpan(a), absl::MakeConstSpan(mac),
                  absl::MakeSpan(out));
@@ -136,7 +137,7 @@ void Correlation::RandomGet(absl::Span<internal::ATy> out) {
   // remote_a * key_ + remote_b = c
   vole_sender_->rsend(absl::MakeSpan(c));
   // Pack
-  auto zeros = vec64::Zeros(num);
+  auto zeros = internal::op::Zeros(num);
   internal::Pack(absl::MakeConstSpan(zeros), absl::MakeConstSpan(c),
                  absl::MakeSpan(out));
 }
@@ -152,7 +153,7 @@ void Correlation::RandomAuth(absl::Span<internal::ATy> out) {
     RandomGet(absl::MakeSpan(zeros));
     RandomSet(absl::MakeSpan(rands));
   }
-  vec64::Add(
+  internal::op::Add(
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(zeros.data()),
                           2 * num),
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(rands.data()),

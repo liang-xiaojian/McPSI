@@ -32,10 +32,10 @@ auto mc_psi(size_t n0, size_t n1, size_t interset_size)
   auto context = MockContext(2, flag);
   MockInitContext(context);
 
-  std::vector<PTy> force = vec64::Rand(interset_size);
+  std::vector<PTy> force = OP::Rand(interset_size);
 
   auto rank0 = std::async([&] {
-    std::vector<PTy> set0 = vec64::Rand(n0);
+    std::vector<PTy> set0 = OP::Rand(n0);
     memcpy(set0.data(), force.data(), interset_size * sizeof(PTy));
 
     auto prot = context[0]->GetState<Protocol>();
@@ -55,8 +55,8 @@ auto mc_psi(size_t n0, size_t n1, size_t interset_size)
     return ret;
   });
   auto rank1 = std::async([&] {
-    std::vector<PTy> set1 = vec64::Rand(n1);
-    std::vector<PTy> val1 = vec64::Ones(n1);
+    std::vector<PTy> set1 = OP::Rand(n1);
+    std::vector<PTy> val1 = OP::Ones(n1);
     memcpy(set1.data(), force.data(), interset_size * sizeof(PTy));
 
     auto prot = context[1]->GetState<Protocol>();

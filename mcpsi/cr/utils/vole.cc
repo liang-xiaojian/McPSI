@@ -39,8 +39,8 @@ void MpVoleSend(const std::shared_ptr<Connection>& conn,
   yc::ParaCrHashInplace_128(ote_span);
 
   auto send_msgs = std::vector<internal::PTy>(w.data(), w.data() + batch_num);
-  vec64::Neg(absl::MakeSpan(send_msgs),
-             absl::MakeSpan(send_msgs));  // send_msgs = -w
+  internal::op::Neg(absl::MakeSpan(send_msgs),
+                    absl::MakeSpan(send_msgs));  // send_msgs = -w
 
   for (size_t i = 0; i < batch_num; ++i) {
     auto this_size = (i == batch_num - 1) ? last_batch_size : batch_size;

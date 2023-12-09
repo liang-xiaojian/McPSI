@@ -4,9 +4,12 @@
 
 namespace mcpsi {
 
-namespace vec64 {
-void Add(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
-         absl::Span<kFp64> out) {
+// -------------------
+//     Fp 64-bit
+// -------------------
+
+void op64::Add(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
+               absl::Span<kFp64> out) {
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
@@ -14,8 +17,8 @@ void Add(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
   std::transform(lhs.begin(), lhs.end(), rhs.begin(), out.begin(), std::plus());
 }
 
-void Sub(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
-         absl::Span<kFp64> out) {
+void op64::Sub(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
+               absl::Span<kFp64> out) {
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
@@ -24,8 +27,8 @@ void Sub(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
                  std::minus());
 }
 
-void Mul(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
-         absl::Span<kFp64> out) {
+void op64::Mul(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
+               absl::Span<kFp64> out) {
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
@@ -34,15 +37,15 @@ void Mul(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
                  std::multiplies());
 }
 
-void ScalarMul(const kFp64 scalar, absl::Span<const kFp64> in,
-               absl::Span<kFp64> out) {
+void op64::ScalarMul(const kFp64 scalar, absl::Span<const kFp64> in,
+                     absl::Span<kFp64> out) {
   YACL_ENFORCE(out.size() == in.size());
   std::transform(in.begin(), in.end(), out.begin(),
                  [&scalar](kFp64 val) { return scalar * val; });
 }
 
-void Div(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
-         absl::Span<kFp64> out) {
+void op64::Div(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
+               absl::Span<kFp64> out) {
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
@@ -50,7 +53,7 @@ void Div(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
   Mul(lhs, out, out);
 }
 
-void Neg(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
+void op64::Neg(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
   YACL_ENFORCE(in.size() == out.size());
   std::transform(in.begin(), in.end(), out.begin(), kFp64::Neg);
 }
@@ -72,7 +75,7 @@ kFp64 BatchInv<1>(absl::Span<const kFp64> in, absl::Span<kFp64> out,
 }
 
 // Batch Invert Optimize
-void Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
+void op64::Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
   const size_t size = out.size();
   YACL_ENFORCE(in.size() == size);
   size_t batch = size / 16;
@@ -109,21 +112,21 @@ void Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
   }
 }
 
-void Ones(absl::Span<kFp64> out) {
+void op64::Ones(absl::Span<kFp64> out) {
   const size_t size = out.size();
   for (uint32_t i = 0; i < size; ++i) {
     out[i] = kFp64::One();
   }
 }
 
-void Zeros(absl::Span<kFp64> out) {
+void op64::Zeros(absl::Span<kFp64> out) {
   const size_t size = out.size();
   for (uint32_t i = 0; i < size; ++i) {
     out[i] = kFp64::Zero();
   }
 }
 
-void Rand(absl::Span<kFp64> out) {
+void op64::Rand(absl::Span<kFp64> out) {
   const uint32_t size = out.size();
   const uint64_t prime = kFp64::GetPrime();
 
@@ -136,7 +139,7 @@ void Rand(absl::Span<kFp64> out) {
   }
 }
 
-void Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp64> out) {
+void op64::Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp64> out) {
   const uint32_t size = out.size();
   const uint64_t prime = kFp64::GetPrime();
 
@@ -148,11 +151,13 @@ void Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp64> out) {
     out64[i] %= prime;
   }
 }
-};  // namespace vec64
 
-namespace vec128 {
-void Add(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
-         absl::Span<kFp128> out) {
+// -------------------
+//     Fp 128-bit
+// -------------------
+
+void op128::Add(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
+                absl::Span<kFp128> out) {
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
@@ -160,8 +165,8 @@ void Add(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
   std::transform(lhs.begin(), lhs.end(), rhs.begin(), out.begin(), std::plus());
 }
 
-void Sub(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
-         absl::Span<kFp128> out) {
+void op128::Sub(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
+                absl::Span<kFp128> out) {
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
@@ -170,8 +175,8 @@ void Sub(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
                  std::minus());
 }
 
-void Mul(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
-         absl::Span<kFp128> out) {
+void op128::Mul(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
+                absl::Span<kFp128> out) {
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
@@ -180,15 +185,15 @@ void Mul(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
                  std::multiplies());
 }
 
-void ScalarMul(const kFp128 scalar, absl::Span<const kFp128> in,
-               absl::Span<kFp128> out) {
+void op128::ScalarMul(const kFp128 scalar, absl::Span<const kFp128> in,
+                      absl::Span<kFp128> out) {
   YACL_ENFORCE(out.size() == in.size());
   std::transform(in.begin(), in.end(), out.begin(),
                  [&scalar](kFp128 val) { return scalar * val; });
 }
 
-void Div(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
-         absl::Span<kFp128> out) {
+void op128::Div(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
+                absl::Span<kFp128> out) {
   const uint32_t size = out.size();
   YACL_ENFORCE(size == lhs.size());
   YACL_ENFORCE(size == rhs.size());
@@ -196,7 +201,7 @@ void Div(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
   Mul(lhs, out, out);
 }
 
-void Neg(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
+void op128::Neg(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
   YACL_ENFORCE(in.size() == out.size());
   std::transform(in.begin(), in.end(), out.begin(), kFp128::Neg);
 }
@@ -218,7 +223,7 @@ kFp128 BatchInv<1>(absl::Span<const kFp128> in, absl::Span<kFp128> out,
 }
 
 // Batch Invert Optimize
-void Inv(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
+void op128::Inv(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
   const size_t size = out.size();
   YACL_ENFORCE(in.size() == size);
   size_t batch = size / 16;
@@ -255,21 +260,21 @@ void Inv(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
   }
 }
 
-void Ones(absl::Span<kFp128> out) {
+void op128::Ones(absl::Span<kFp128> out) {
   const size_t size = out.size();
   for (uint32_t i = 0; i < size; ++i) {
     out[i] = kFp128::One();
   }
 }
 
-void Zeros(absl::Span<kFp128> out) {
+void op128::Zeros(absl::Span<kFp128> out) {
   const size_t size = out.size();
   for (uint32_t i = 0; i < size; ++i) {
     out[i] = kFp128::Zero();
   }
 }
 
-void Rand(absl::Span<kFp128> out) {
+void op128::Rand(absl::Span<kFp128> out) {
   const uint32_t size = out.size();
   const uint128_t prime = kFp128::GetPrime();
 
@@ -282,7 +287,7 @@ void Rand(absl::Span<kFp128> out) {
   }
 }
 
-void Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp128> out) {
+void op128::Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp128> out) {
   const uint32_t size = out.size();
   const uint128_t prime = kFp128::GetPrime();
 
@@ -294,8 +299,6 @@ void Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp128> out) {
     out128[i] %= prime;
   }
 }
-
-};  // namespace vec128
 
 std::vector<size_t> GenPerm(uint32_t num) {
   std::vector<size_t> perm(num);

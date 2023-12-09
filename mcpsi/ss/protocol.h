@@ -18,6 +18,7 @@ using PTy = internal::PTy;
 using ATy = internal::ATy;
 using GTy = internal::GTy;
 using MTy = internal::MTy;
+using OP = internal::op;
 
 class Protocol : public State {
  private:

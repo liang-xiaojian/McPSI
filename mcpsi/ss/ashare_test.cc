@@ -45,7 +45,7 @@ TEST(Setup, InitializeWork) {
   auto lhs_a = prot->P2A(lhs_p);             \
   auto ret_a = prot->func(lhs_a, rhs_p);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = vec64::func(lhs_p, rhs_p);    \
+  auto check = OP::func(lhs_p, rhs_p);       \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
@@ -76,7 +76,7 @@ DECLARE_AP_TEST(Div);
   auto rhs_a = prot->P2A(rhs_p);             \
   auto ret_a = prot->func(lhs_p, rhs_a);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = vec64::func(lhs_p, rhs_p);    \
+  auto check = OP::func(lhs_p, rhs_p);       \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
@@ -108,7 +108,7 @@ DECLARE_PA_TEST(Div);
   auto rhs_a = prot->P2A(rhs_p);             \
   auto ret_a = prot->func(lhs_a, rhs_a);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = vec64::func(lhs_p, rhs_p);    \
+  auto check = OP::func(lhs_p, rhs_p);       \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
@@ -309,7 +309,7 @@ TEST(ProtocolTest, SetATest) {
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
-    auto rand = vec64::Rand(num);
+    auto rand = OP::Rand(num);
     auto ret_a = prot->SetA(rand);
     [[maybe_unused]] auto ret_p = prot->A2P(ret_a);
     return rand;

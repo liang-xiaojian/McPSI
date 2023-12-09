@@ -6,6 +6,7 @@
 namespace mcpsi::internal {
 
 using PTy = kFp64;
+using op = op64;
 
 namespace ym = yacl::math;
 // (DY-PRF) Group Type

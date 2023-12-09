@@ -14,7 +14,7 @@ TEST(CrTest, SetValueWork) {
   MockInitContext(context);
   const size_t num = 10000;
 
-  auto value = vec64::Rand(num);
+  auto value = internal::op::Rand(num);
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();
@@ -34,11 +34,12 @@ TEST(CrTest, SetValueWork) {
 
   auto mac0 = internal::ExtractMac(absl::MakeConstSpan(ret0));
   auto mac1 = internal::ExtractMac(absl::MakeConstSpan(ret1));
-  auto mac = vec64::Add(absl::MakeConstSpan(mac0), absl::MakeConstSpan(mac1));
+  auto mac =
+      internal::op::Add(absl::MakeConstSpan(mac0), absl::MakeConstSpan(mac1));
   auto check =
-      vec64::ScalarMul(context[0]->GetState<Correlation>()->GetKey() +
-                           context[1]->GetState<Correlation>()->GetKey(),
-                       absl::MakeSpan(value));
+      internal::op::ScalarMul(context[0]->GetState<Correlation>()->GetKey() +
+                                  context[1]->GetState<Correlation>()->GetKey(),
+                              absl::MakeSpan(value));
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(check[i], mac[i]);
   }
@@ -76,9 +77,9 @@ TEST(CrTest, AuthBeaverWork) {
   auto c0_val = internal::ExtractVal(c0);
   auto c1_val = internal::ExtractVal(c1);
 
-  auto a = vec64::Add(absl::MakeSpan(a0_val), absl::MakeSpan(a1_val));
-  auto b = vec64::Add(absl::MakeSpan(b0_val), absl::MakeSpan(b1_val));
-  auto c = vec64::Add(absl::MakeSpan(c0_val), absl::MakeSpan(c1_val));
+  auto a = internal::op::Add(absl::MakeSpan(a0_val), absl::MakeSpan(a1_val));
+  auto b = internal::op::Add(absl::MakeSpan(b0_val), absl::MakeSpan(b1_val));
+  auto c = internal::op::Add(absl::MakeSpan(c0_val), absl::MakeSpan(c1_val));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(a[i] * b[i], c[i]);

@@ -60,7 +60,7 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
     }
   }
   auto sync_seed = lctx->SyncSeed();
-  auto coef = vec64::Rand(sync_seed, num);
+  auto coef = op::Rand(sync_seed, num);
   auto u64_coef = absl::MakeSpan(reinterpret_cast<uint64_t*>(coef.data()), num);
   GTy real_val_affine{1};
   GTy mac_affine{1};
