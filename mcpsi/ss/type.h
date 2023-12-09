@@ -1,5 +1,6 @@
 #pragma once
 #include "mcpsi/utils/field.h"
+#include "mcpsi/utils/vec_op.h"
 #include "yacl/math/mpint/mp_int.h"
 
 namespace mcpsi::internal {

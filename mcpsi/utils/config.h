@@ -7,7 +7,8 @@
 
 namespace mcpsi {
 
-constexpr static uint64_t Prime64 = 2305843009213697249;    // safe prime
+constexpr static uint64_t Prime64 = 2305843009213697249;  // safe prime
+// TODO:
 constexpr static uint128_t Prime128 = 4611686018427394499;  // Prime64 * 2 + 1
 
 // static mpz_t GMP_Prime64;

@@ -14,20 +14,20 @@ void FakeCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
 
-  auto a0 = Rand(*ctx_->GetState<Prg>(), num);
-  auto a1 = Rand(*ctx_->GetState<Prg>(), num);
-  auto b0 = Rand(*ctx_->GetState<Prg>(), num);
-  auto b1 = Rand(*ctx_->GetState<Prg>(), num);
-  auto c0 = Rand(*ctx_->GetState<Prg>(), num);
+  auto a0 = vec64::Rand(*ctx_->GetState<Prg>(), num);
+  auto a1 = vec64::Rand(*ctx_->GetState<Prg>(), num);
+  auto b0 = vec64::Rand(*ctx_->GetState<Prg>(), num);
+  auto b1 = vec64::Rand(*ctx_->GetState<Prg>(), num);
+  auto c0 = vec64::Rand(*ctx_->GetState<Prg>(), num);
 
-  auto aa = Add(absl::MakeConstSpan(a0), absl::MakeConstSpan(a1));
-  auto bb = Add(absl::MakeConstSpan(b0), absl::MakeConstSpan(b1));
-  auto cc = Mul(absl::MakeConstSpan(aa), absl::MakeConstSpan(bb));
-  auto c1 = Sub(absl::MakeConstSpan(cc), absl::MakeConstSpan(c0));
+  auto aa = vec64::Add(absl::MakeConstSpan(a0), absl::MakeConstSpan(a1));
+  auto bb = vec64::Add(absl::MakeConstSpan(b0), absl::MakeConstSpan(b1));
+  auto cc = vec64::Mul(absl::MakeConstSpan(aa), absl::MakeConstSpan(bb));
+  auto c1 = vec64::Sub(absl::MakeConstSpan(cc), absl::MakeConstSpan(c0));
 
-  auto a_mac = ScalarMul(key_, absl::MakeConstSpan(aa));
-  auto b_mac = ScalarMul(key_, absl::MakeConstSpan(bb));
-  auto c_mac = ScalarMul(key_, absl::MakeConstSpan(cc));
+  auto a_mac = vec64::ScalarMul(key_, absl::MakeConstSpan(aa));
+  auto b_mac = vec64::ScalarMul(key_, absl::MakeConstSpan(bb));
+  auto c_mac = vec64::ScalarMul(key_, absl::MakeConstSpan(cc));
 
   if (ctx_->GetRank() == 0) {
     internal::Pack(absl::MakeConstSpan(a0), absl::MakeConstSpan(a_mac), a);
@@ -42,16 +42,16 @@ void FakeCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
 
 void FakeCorrelation::RandomSet(absl::Span<internal::ATy> out) {
   const size_t num = out.size();
-  auto rands = Rand(*ctx_->GetState<Prg>(), num);
-  auto mac = ScalarMul(key_, absl::MakeSpan(rands));
+  auto rands = vec64::Rand(*ctx_->GetState<Prg>(), num);
+  auto mac = vec64::ScalarMul(key_, absl::MakeSpan(rands));
   internal::Pack(absl::MakeConstSpan(rands), absl::MakeConstSpan(mac), out);
 }
 
 void FakeCorrelation::RandomGet(absl::Span<internal::ATy> out) {
   const size_t num = out.size();
-  auto rands = Rand(*ctx_->GetState<Prg>(), num);
-  auto mac = ScalarMul(key_, absl::MakeSpan(rands));
-  auto zeros = Zeros(num);
+  auto rands = vec64::Rand(*ctx_->GetState<Prg>(), num);
+  auto mac = vec64::ScalarMul(key_, absl::MakeSpan(rands));
+  auto zeros = vec64::Zeros(num);
   internal::Pack(absl::MakeConstSpan(zeros), absl::MakeConstSpan(mac), out);
 }
 
@@ -66,7 +66,8 @@ void FakeCorrelation::RandomAuth(absl::Span<internal::ATy> out) {
     RandomGet(absl::MakeSpan(zeros));
     RandomSet(absl::MakeSpan(rands));
   }
-  Add(absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(zeros.data()),
+  vec64::Add(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(zeros.data()),
                           2 * num),
       absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(rands.data()),
                           2 * num),
@@ -79,14 +80,14 @@ void FakeCorrelation::ShuffleSet(absl::Span<const size_t> perm,
 
   std::vector<uint128_t> seeds(2);
   ctx_->GetState<Prg>()->Fill(absl::MakeSpan(seeds));
-  auto a = Rand(seeds[0], num);
-  auto b = Rand(seeds[1], num);
+  auto a = vec64::Rand(seeds[0], num);
+  auto b = vec64::Rand(seeds[1], num);
 
   for (size_t i = 0; i < num; ++i) {
     delta[i] = a[perm[i]] + b[i];
   }
   // delta = - \Pi(a) - b
-  Neg(absl::MakeConstSpan(delta), absl::MakeSpan(delta));
+  vec64::Neg(absl::MakeConstSpan(delta), absl::MakeSpan(delta));
 }
 
 void FakeCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
@@ -96,8 +97,8 @@ void FakeCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
 
   std::vector<uint128_t> seeds(2);
   ctx_->GetState<Prg>()->Fill(absl::MakeSpan(seeds));
-  auto a_buf = Rand(seeds[0], num);
-  auto b_buf = Rand(seeds[1], num);
+  auto a_buf = vec64::Rand(seeds[0], num);
+  auto b_buf = vec64::Rand(seeds[1], num);
 
   memcpy(a.data(), a_buf.data(), num * sizeof(internal::PTy));
   memcpy(b.data(), b_buf.data(), num * sizeof(internal::PTy));

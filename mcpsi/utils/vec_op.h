@@ -9,6 +9,8 @@
 
 namespace mcpsi {
 
+namespace vec64 {
+
 void Add(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs,
          absl::Span<kFp64> out);
 
@@ -124,6 +126,129 @@ kFp64 inline InPro(absl::Span<const kFp64> lhs, absl::Span<const kFp64> rhs) {
   }
   return ret;
 }
+
+};  // namespace vec64
+
+namespace vec128 {
+
+void Add(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
+         absl::Span<kFp128> out);
+
+void Sub(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
+         absl::Span<kFp128> out);
+
+void Mul(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
+         absl::Span<kFp128> out);
+
+void ScalarMul(const kFp128 scalar, absl::Span<const kFp128> in,
+               absl::Span<kFp128> out);
+
+// Implement : Mul(lsh , Inv(rhs))
+void Div(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
+         absl::Span<kFp128> out);
+
+void Neg(absl::Span<const kFp128> in, absl::Span<kFp128> out);
+
+// fast batch inv
+void Inv(absl::Span<const kFp128> in, absl::Span<kFp128> out);
+void Ones(absl::Span<kFp128> out);
+void Zeros(absl::Span<kFp128> out);
+void Rand(absl::Span<kFp128> out);
+void Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp128> out);
+
+std::vector<kFp128> inline Add(absl::Span<const kFp128> lhs,
+                               absl::Span<const kFp128> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  std::vector<kFp128> ret(lhs.size());
+  Add(lhs, rhs, absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline Sub(absl::Span<const kFp128> lhs,
+                               absl::Span<const kFp128> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  std::vector<kFp128> ret(lhs.size());
+  Sub(lhs, rhs, absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline Mul(absl::Span<const kFp128> lhs,
+                               absl::Span<const kFp128> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  std::vector<kFp128> ret(lhs.size());
+  Mul(lhs, rhs, absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline ScalarMul(const kFp128 scalar,
+                                     absl::Span<const kFp128> in) {
+  std::vector<kFp128> ret(in.size());
+  ScalarMul(scalar, in, absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline Div(absl::Span<const kFp128> lhs,
+                               absl::Span<const kFp128> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  std::vector<kFp128> ret(lhs.size());
+  Div(lhs, rhs, absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline Neg(absl::Span<const kFp128> in) {
+  const size_t size = in.size();
+  std::vector<kFp128> ret(size);
+  Neg(in, absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline Inv(absl::Span<const kFp128> in) {
+  const size_t size = in.size();
+  std::vector<kFp128> ret(size);
+  Inv(in, absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline Ones(uint32_t num) {
+  std::vector<kFp128> ret(num, kFp128::One());
+  return ret;
+}
+
+std::vector<kFp128> inline Zeros(uint32_t num) {
+  std::vector<kFp128> ret(num, kFp128::Zero());
+  return ret;
+}
+
+std::vector<kFp128> inline Rand(uint32_t num) {
+  std::vector<kFp128> ret(num);
+  Rand(absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline Rand(yacl::crypto::Prg<uint8_t>& prg, uint32_t num) {
+  std::vector<kFp128> ret(num);
+  Rand(prg, absl::MakeSpan(ret));
+  return ret;
+}
+
+std::vector<kFp128> inline Rand(uint128_t seed, uint32_t num) {
+  auto prg = yacl::crypto::Prg<uint8_t>(seed);
+  return Rand(prg, num);
+}
+
+// Inner product
+kFp128 inline InPro(absl::Span<const kFp128> lhs,
+                    absl::Span<const kFp128> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  const size_t size = lhs.size();
+  kFp128 ret = kFp128::Zero();
+  for (uint32_t i = 0; i < size; ++i) {
+    ret = ret + (lhs[i] * rhs[i]);
+  }
+  return ret;
+}
+
+};  // namespace vec128
 
 // Index Shuffle
 std::vector<size_t> GenPerm(uint32_t num);

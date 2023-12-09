@@ -3,12 +3,40 @@
 #include "gtest/gtest.h"
 #include "mcpsi/context/register.h"
 #include "mcpsi/ss/protocol.h"
+#include "mcpsi/ss/type.h"
 #include "mcpsi/utils/test_util.h"
 #include "mcpsi/utils/vec_op.h"
 
 namespace mcpsi {
 
 namespace yc = yacl::crypto;
+
+class TestParam {
+ public:
+  static std::vector<std::shared_ptr<Context>> ctx;
+
+  // Getter
+  static std::vector<std::shared_ptr<Context>>& GetContext() {
+    if (ctx.empty()) {
+      ctx = Setup();
+    }
+    return ctx;
+  }
+
+  static std::vector<std::shared_ptr<Context>> Setup() {
+    auto ctx = MockContext(2);
+    MockInitContext(ctx);
+    return ctx;
+  }
+};
+
+std::vector<std::shared_ptr<Context>> TestParam::ctx =
+    std::vector<std::shared_ptr<Context>>();
+
+TEST(Setup, InitializeWork) {
+  auto context = TestParam::GetContext();
+  EXPECT_EQ(context.size(), 2);
+}
 
 #define CALCULATE_AP(context, num, func)     \
   auto prot = context->GetState<Protocol>(); \
@@ -17,16 +45,15 @@ namespace yc = yacl::crypto;
   auto lhs_a = prot->P2A(lhs_p);             \
   auto ret_a = prot->func(lhs_a, rhs_p);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = func(lhs_p, rhs_p);           \
+  auto check = vec64::func(lhs_p, rhs_p);    \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
   return ret;
 
 #define DECLARE_AP_TEST(func)                                              \
-  TEST(ProtoclTest, func##APWork) {                                        \
-    auto context = MockContext(2);                                         \
-    MockInitContext(context);                                              \
+  TEST(ProtocolTest, func##APWork) {                                       \
+    auto context = TestParam::GetContext();                                \
     size_t num = 10000;                                                    \
     auto rank0 = std::async([&] { CALCULATE_AP(context[0], num, func); }); \
     auto rank1 = std::async([&] { CALCULATE_AP(context[1], num, func); }); \
@@ -49,16 +76,15 @@ DECLARE_AP_TEST(Div);
   auto rhs_a = prot->P2A(rhs_p);             \
   auto ret_a = prot->func(lhs_p, rhs_a);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = func(lhs_p, rhs_p);           \
+  auto check = vec64::func(lhs_p, rhs_p);    \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
   return ret;
 
 #define DECLARE_PA_TEST(func)                                              \
-  TEST(ProtoclTest, func##PAWork) {                                        \
-    auto context = MockContext(2);                                         \
-    MockInitContext(context);                                              \
+  TEST(ProtocolTest, func##PAWork) {                                       \
+    auto context = TestParam::GetContext();                                \
     size_t num = 10000;                                                    \
     auto rank0 = std::async([&] { CALCULATE_PA(context[0], num, func); }); \
     auto rank1 = std::async([&] { CALCULATE_PA(context[1], num, func); }); \
@@ -82,16 +108,15 @@ DECLARE_PA_TEST(Div);
   auto rhs_a = prot->P2A(rhs_p);             \
   auto ret_a = prot->func(lhs_a, rhs_a);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = func(lhs_p, rhs_p);           \
+  auto check = vec64::func(lhs_p, rhs_p);    \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
   return ret;
 
 #define DECLARE_AA_TEST(func)                                              \
-  TEST(ProtoclTest, func##AAWork) {                                        \
-    auto context = MockContext(2);                                         \
-    MockInitContext(context);                                              \
+  TEST(ProtocolTest, func##AAWork) {                                       \
+    auto context = TestParam::GetContext();                                \
     size_t num = 10000;                                                    \
     auto rank0 = std::async([&] { CALCULATE_AA(context[0], num, func); }); \
     auto rank1 = std::async([&] { CALCULATE_AA(context[1], num, func); }); \
@@ -107,9 +132,8 @@ DECLARE_AA_TEST(Sub);
 DECLARE_AA_TEST(Mul);
 DECLARE_AA_TEST(Div);
 
-TEST(ProtoclTest, ZeroTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, ZeroTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -131,9 +155,8 @@ TEST(ProtoclTest, ZeroTest) {
   }
 };
 
-TEST(ProtoclTest, RandATest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, RandATest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -154,9 +177,8 @@ TEST(ProtoclTest, RandATest) {
   }
 };
 
-TEST(ProtoclTest, InvATest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, InvATest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -182,9 +204,8 @@ TEST(ProtoclTest, InvATest) {
   }
 };
 
-TEST(ProtoclTest, ConvertTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, ConvertTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -208,9 +229,8 @@ TEST(ProtoclTest, ConvertTest) {
 };
 
 // Shuffle (one-side) Test
-TEST(ProtoclTest, ShuffleOneSideTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, ShuffleOneSideTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -237,9 +257,8 @@ TEST(ProtoclTest, ShuffleOneSideTest) {
 };
 
 // Shuffle (two side) Test
-TEST(ProtoclTest, ShuffleTwoSideTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, ShuffleTwoSideTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -285,13 +304,12 @@ TEST(ProtoclTest, ShuffleTwoSideTest) {
   rank1.get();
 };
 
-TEST(ProtoclTest, SetATest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, SetATest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
-    auto rand = Rand(num);
+    auto rand = vec64::Rand(num);
     auto ret_a = prot->SetA(rand);
     [[maybe_unused]] auto ret_p = prot->A2P(ret_a);
     return rand;

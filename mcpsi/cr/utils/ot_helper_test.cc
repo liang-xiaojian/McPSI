@@ -49,9 +49,9 @@ TEST(OtHelperTest, BeaverWork) {
   auto [a0, b0, c0] = rank0.get();
   auto [a1, b1, c1] = rank1.get();
 
-  auto a = Add(absl::MakeSpan(a0), absl::MakeSpan(a1));
-  auto b = Add(absl::MakeSpan(b0), absl::MakeSpan(b1));
-  auto c = Add(absl::MakeSpan(c0), absl::MakeSpan(c1));
+  auto a = vec64::Add(absl::MakeSpan(a0), absl::MakeSpan(a1));
+  auto b = vec64::Add(absl::MakeSpan(b0), absl::MakeSpan(b1));
+  auto c = vec64::Add(absl::MakeSpan(c0), absl::MakeSpan(c1));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(a[i] * b[i], c[i]);
@@ -71,7 +71,7 @@ TEST(OtHelperTest, BaseVoleWork) {
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
-    auto delta = Rand(1)[0];
+    auto delta = vec64::Rand(1)[0];
     std::vector<internal::PTy> c(num);
     helper.BaseVoleSend(conn, delta, absl::MakeSpan(c));
     return std::make_tuple(delta, c);

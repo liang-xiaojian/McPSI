@@ -29,7 +29,7 @@ TEST_P(VoleAdapterTest, Work) {
   auto context = MockContext(2);
   MockInitContext(context);
   const size_t vole_num = GetParam().num;
-  auto deltas = Rand(1);
+  auto deltas = vec64::Rand(1);
   auto delta = deltas[0];
 
   auto rank0 = std::async([&] {

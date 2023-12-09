@@ -32,8 +32,8 @@ TEST_P(MpVoleTest, Work) {
   param.GenIndexes();
   auto cot = yc::MockCots(param.require_ot_num_, yc::RandU128());
 
-  auto v = Rand(noise_num);
-  auto w = Rand(noise_num);
+  auto v = vec64::Rand(noise_num);
+  auto w = vec64::Rand(noise_num);
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();
@@ -86,14 +86,14 @@ TEST(WolverineVoleTest, PreWork) {
   size_t pre_num = param.k_;
   size_t vole_num = param.n_;
 
-  auto pre_a = Rand(pre_num);
-  auto pre_b = Rand(pre_num);
-  auto deltas = Rand(1);
+  auto pre_a = vec64::Rand(pre_num);
+  auto pre_b = vec64::Rand(pre_num);
+  auto deltas = vec64::Rand(1);
   auto delta = deltas[0];
 
-  auto pre_c = ScalarMul(delta, absl::MakeSpan(pre_a));
-  Add(absl::MakeConstSpan(pre_c), absl::MakeConstSpan(pre_b),
-      absl::MakeSpan(pre_c));
+  auto pre_c = vec64::ScalarMul(delta, absl::MakeSpan(pre_a));
+  vec64::Add(absl::MakeConstSpan(pre_c), absl::MakeConstSpan(pre_b),
+             absl::MakeSpan(pre_c));
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();
@@ -132,14 +132,14 @@ TEST(WolverineVoleTest, BootStrapWork) {
   size_t pre_num = param.k_;
   size_t vole_num = param.n_;
 
-  auto pre_a = Rand(pre_num);
-  auto pre_b = Rand(pre_num);
-  auto deltas = Rand(1);
+  auto pre_a = vec64::Rand(pre_num);
+  auto pre_b = vec64::Rand(pre_num);
+  auto deltas = vec64::Rand(1);
   auto delta = deltas[0];
 
-  auto pre_c = ScalarMul(delta, absl::MakeSpan(pre_a));
-  Add(absl::MakeConstSpan(pre_c), absl::MakeConstSpan(pre_b),
-      absl::MakeSpan(pre_c));
+  auto pre_c = vec64::ScalarMul(delta, absl::MakeSpan(pre_a));
+  vec64::Add(absl::MakeConstSpan(pre_c), absl::MakeConstSpan(pre_b),
+             absl::MakeSpan(pre_c));
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();

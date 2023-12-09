@@ -7,6 +7,8 @@ mcpsi_cc_library(
     hdrs = ["type.h"],
     deps = [
         "@yacl//yacl/math/mpint",
+        "//mcpsi/utils:vec_op",
+        "//mcpsi/utils:field",
     ],
 )
 
@@ -53,6 +55,7 @@ mcpsi_cc_test(
     srcs = ["ashare_test.cc"],
     deps = [
         ":protocol",
+        ":ss_type",
         "//mcpsi/context:register",
         "//mcpsi/utils:test_util",
         "//mcpsi/utils:vec_op",
