@@ -184,22 +184,29 @@ std::vector<PTy> A2P(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   // TEST ME: whether is secure enough ???
   const size_t size = in.size();
   auto [val, mac] = Unpack(absl::MakeSpan(in));
-  auto lctx = ctx->GetState<Connection>();
+  auto conn = ctx->GetState<Connection>();
   auto val_bv = yacl::ByteContainerView(val.data(), size * sizeof(PTy));
   std::vector<PTy> real_val(size);
-  if (ctx->GetRank() == 0) {
-    lctx->SendAsync(ctx->NextRank(), val_bv, "A2P:0");
-    auto buf = lctx->Recv(ctx->NextRank(), "A2P:1");
-    op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()), size),
-            absl::MakeConstSpan(val), absl::MakeSpan(real_val));
-  } else {
-    auto buf = lctx->Recv(ctx->NextRank(), "A2P:0");
-    lctx->SendAsync(ctx->NextRank(), val_bv, "A2P:1");
-    op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()), size),
-            absl::MakeConstSpan(val), absl::MakeSpan(real_val));
-  }
+
+  auto buf = conn->Exchange(val_bv);
+  op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()), size),
+          absl::MakeConstSpan(val), absl::MakeSpan(real_val));
+
+  // if (ctx->GetRank() == 0) {
+  //   conn->SendAsync(ctx->NextRank(), val_bv, "A2P:0");
+  //   auto buf = conn->Recv(ctx->NextRank(), "A2P:1");
+  //   op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()),
+  //   size),
+  //           absl::MakeConstSpan(val), absl::MakeSpan(real_val));
+  // } else {
+  //   auto buf = conn->Recv(ctx->NextRank(), "A2P:0");
+  //   conn->SendAsync(ctx->NextRank(), val_bv, "A2P:1");
+  //   op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()),
+  //   size),
+  //           absl::MakeConstSpan(val), absl::MakeSpan(real_val));
+  // }
   // Generate Sync Seed After Open Value
-  auto sync_seed = lctx->SyncSeed();
+  auto sync_seed = conn->SyncSeed();
   auto coef = op::Rand(sync_seed, size);
   // linear combination
   auto real_val_affine =
@@ -209,7 +216,7 @@ std::vector<PTy> A2P(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   auto key = ctx->GetState<Protocol>()->GetKey();
   auto zero_mac = mac_affine - real_val_affine * key;
 
-  auto remote_mac_u64 = lctx->ExchangeWithCommit(zero_mac.GetVal());
+  auto remote_mac_u64 = conn->ExchangeWithCommit(zero_mac.GetVal());
   YACL_ENFORCE(zero_mac + PTy(remote_mac_u64) == PTy::Zero());
   return real_val;
 }
@@ -243,12 +250,12 @@ std::vector<ATy> ShuffleAGet(std::shared_ptr<Context>& ctx,
   op::Add(absl::MakeConstSpan(mac_a), absl::MakeConstSpan(mac_in),
           absl::MakeSpan(mac_a));
 
-  auto lctx = ctx->GetConnection();
-  lctx->SendAsync(
+  auto conn = ctx->GetConnection();
+  conn->SendAsync(
       ctx->NextRank(),
       yacl::ByteContainerView(val_a.data(), val_a.size() * sizeof(PTy)),
       "send:a+x val");
-  lctx->SendAsync(
+  conn->SendAsync(
       ctx->NextRank(),
       yacl::ByteContainerView(mac_a.data(), mac_a.size() * sizeof(PTy)),
       "send:a+x mac");
@@ -266,9 +273,9 @@ std::vector<ATy> ShuffleASet(std::shared_ptr<Context>& ctx,
   auto val_delta = ctx->GetState<Correlation>()->ShuffleSet(perm);
   auto mac_delta = ctx->GetState<Correlation>()->ShuffleSet(perm);
 
-  auto lctx = ctx->GetConnection();
-  auto val_buf = lctx->Recv(ctx->NextRank(), "send:a");
-  auto mac_buf = lctx->Recv(ctx->NextRank(), "send:b");
+  auto conn = ctx->GetConnection();
+  auto val_buf = conn->Recv(ctx->NextRank(), "send:a");
+  auto mac_buf = conn->Recv(ctx->NextRank(), "send:b");
 
   auto val_tmp = absl::MakeSpan(reinterpret_cast<PTy*>(val_buf.data()), num);
   auto mac_tmp = absl::MakeSpan(reinterpret_cast<PTy*>(mac_buf.data()), num);
