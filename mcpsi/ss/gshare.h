@@ -24,9 +24,7 @@ std::vector<GTy> A2G(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in);
 // std::vector<GTy> P2G(std::shared_ptr<Context>& ctx, absl::Span<const PTy>
 // in);
 
-// std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy>
-// set0,
-//                       absl::Span<const ATy> set1, absl::Span<const ATy>
-//                       data);
+std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
+                      absl::Span<const ATy> set1, absl::Span<const ATy> data);
 
 }  // namespace mcpsi::internal
