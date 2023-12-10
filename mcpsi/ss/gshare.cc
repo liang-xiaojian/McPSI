@@ -93,8 +93,8 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
   // auto u64_coef = absl::MakeSpan(reinterpret_cast<uint64_t*>(coef.data()),
   // num);
 
-  GTy real_val_affine;  // zero
-  GTy mac_affine;       // zero
+  GTy real_val_affine = Ggroup->Sub(prf_g, prf_g);  // zero
+  GTy mac_affine = Ggroup->Sub(prf_g, prf_g);       // zero
 
   // GTy real_val_affine{1};
   // GTy mac_affine{1};
@@ -104,7 +104,7 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
     auto tmp_val = Ggroup->Mul(ret[i], ym::MPInt(coef[i].GetVal()));
     real_val_affine = Ggroup->Add(real_val_affine, tmp_val);
 
-    auto tmp_mac = Ggroup->Mul(ret[i], ym::MPInt(coef[i].GetVal()));
+    auto tmp_mac = Ggroup->Mul(in[i].mac, ym::MPInt(coef[i].GetVal()));
     mac_affine = Ggroup->Add(mac_affine, tmp_mac);
     // real_val_affine = real_val_affine.MulMod(
     //     ret[i].PowMod(ym::MPInt(u64_coef[i]), prf_mod), prf_mod);
@@ -126,8 +126,8 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
       Ggroup->DeserializePoint({remote_mac_buf.data<uint8_t>(), GTy_size},
                                yc::PointOctetFormat::X962Compressed);
 
-  YACL_ENFORCE(
-      Ggroup->PointEqual(Ggroup->Add(zero_mac_GTy, remote_mac_GTy), GTy()));
+  YACL_ENFORCE(Ggroup->PointEqual(Ggroup->Add(zero_mac_GTy, remote_mac_GTy),
+                                  Ggroup->Sub(prf_g, prf_g)));
 
   // auto local_mac_GTy =
   //     real_val_affine.PowMod(ym::MPInt(spdz_key.GetVal()), prf_mod);
