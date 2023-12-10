@@ -9,12 +9,38 @@
 
 namespace mcpsi {
 
+class TestParam {
+ public:
+  static std::vector<std::shared_ptr<Context>> ctx;
+
+  // Getter
+  static std::vector<std::shared_ptr<Context>>& GetContext() {
+    if (ctx.empty()) {
+      ctx = Setup();
+    }
+    return ctx;
+  }
+
+  static std::vector<std::shared_ptr<Context>> Setup() {
+    auto ctx = MockContext(2);
+    MockSetupContext(ctx);
+    return ctx;
+  }
+};
+
+std::vector<std::shared_ptr<Context>> TestParam::ctx =
+    std::vector<std::shared_ptr<Context>>();
+
+TEST(Setup, InitializeWork) {
+  auto context = TestParam::GetContext();
+  EXPECT_EQ(context.size(), 2);
+}
+
 TEST(CrTest, SetValueWork) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
-  auto value = Rand(num);
+  auto value = internal::op::Rand(num);
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();
@@ -34,18 +60,19 @@ TEST(CrTest, SetValueWork) {
 
   auto mac0 = internal::ExtractMac(absl::MakeConstSpan(ret0));
   auto mac1 = internal::ExtractMac(absl::MakeConstSpan(ret1));
-  auto mac = Add(absl::MakeConstSpan(mac0), absl::MakeConstSpan(mac1));
-  auto check = ScalarMul(context[0]->GetState<Correlation>()->GetKey() +
-                             context[1]->GetState<Correlation>()->GetKey(),
-                         absl::MakeSpan(value));
+  auto mac =
+      internal::op::Add(absl::MakeConstSpan(mac0), absl::MakeConstSpan(mac1));
+  auto check =
+      internal::op::ScalarMul(context[0]->GetState<Correlation>()->GetKey() +
+                                  context[1]->GetState<Correlation>()->GetKey(),
+                              absl::MakeSpan(value));
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(check[i], mac[i]);
   }
 }
 
 TEST(CrTest, AuthBeaverWork) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
   auto rank0 = std::async([&] {
@@ -75,9 +102,9 @@ TEST(CrTest, AuthBeaverWork) {
   auto c0_val = internal::ExtractVal(c0);
   auto c1_val = internal::ExtractVal(c1);
 
-  auto a = Add(absl::MakeSpan(a0_val), absl::MakeSpan(a1_val));
-  auto b = Add(absl::MakeSpan(b0_val), absl::MakeSpan(b1_val));
-  auto c = Add(absl::MakeSpan(c0_val), absl::MakeSpan(c1_val));
+  auto a = internal::op::Add(absl::MakeSpan(a0_val), absl::MakeSpan(a1_val));
+  auto b = internal::op::Add(absl::MakeSpan(b0_val), absl::MakeSpan(b1_val));
+  auto c = internal::op::Add(absl::MakeSpan(c0_val), absl::MakeSpan(c1_val));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(a[i] * b[i], c[i]);

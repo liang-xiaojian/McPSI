@@ -43,7 +43,6 @@ mcpsi_cc_library(
     deps = [
         ":context",
         ":state",
-        "//mcpsi/cr:fake_cr",
         "//mcpsi/cr:cr",
         "//mcpsi/ss:protocol",
     ],

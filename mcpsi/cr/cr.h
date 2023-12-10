@@ -14,7 +14,7 @@ namespace mcpsi {
 class Correlation : public State {
  private:
   std::shared_ptr<Context> ctx_;
-  kFp64 key_;
+  internal::PTy key_;
   bool setup_ot_{false};
   bool setup_vole_{false};  // useless
 
@@ -85,9 +85,9 @@ class Correlation : public State {
     InitVoleAdapter();
   }
 
-  kFp64 GetKey() const { return key_; }
+  internal::PTy GetKey() const { return key_; }
 
-  void SetKey(kFp64 key) {
+  void SetKey(internal::PTy key) {
     key_ = key;
 
     setup_vole_ = false;  // set it as false

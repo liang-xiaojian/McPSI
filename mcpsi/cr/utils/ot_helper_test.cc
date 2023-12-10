@@ -12,7 +12,7 @@ namespace mcpsi::ot {
 
 TEST(OtHelperTest, BeaverWork) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   const size_t num = 1;
 
   auto rank0 = std::async([&] {
@@ -49,9 +49,9 @@ TEST(OtHelperTest, BeaverWork) {
   auto [a0, b0, c0] = rank0.get();
   auto [a1, b1, c1] = rank1.get();
 
-  auto a = Add(absl::MakeSpan(a0), absl::MakeSpan(a1));
-  auto b = Add(absl::MakeSpan(b0), absl::MakeSpan(b1));
-  auto c = Add(absl::MakeSpan(c0), absl::MakeSpan(c1));
+  auto a = internal::op::Add(absl::MakeSpan(a0), absl::MakeSpan(a1));
+  auto b = internal::op::Add(absl::MakeSpan(b0), absl::MakeSpan(b1));
+  auto c = internal::op::Add(absl::MakeSpan(c0), absl::MakeSpan(c1));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(a[i] * b[i], c[i]);
@@ -60,7 +60,7 @@ TEST(OtHelperTest, BeaverWork) {
 
 TEST(OtHelperTest, BaseVoleWork) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   const size_t num = 10000;
 
   auto rank0 = std::async([&] {
@@ -71,7 +71,7 @@ TEST(OtHelperTest, BaseVoleWork) {
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
-    auto delta = Rand(1)[0];
+    auto delta = internal::op::Rand(1)[0];
     std::vector<internal::PTy> c(num);
     helper.BaseVoleSend(conn, delta, absl::MakeSpan(c));
     return std::make_tuple(delta, c);
@@ -100,7 +100,7 @@ TEST(OtHelperTest, BaseVoleWork) {
 
 TEST(OtHelperTest, ShuffleWork) {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   const size_t num = 1000;
 
   auto rank0 = std::async([&] {

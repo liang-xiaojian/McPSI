@@ -6,6 +6,8 @@ SECRETFLOW_GIT = "https://github.com/secretflow"
 
 YACL_COMMIT_ID = "6be4330542e92b6503317c45a999c99e654ced58"
 
+RULES_BOOST_COMMIT_ID = "1b6711875be9d90140e3c8e558667723bd4bed93"
+
 SKYLIB_VERSION = "1.3.0"
 
 def _yacl():
@@ -26,6 +28,14 @@ def _gmp():
         urls = ["https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz"],
     )
 
+def _boost():
+    maybe( 
+        git_repository,
+        name = "com_github_nelhage_rules_boost",
+        commit = RULES_BOOST_COMMIT_ID,
+        remote = "https://github.com/nelhage/rules_boost",
+        shallow_since = "1580416893 -0800",
+    )
 
 def mcpsi_deps():
     _yacl()
@@ -39,7 +49,9 @@ def mcpsi_deps():
             "https://github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz".format(version = SKYLIB_VERSION),
         ],
     )
-    
+
     _gmp()
+
+    _boost()
 
     

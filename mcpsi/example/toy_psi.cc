@@ -1,4 +1,5 @@
 #include <future>
+#include <unordered_set>
 
 #include "mcpsi/context/register.h"
 #include "mcpsi/ss/protocol.h"
@@ -8,20 +9,32 @@ using namespace mcpsi;
 
 // return the set such that all elements "e"
 // satisyfing "e in set0" && "e in set1"
-std::vector<uint64_t> intersection(std::vector<uint64_t>& set0,
-                                   std::vector<uint64_t>& set1) {
-  std::sort(set0.begin(), set0.end());
-  std::sort(set1.begin(), set1.end());
+std::vector<size_t> intersection(const std::shared_ptr<yc::EcGroup>& Ggroup,
+                                 std::vector<GTy>& set0,
+                                 std::vector<GTy>& set1) {
+  auto group_hash = [&Ggroup](const GTy& val) {
+    return Ggroup->HashPoint(val);
+  };
+  auto group_equal = [&Ggroup](const GTy& lhs, const GTy& rhs) {
+    return Ggroup->PointEqual(lhs, rhs);
+  };
 
-  std::vector<uint64_t> ret;
-  std::set_intersection(set0.begin(), set0.end(), set1.begin(), set1.end(),
-                        std::back_inserter(ret));
+  std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> hash_set(
+      set0.begin(), set0.end(), 2, group_hash, group_equal);
+
+  // save hash value
+  std::vector<size_t> ret;
+  for (const auto& e : set1) {
+    if (hash_set.count(e)) {
+      ret.emplace_back(group_hash(e));
+    }
+  }
   return ret;
 }
 
-auto toy_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
+auto toy_psi() -> std::pair<std::vector<size_t>, std::vector<size_t>> {
   auto context = MockContext(2);
-  MockInitContext(context);
+  MockSetupContext(context);
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
     std::vector<PTy> set0{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
@@ -34,13 +47,7 @@ auto toy_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
     auto reveal0 = prot->A2G(shuffle0);
     auto reveal1 = prot->A2G(shuffle1);
 
-    std::vector<uint64_t> lhs(10);
-    std::vector<uint64_t> rhs(10);
-    for (size_t i = 0; i < 10; ++i) {
-      lhs[i] = reveal0[i].Get<uint64_t>();
-      rhs[i] = reveal1[i].Get<uint64_t>();
-    }
-    return intersection(lhs, rhs);
+    return intersection(prot->GetGroup(), reveal0, reveal1);
   });
   auto rank1 = std::async([&] {
     auto prot = context[1]->GetState<Protocol>();
@@ -54,13 +61,7 @@ auto toy_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
     auto reveal0 = prot->A2G(shuffle0);
     auto reveal1 = prot->A2G(shuffle1);
 
-    std::vector<uint64_t> lhs(10);
-    std::vector<uint64_t> rhs(10);
-    for (size_t i = 0; i < 10; ++i) {
-      lhs[i] = reveal0[i].Get<uint64_t>();
-      rhs[i] = reveal1[i].Get<uint64_t>();
-    }
-    return intersection(lhs, rhs);
+    return intersection(prot->GetGroup(), reveal0, reveal1);
   });
 
   auto result0 = rank0.get();
@@ -82,13 +83,13 @@ int main() {
 
   std::cout << std::endl;
   std::cout << "P0 result: ( size :" << result0.size() << " )" << std::endl;
-  for (const auto e : result0) {
+  for (const auto& e : result0) {
     std::cout << e << " ";
   }
   std::cout << std::endl;
 
   std::cout << "P1 result: ( size :" << result1.size() << " )" << std::endl;
-  for (const auto e : result1) {
+  for (const auto& e : result1) {
     std::cout << e << " ";
   }
   std::cout << std::endl;

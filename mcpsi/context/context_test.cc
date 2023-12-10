@@ -46,11 +46,11 @@ TEST(ContextTest, PrgWork) {
   auto context = MockContext(2);
 
   auto rank0 = std::async([&] {
-    InitContext(context[0]);
+    SetupContext(context[0]);
     return context[0]->GetState<Prg>()->Seed();
   });
   auto rank1 = std::async([&] {
-    InitContext(context[1]);
+    SetupContext(context[1]);
     return context[1]->GetState<Prg>()->Seed();
   });
 

@@ -8,6 +8,10 @@ load("@yacl//bazel:repositories.bzl", "yacl_deps")
 
 yacl_deps()
 
+load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
+
+boost_deps()
+
 load(
     "@rules_foreign_cc//foreign_cc:repositories.bzl",
     "rules_foreign_cc_dependencies",

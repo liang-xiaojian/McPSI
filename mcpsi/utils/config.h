@@ -7,8 +7,11 @@
 
 namespace mcpsi {
 
-constexpr static uint64_t Prime64 = 2305843009213697249;    // safe prime
-constexpr static uint128_t Prime128 = 4611686018427394499;  // Prime64 * 2 + 1
+constexpr static uint64_t Prime64 = 2305843009213697249;  // safe prime
+
+// prime order for secp128r2
+constexpr static uint128_t Prime128 =
+    yacl::MakeUint128(0x3FFFFFFF7FFFFFFF, 0xBE0024720613B5A3);  //
 
 // static mpz_t GMP_Prime64;
 

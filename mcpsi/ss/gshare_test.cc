@@ -10,9 +10,35 @@ namespace mcpsi {
 
 namespace yc = yacl::crypto;
 
-TEST(ProtoclTest, A2GTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+class TestParam {
+ public:
+  static std::vector<std::shared_ptr<Context>> ctx;
+
+  // Getter
+  static std::vector<std::shared_ptr<Context>>& GetContext() {
+    if (ctx.empty()) {
+      ctx = Setup();
+    }
+    return ctx;
+  }
+
+  static std::vector<std::shared_ptr<Context>> Setup() {
+    auto ctx = MockContext(2);
+    MockSetupContext(ctx);
+    return ctx;
+  }
+};
+
+std::vector<std::shared_ptr<Context>> TestParam::ctx =
+    std::vector<std::shared_ptr<Context>>();
+
+TEST(Setup, InitializeWork) {
+  auto context = TestParam::GetContext();
+  EXPECT_EQ(context.size(), 2);
+}
+
+TEST(ProtocolTest, A2GTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -34,8 +60,11 @@ TEST(ProtoclTest, A2GTest) {
   });
   auto r_b = rank0.get();
   auto r_a = rank1.get();
+
+  auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
+                                                     yacl::ArgLib = "openssl");
   for (size_t i = 0; i < num; ++i) {
-    EXPECT_EQ(r_a[i], r_b[i]);
+    EXPECT_TRUE(group->PointEqual(r_a[i], r_b[i]));
   }
 };
 

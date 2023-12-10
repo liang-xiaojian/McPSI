@@ -1,18 +1,33 @@
 #pragma once
 
 // #include "gmp.h"
+#include "boost/multiprecision/cpp_int.hpp"
 #include "mcpsi/utils/config.h"
 #include "yacl/base/int128.h"
 #include "yacl/crypto/utils/rand.h"
 
 namespace mcpsi {
 
+using uint256_t = boost::multiprecision::uint256_t;
+
 namespace {
 
-uint64_t inline exgcd(uint64_t a, uint64_t b, uint64_t& x, uint64_t& y) {
+uint64_t inline exgcd64(uint64_t a, uint64_t b, uint64_t& x, uint64_t& y) {
   uint64_t x1 = 1, x2 = 0, x3 = 0, x4 = 1;
   while (b != 0) {
     uint64_t c = a / b;
+    std::tie(x1, x2, x3, x4, a, b) =
+        std::make_tuple(x3, x4, x1 - x3 * c, x2 - x4 * c, b, a - b * c);
+  }
+  x = x1, y = x2;
+  return a;
+}
+
+uint128_t inline exgcd128(uint128_t a, uint128_t b, uint128_t& x,
+                          uint128_t& y) {
+  uint128_t x1 = 1, x2 = 0, x3 = 0, x4 = 1;
+  while (b != static_cast<uint128_t>(0)) {
+    uint128_t c = a / b;
     std::tie(x1, x2, x3, x4, a, b) =
         std::make_tuple(x3, x4, x1 - x3 * c, x2 - x4 * c, b, a - b * c);
   }
@@ -76,7 +91,7 @@ class kFp64 {
   static kFp64 Inv(const kFp64& in) {
     // uint64_t result = gmp_invert(in.val_);
     uint64_t result = 0, _ = 0;
-    uint64_t check = exgcd(in.val_, Prime64, result, _);
+    uint64_t check = exgcd64(in.val_, Prime64, result, _);
     YACL_ENFORCE(check == 1);
     return kFp64(result + Prime64);
   }
@@ -98,6 +113,73 @@ class kFp64 {
 
  protected:
   uint64_t val_;
+};
+
+class kFp128 {
+ public:
+  kFp128() : val_(yacl::MakeUint128(0, 0)) {}
+
+  kFp128(int val) : kFp128(val + Prime128) {}
+
+  kFp128(uint64_t val) : val_(yacl::MakeUint128(0, val)) {}
+
+  kFp128(uint128_t val) : val_(val % Prime128) {}
+
+  kFp128(uint256_t val) : val_(val % Prime128) {}
+
+  kFp128 operator+(const kFp128& rhs) const { return kFp128(val_ + rhs.val_); }
+
+  kFp128 operator-(const kFp128& rhs) const {
+    return kFp128(val_ + Prime128 - rhs.val_);
+  }
+
+  kFp128 operator*(const kFp128& rhs) const {
+    uint256_t l = val_;
+    uint256_t r = rhs.val_;
+    return kFp128(l * r);
+  }
+
+  kFp128 operator/(const kFp128& rhs) const { return (*this) * Inv(rhs); }
+
+  bool operator==(const kFp128& rhs) const { return this->val_ == rhs.val_; }
+
+  bool operator!=(const kFp128& rhs) const { return !(*this == rhs); }
+
+  uint128_t GetVal() const { return val_; }
+
+  static kFp128 Add(const kFp128& lhs, const kFp128& rhs) { return lhs + rhs; }
+
+  static kFp128 Sub(const kFp128& lhs, const kFp128& rhs) { return lhs - rhs; }
+
+  static kFp128 Mul(const kFp128& lhs, const kFp128& rhs) { return lhs * rhs; }
+
+  static kFp128 Div(const kFp128& lhs, const kFp128& rhs) { return lhs / rhs; }
+
+  static kFp128 Inv(const kFp128& in) {
+    // uint64_t result = gmp_invert(in.val_);
+    uint128_t result = 0, _ = 0;
+    uint128_t check = exgcd128(in.val_, Prime128, result, _);
+    YACL_ENFORCE(check == 1, "current check is {}", check);
+    return kFp128(result + Prime128);
+  }
+
+  static kFp128 Neg(const kFp128& in) { return kFp128(Prime128 - in.val_); }
+
+  static bool Equal(const kFp128& lhs, const kFp128& rhs) { return lhs == rhs; }
+
+  static kFp128 Rand() {
+    uint128_t rand_val = yacl::crypto::RandU128(true);
+    return kFp128(rand_val);
+  }
+
+  static uint128_t GetPrime() { return Prime128; }
+
+  static kFp128 One() { return kFp128(1); }
+
+  static kFp128 Zero() { return kFp128(0); }
+
+ protected:
+  uint128_t val_;
 };
 
 };  // namespace mcpsi

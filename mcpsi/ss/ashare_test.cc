@@ -3,12 +3,40 @@
 #include "gtest/gtest.h"
 #include "mcpsi/context/register.h"
 #include "mcpsi/ss/protocol.h"
+#include "mcpsi/ss/type.h"
 #include "mcpsi/utils/test_util.h"
 #include "mcpsi/utils/vec_op.h"
 
 namespace mcpsi {
 
 namespace yc = yacl::crypto;
+
+class TestParam {
+ public:
+  static std::vector<std::shared_ptr<Context>> ctx;
+
+  // Getter
+  static std::vector<std::shared_ptr<Context>>& GetContext() {
+    if (ctx.empty()) {
+      ctx = Setup();
+    }
+    return ctx;
+  }
+
+  static std::vector<std::shared_ptr<Context>> Setup() {
+    auto ctx = MockContext(2);
+    MockSetupContext(ctx);
+    return ctx;
+  }
+};
+
+std::vector<std::shared_ptr<Context>> TestParam::ctx =
+    std::vector<std::shared_ptr<Context>>();
+
+TEST(Setup, InitializeWork) {
+  auto context = TestParam::GetContext();
+  EXPECT_EQ(context.size(), 2);
+}
 
 #define CALCULATE_AP(context, num, func)     \
   auto prot = context->GetState<Protocol>(); \
@@ -17,16 +45,15 @@ namespace yc = yacl::crypto;
   auto lhs_a = prot->P2A(lhs_p);             \
   auto ret_a = prot->func(lhs_a, rhs_p);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = func(lhs_p, rhs_p);           \
+  auto check = OP::func(lhs_p, rhs_p);       \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
   return ret;
 
 #define DECLARE_AP_TEST(func)                                              \
-  TEST(ProtoclTest, func##APWork) {                                        \
-    auto context = MockContext(2);                                         \
-    MockInitContext(context);                                              \
+  TEST(ProtocolTest, func##APWork) {                                       \
+    auto context = TestParam::GetContext();                                \
     size_t num = 10000;                                                    \
     auto rank0 = std::async([&] { CALCULATE_AP(context[0], num, func); }); \
     auto rank1 = std::async([&] { CALCULATE_AP(context[1], num, func); }); \
@@ -49,16 +76,15 @@ DECLARE_AP_TEST(Div);
   auto rhs_a = prot->P2A(rhs_p);             \
   auto ret_a = prot->func(lhs_p, rhs_a);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = func(lhs_p, rhs_p);           \
+  auto check = OP::func(lhs_p, rhs_p);       \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
   return ret;
 
 #define DECLARE_PA_TEST(func)                                              \
-  TEST(ProtoclTest, func##PAWork) {                                        \
-    auto context = MockContext(2);                                         \
-    MockInitContext(context);                                              \
+  TEST(ProtocolTest, func##PAWork) {                                       \
+    auto context = TestParam::GetContext();                                \
     size_t num = 10000;                                                    \
     auto rank0 = std::async([&] { CALCULATE_PA(context[0], num, func); }); \
     auto rank1 = std::async([&] { CALCULATE_PA(context[1], num, func); }); \
@@ -82,16 +108,15 @@ DECLARE_PA_TEST(Div);
   auto rhs_a = prot->P2A(rhs_p);             \
   auto ret_a = prot->func(lhs_a, rhs_a);     \
   auto ret = prot->A2P(ret_a);               \
-  auto check = func(lhs_p, rhs_p);           \
+  auto check = OP::func(lhs_p, rhs_p);       \
   for (size_t i = 0; i < num; ++i) {         \
     EXPECT_EQ(check[i], ret[i]);             \
   }                                          \
   return ret;
 
 #define DECLARE_AA_TEST(func)                                              \
-  TEST(ProtoclTest, func##AAWork) {                                        \
-    auto context = MockContext(2);                                         \
-    MockInitContext(context);                                              \
+  TEST(ProtocolTest, func##AAWork) {                                       \
+    auto context = TestParam::GetContext();                                \
     size_t num = 10000;                                                    \
     auto rank0 = std::async([&] { CALCULATE_AA(context[0], num, func); }); \
     auto rank1 = std::async([&] { CALCULATE_AA(context[1], num, func); }); \
@@ -107,9 +132,8 @@ DECLARE_AA_TEST(Sub);
 DECLARE_AA_TEST(Mul);
 DECLARE_AA_TEST(Div);
 
-TEST(ProtoclTest, ZeroTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, ZeroTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -127,13 +151,12 @@ TEST(ProtoclTest, ZeroTest) {
   auto r_a = rank1.get();
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(r_a[i], r_b[i]);
-    EXPECT_EQ(r_a[i], kFp64::Zero());
+    EXPECT_EQ(r_a[i], PTy::Zero());
   }
 };
 
-TEST(ProtoclTest, RandATest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, RandATest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -154,9 +177,8 @@ TEST(ProtoclTest, RandATest) {
   }
 };
 
-TEST(ProtoclTest, InvATest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, InvATest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -178,13 +200,12 @@ TEST(ProtoclTest, InvATest) {
   auto r_a = rank1.get();
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(r_a[i], r_b[i]);
-    EXPECT_EQ(r_a[i], kFp64::One());
+    EXPECT_EQ(r_a[i], PTy::One());
   }
 };
 
-TEST(ProtoclTest, ConvertTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, ConvertTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -208,9 +229,8 @@ TEST(ProtoclTest, ConvertTest) {
 };
 
 // Shuffle (one-side) Test
-TEST(ProtoclTest, ShuffleOneSideTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, ShuffleOneSideTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
@@ -237,10 +257,13 @@ TEST(ProtoclTest, ShuffleOneSideTest) {
 };
 
 // Shuffle (two side) Test
-TEST(ProtoclTest, ShuffleTwoSideTest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, ShuffleTwoSideTest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
+
+  // back-end integer
+  typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
+
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
     auto r_p = prot->RandP(num);
@@ -248,8 +271,8 @@ TEST(ProtoclTest, ShuffleTwoSideTest) {
     auto s_a = prot->ShuffleA(r_a);
     auto s_p = prot->A2P(s_a);
 
-    std::vector<uint64_t> sort_r(num);
-    std::vector<uint64_t> sort_s(num);
+    std::vector<INTEGER> sort_r(num);
+    std::vector<INTEGER> sort_s(num);
     memcpy(sort_r.data(), r_p.data(), num * sizeof(internal::PTy));
     memcpy(sort_s.data(), s_p.data(), num * sizeof(internal::PTy));
 
@@ -268,8 +291,8 @@ TEST(ProtoclTest, ShuffleTwoSideTest) {
     auto s_a = prot->ShuffleA(r_a);
     auto s_p = prot->A2P(s_a);
 
-    std::vector<uint64_t> sort_r(num);
-    std::vector<uint64_t> sort_s(num);
+    std::vector<INTEGER> sort_r(num);
+    std::vector<INTEGER> sort_s(num);
     memcpy(sort_r.data(), r_p.data(), num * sizeof(internal::PTy));
     memcpy(sort_s.data(), s_p.data(), num * sizeof(internal::PTy));
 
@@ -285,13 +308,12 @@ TEST(ProtoclTest, ShuffleTwoSideTest) {
   rank1.get();
 };
 
-TEST(ProtoclTest, SetATest) {
-  auto context = MockContext(2);
-  MockInitContext(context);
+TEST(ProtocolTest, SetATest) {
+  auto context = TestParam::GetContext();
   size_t num = 10000;
   auto rank0 = std::async([&] {
     auto prot = context[0]->GetState<Protocol>();
-    auto rand = Rand(num);
+    auto rand = OP::Rand(num);
     auto ret_a = prot->SetA(rand);
     [[maybe_unused]] auto ret_p = prot->A2P(ret_a);
     return rand;

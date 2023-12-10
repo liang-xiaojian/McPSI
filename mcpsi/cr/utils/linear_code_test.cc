@@ -14,7 +14,7 @@ TEST(Llc, LlcWorks) {
   uint32_t n = 102400;
   uint32_t k = 1024;
   LocalLinearCode<10> llc(seed, n, k);
-  auto input = Rand(k);
+  auto input = internal::op::Rand(k);
   std::vector<internal::PTy> out(n);
   std::vector<internal::PTy> check(n);
   // WHEN
