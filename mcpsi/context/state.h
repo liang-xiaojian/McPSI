@@ -64,17 +64,31 @@ class Connection : public State, public yacl::link::Context {
   Connection(Args&&... args)
       : yacl::link::Context(std::forward<Args>(args)...) {}
 
-  uint128_t SyncSeed();
+  uint128_t SyncSeed() {
+    auto seed = yacl::crypto::RandU128(true);
+    return seed ^ ExchangeWithCommit(seed);
+  }
+
+  uint128_t Exchange(uint128_t val);
+
+  uint64_t Exchange(uint64_t val);
 
   uint128_t ExchangeWithCommit(uint128_t val);
 
   uint64_t ExchangeWithCommit(uint64_t val);
+
+  yacl::Buffer Exchange(yacl::ByteContainerView bv);
 
   yacl::Buffer ExchangeWithCommit(yacl::ByteContainerView bv);
 
  private:
   template <typename T>
   T _ExchangeWithCommit_T(T val);
+
+  template <typename T>
+  T _Exchange_T(T val);
+
+  yacl::Buffer _Exchange_Buffer(yacl::ByteContainerView bv);
 
   yacl::Buffer _ExchangeWithCommit_Buffer(yacl::ByteContainerView bv);
 };
