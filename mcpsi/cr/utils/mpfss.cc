@@ -75,7 +75,7 @@ void MpFssSend(const std::shared_ptr<Connection>& conn,
   const auto& batch_size = param.sp_vole_size_;
   const auto& last_batch_size = param.last_sp_vole_size_;
 
-  auto send_msgs = std::vector<internal::PTy>(w.data(), w.data() + batch_num);
+  auto send_msgs = std::vector<internal::PTy>(batch_num, 0);
 
   for (size_t i = 0; i < batch_num; ++i) {
     auto this_size = (i == batch_num - 1) ? last_batch_size : batch_size;
@@ -84,13 +84,9 @@ void MpFssSend(const std::shared_ptr<Connection>& conn,
 
     std::transform(this_span.cbegin(), this_span.cend(), this_output.begin(),
                    [](uint128_t val) { return internal::PTy(val); });
-    // alternative
-    // send_msgs[i] = std::reduce(this_output.cbegin(), this_output.cend(),
-    //                         send_msgs[i], std::plus<internal::PTy>());
-    // faster without mod
-    auto tmp = std::reduce(this_span.cbegin(), this_span.cend(), 0,
-                           std::plus<uint128_t>());
-    send_msgs[i] = internal::PTy(tmp) - send_msgs[i];
+    auto tmp = std::reduce(this_output.cbegin(), this_output.cend(),
+                           internal::PTy(0), std::plus<internal::PTy>());
+    send_msgs[i] = tmp - w[i];
   }
 
   conn->SendAsync(
@@ -129,13 +125,10 @@ void MpFssRecv(const std::shared_ptr<Connection>& conn,
 
     std::transform(this_span.cbegin(), this_span.cend(), this_output.begin(),
                    [](uint128_t val) { return internal::PTy(val); });
-    // alternative
-    // auto tmp = std::reduce(this_output.cbegin(), this_output.cend(),
-    //                         internal::PTy(0), std::plus<internal::PTy>());
-    // faster without mod
-    auto tmp = std::reduce(this_span.cbegin(), this_span.cend(), 0,
-                           std::plus<uint128_t>());
-    recv_msgs[i] = recv_msgs[i] - internal::PTy(tmp);
+
+    auto tmp = std::reduce(this_output.cbegin(), this_output.cend(),
+                           internal::PTy(0), std::plus<internal::PTy>());
+    recv_msgs[i] = recv_msgs[i] - tmp;
     this_output[indexes[i]] = this_output[indexes[i]] + recv_msgs[i];
   }
 }
@@ -150,9 +143,9 @@ void MpVoleSend(const std::shared_ptr<Connection>& conn,
   MpFssSend(conn, send_ot, param, w, output);
 }
 
-void MpFssRecv(const std::shared_ptr<Connection>& conn,
-               const yc::OtRecvStore& recv_ot, const MpParam& param,
-               absl::Span<internal::PTy> v, absl::Span<internal::PTy> output) {
+void MpVoleRecv(const std::shared_ptr<Connection>& conn,
+                const yc::OtRecvStore& recv_ot, const MpParam& param,
+                absl::Span<internal::PTy> v, absl::Span<internal::PTy> output) {
   YACL_ENFORCE(output.size() >= param.mp_vole_size_);
   YACL_ENFORCE(v.size() >= param.noise_num_);
   YACL_ENFORCE(recv_ot.Size() >= param.require_ot_num_);

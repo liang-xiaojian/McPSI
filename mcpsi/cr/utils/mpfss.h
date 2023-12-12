@@ -73,7 +73,6 @@ void MpFssRecv(const std::shared_ptr<Connection>& conn,
 void MpVoleSend(const std::shared_ptr<Connection>& conn,
                 const yc::OtSendStore& send_ot, const MpParam& param,
                 absl::Span<internal::PTy> w, absl::Span<internal::PTy> output);
-
 void MpVoleRecv(const std::shared_ptr<Connection>& conn,
                 const yc::OtRecvStore& recv_ot, const MpParam& param,
                 absl::Span<internal::PTy> v, absl::Span<internal::PTy> output);

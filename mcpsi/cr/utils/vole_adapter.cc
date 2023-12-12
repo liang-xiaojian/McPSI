@@ -3,11 +3,14 @@
 namespace mcpsi::vole {
 
 void WolverineVoleAdapter::OneTimeSetup() {
-  auto setup_param = LpnParam::GetPreDefault();
-  auto ot_num = setup_param.mp_param_.require_ot_num_;
+  auto setup_param = VoleParam(LpnParam::GetPreDefault());
+  auto& setup_mp_param = setup_param.mp_param_;
+  auto& setup_lpn_param = setup_param.lpn_param_;
+
+  auto ot_num = setup_mp_param.require_ot_num_;
   //   SPDLOG_INFO("OneTimeSetup isSender {}", is_sender_);
   if (is_sender_) {
-    std::vector<internal::PTy> pre_c(setup_param.k_, 0);
+    std::vector<internal::PTy> pre_c(setup_lpn_param.k_, 0);
     ot::OtHelper(ot_ptr_, nullptr)
         .BaseVoleSend(conn_, delta_, absl::MakeSpan(pre_c));
 
@@ -20,8 +23,8 @@ void WolverineVoleAdapter::OneTimeSetup() {
                       absl::MakeSpan(c_));
 
   } else {
-    std::vector<internal::PTy> pre_a(setup_param.k_, 0);
-    std::vector<internal::PTy> pre_b(setup_param.k_, 0);
+    std::vector<internal::PTy> pre_a(setup_lpn_param.k_, 0);
+    std::vector<internal::PTy> pre_b(setup_lpn_param.k_, 0);
     ot::OtHelper(nullptr, ot_ptr_)
         .BaseVoleRecv(conn_, absl::MakeSpan(pre_a), absl::MakeSpan(pre_b));
 
@@ -36,9 +39,9 @@ void WolverineVoleAdapter::OneTimeSetup() {
                       absl::MakeSpan(b_));
   }
 
-  reserve_num_ = lpn_param_.k_;
+  reserve_num_ = vole_param_.lpn_param_.k_;
   buff_used_num_ = reserve_num_;
-  buff_upper_bound_ = setup_param.n_;
+  buff_upper_bound_ = setup_lpn_param.n_;
   is_setup_ = true;
   //   SPDLOG_INFO("OneTimeSetup Done");
 }
@@ -51,20 +54,22 @@ void WolverineVoleAdapter::rsend(absl::Span<internal::PTy> c) {
     OneTimeSetup();
   }
 
+  auto& lpn_param = vole_param_.lpn_param_;
+
   uint64_t data_offset = 0;
   uint64_t require_num = c.size();
   uint64_t remain_num = buff_upper_bound_ - buff_used_num_;
 
   {
     uint32_t bootstrap_inplace_counter = 0;
-    YACL_ENFORCE(reserve_num_ == lpn_param_.k_);
+    YACL_ENFORCE(reserve_num_ == lpn_param.k_);
     absl::Span<internal::PTy> c_span = absl::MakeSpan(c_.data(), reserve_num_);
-    while (require_num > lpn_param_.n_) {
+    while (require_num > lpn_param.n_) {
       // avoid memory copy
-      BootstrapInplaceSend(c_span, c.subspan(data_offset, lpn_param_.n_));
+      BootstrapInplaceSend(c_span, c.subspan(data_offset, lpn_param.n_));
 
-      data_offset += (lpn_param_.n_ - reserve_num_);
-      require_num -= (lpn_param_.n_ - reserve_num_);
+      data_offset += (lpn_param.n_ - reserve_num_);
+      require_num -= (lpn_param.n_ - reserve_num_);
       ++bootstrap_inplace_counter;
       // Next Round
       c_span = c.subspan(data_offset, reserve_num_);
@@ -118,23 +123,23 @@ void WolverineVoleAdapter::rrecv(absl::Span<internal::PTy> a,
     OneTimeSetup();
   }
 
+  auto& lpn_param = vole_param_.lpn_param_;
   uint64_t data_offset = 0;
   uint64_t require_num = a.size();
   uint64_t remain_num = buff_upper_bound_ - buff_used_num_;
 
   {
     uint32_t bootstrap_inplace_counter = 0;
-    YACL_ENFORCE(reserve_num_ == lpn_param_.k_);
+    YACL_ENFORCE(reserve_num_ == lpn_param.k_);
     absl::Span<internal::PTy> a_span = absl::MakeSpan(a_.data(), reserve_num_);
     absl::Span<internal::PTy> b_span = absl::MakeSpan(b_.data(), reserve_num_);
-    while (require_num > lpn_param_.n_) {
+    while (require_num > lpn_param.n_) {
       // avoid memory copy
-      BootstrapInplaceRecv(a_span, b_span,
-                           a.subspan(data_offset, lpn_param_.n_),
-                           b.subspan(data_offset, lpn_param_.n_));
+      BootstrapInplaceRecv(a_span, b_span, a.subspan(data_offset, lpn_param.n_),
+                           b.subspan(data_offset, lpn_param.n_));
 
-      data_offset += (lpn_param_.n_ - reserve_num_);
-      require_num -= (lpn_param_.n_ - reserve_num_);
+      data_offset += (lpn_param.n_ - reserve_num_);
+      require_num -= (lpn_param.n_ - reserve_num_);
       ++bootstrap_inplace_counter;
       // Next Round
       a_span = a.subspan(data_offset, reserve_num_);
@@ -187,8 +192,10 @@ void WolverineVoleAdapter::rrecv(absl::Span<internal::PTy> a,
 }
 
 void WolverineVoleAdapter::Bootstrap() {
-  YACL_ENFORCE(lpn_param_.k_ == reserve_num_);
-  auto ot_num = lpn_param_.mp_param_.require_ot_num_;
+  auto& lpn_param = vole_param_.lpn_param_;
+
+  YACL_ENFORCE(lpn_param.k_ == reserve_num_);
+  auto ot_num = vole_param_.mp_param_.require_ot_num_;
 
   if (is_sender_) {
     // prepare OT
@@ -199,7 +206,7 @@ void WolverineVoleAdapter::Bootstrap() {
     // Copy
     std::vector<internal::PTy> tmp_c(c_.begin(), c_.begin() + reserve_num_);
 
-    WolverineVoleSend(conn_, send_store, lpn_param_, absl::MakeSpan(tmp_c),
+    WolverineVoleSend(conn_, send_store, vole_param_, absl::MakeSpan(tmp_c),
                       absl::MakeSpan(c_));
   } else {
     // prepare OT
@@ -211,31 +218,32 @@ void WolverineVoleAdapter::Bootstrap() {
     std::vector<internal::PTy> tmp_a(a_.begin(), a_.begin() + reserve_num_);
     std::vector<internal::PTy> tmp_b(b_.begin(), b_.begin() + reserve_num_);
     // Wolverine
-    lpn_param_.mp_param_.GenIndexes();
-    WolverineVoleRecv(conn_, recv_store, lpn_param_, absl::MakeSpan(tmp_a),
+    vole_param_.mp_param_.GenIndexes();
+    WolverineVoleRecv(conn_, recv_store, vole_param_, absl::MakeSpan(tmp_a),
                       absl::MakeSpan(tmp_b), absl::MakeSpan(a_),
                       absl::MakeSpan(b_));
   }
-  reserve_num_ = lpn_param_.k_;
+  reserve_num_ = lpn_param.k_;
   buff_used_num_ = reserve_num_;
-  buff_upper_bound_ = lpn_param_.n_;
+  buff_upper_bound_ = lpn_param.n_;
 }
 
 void WolverineVoleAdapter::BootstrapInplaceSend(absl::Span<internal::PTy> pre_c,
                                                 absl::Span<internal::PTy> c) {
+  auto lpn_param = vole_param_.lpn_param_;
+
   YACL_ENFORCE(is_sender_ == true);
-  YACL_ENFORCE(pre_c.size() >= lpn_param_.k_);
-  auto ot_num = lpn_param_.mp_param_.require_ot_num_;
+  YACL_ENFORCE(pre_c.size() >= lpn_param.k_);
+  auto ot_num = vole_param_.mp_param_.require_ot_num_;
   // prepare OT
   std::vector<uint128_t> send_msgs(ot_num);
   ot_ptr_->send_rcot(absl::MakeSpan(send_msgs));
   auto send_store =
       yc::MakeCompactOtSendStore(std::move(send_msgs), ot_ptr_->GetDelta());
   // Copy
-  std::vector<internal::PTy> tmp_c(pre_c.begin(),
-                                   pre_c.begin() + lpn_param_.k_);
+  std::vector<internal::PTy> tmp_c(pre_c.begin(), pre_c.begin() + lpn_param.k_);
 
-  WolverineVoleSend(conn_, send_store, lpn_param_, absl::MakeSpan(tmp_c),
+  WolverineVoleSend(conn_, send_store, vole_param_, absl::MakeSpan(tmp_c),
                     absl::MakeSpan(c));
 }
 
@@ -243,23 +251,23 @@ void WolverineVoleAdapter::BootstrapInplaceRecv(absl::Span<internal::PTy> pre_a,
                                                 absl::Span<internal::PTy> pre_b,
                                                 absl::Span<internal::PTy> a,
                                                 absl::Span<internal::PTy> b) {
+  auto lpn_param = vole_param_.lpn_param_;
+
   YACL_ENFORCE(is_sender_ == true);
-  YACL_ENFORCE(pre_a.size() >= lpn_param_.k_);
-  YACL_ENFORCE(pre_b.size() >= lpn_param_.k_);
-  auto ot_num = lpn_param_.mp_param_.require_ot_num_;
+  YACL_ENFORCE(pre_a.size() >= lpn_param.k_);
+  YACL_ENFORCE(pre_b.size() >= lpn_param.k_);
+  auto ot_num = vole_param_.mp_param_.require_ot_num_;
   // prepare OT
   std::vector<uint128_t> recv_msgs(ot_num);
   yacl::dynamic_bitset<uint128_t> choices(ot_num);
   ot_ptr_->recv_rcot(absl::MakeSpan(recv_msgs), choices);
   auto recv_store = yc::MakeOtRecvStore(choices, std::move(recv_msgs));
   // Copy
-  std::vector<internal::PTy> tmp_a(pre_a.begin(),
-                                   pre_a.begin() + lpn_param_.k_);
-  std::vector<internal::PTy> tmp_b(pre_b.begin(),
-                                   pre_b.begin() + lpn_param_.k_);
+  std::vector<internal::PTy> tmp_a(pre_a.begin(), pre_a.begin() + lpn_param.k_);
+  std::vector<internal::PTy> tmp_b(pre_b.begin(), pre_b.begin() + lpn_param.k_);
   // Wolverine
-  lpn_param_.mp_param_.GenIndexes();
-  WolverineVoleRecv(conn_, recv_store, lpn_param_, absl::MakeSpan(tmp_a),
+  vole_param_.mp_param_.GenIndexes();
+  WolverineVoleRecv(conn_, recv_store, vole_param_, absl::MakeSpan(tmp_a),
                     absl::MakeSpan(tmp_b), absl::MakeSpan(a),
                     absl::MakeSpan(b));
 }

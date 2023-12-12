@@ -10,10 +10,36 @@
 
 namespace mcpsi::ot {
 
+class TestParam {
+ public:
+  static std::vector<std::shared_ptr<Context>> ctx;
+
+  // Getter
+  static std::vector<std::shared_ptr<Context>>& GetContext() {
+    if (ctx.empty()) {
+      ctx = Setup();
+    }
+    return ctx;
+  }
+
+  static std::vector<std::shared_ptr<Context>> Setup() {
+    auto ctx = MockContext(2);
+    MockSetupContext(ctx);
+    return ctx;
+  }
+};
+
+std::vector<std::shared_ptr<Context>> TestParam::ctx =
+    std::vector<std::shared_ptr<Context>>();
+
+TEST(Setup, InitializeWork) {
+  auto context = TestParam::GetContext();
+  EXPECT_EQ(context.size(), 2);
+}
+
 TEST(OtHelperTest, BeaverWork) {
-  auto context = MockContext(2);
-  MockSetupContext(context);
-  const size_t num = 1;
+  auto context = TestParam::GetContext();
+  const size_t num = 10000;
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();
@@ -59,8 +85,7 @@ TEST(OtHelperTest, BeaverWork) {
 }
 
 TEST(OtHelperTest, BaseVoleWork) {
-  auto context = MockContext(2);
-  MockSetupContext(context);
+  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
   auto rank0 = std::async([&] {
@@ -99,9 +124,8 @@ TEST(OtHelperTest, BaseVoleWork) {
 }
 
 TEST(OtHelperTest, ShuffleWork) {
-  auto context = MockContext(2);
-  MockSetupContext(context);
-  const size_t num = 1000;
+  auto context = TestParam::GetContext();
+  const size_t num = 10000;
 
   auto rank0 = std::async([&] {
     auto cr = context[0]->GetState<Correlation>();

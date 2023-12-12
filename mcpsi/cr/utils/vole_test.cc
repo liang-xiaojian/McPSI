@@ -15,6 +15,33 @@ namespace mcpsi::vole {
 
 namespace yc = yacl::crypto;
 
+class TestParam {
+ public:
+  static std::vector<std::shared_ptr<Context>> ctx;
+
+  // Getter
+  static std::vector<std::shared_ptr<Context>>& GetContext() {
+    if (ctx.empty()) {
+      ctx = Setup();
+    }
+    return ctx;
+  }
+
+  static std::vector<std::shared_ptr<Context>> Setup() {
+    auto ctx = MockContext(2);
+    MockSetupContext(ctx);
+    return ctx;
+  }
+};
+
+std::vector<std::shared_ptr<Context>> TestParam::ctx =
+    std::vector<std::shared_ptr<Context>>();
+
+TEST(Setup, InitializeWork) {
+  auto context = TestParam::GetContext();
+  EXPECT_EQ(context.size(), 2);
+}
+
 struct MpVoleTestParam {
   size_t mp_vole_size;
   size_t noise_num;
@@ -22,69 +49,118 @@ struct MpVoleTestParam {
 
 class MpVoleTest : public ::testing::TestWithParam<MpVoleTestParam> {};
 
-// TEST_P(MpVoleTest, Work) {
-//   auto context = MockContext(2);
-//   MockSetupContext(context);
-//   const size_t mp_vole_size = GetParam().mp_vole_size;
-//   const size_t noise_num = GetParam().noise_num;
+TEST_P(MpVoleTest, MpFssWork) {
+  auto context = TestParam::GetContext();
+  const size_t mp_vole_size = GetParam().mp_vole_size;
+  const size_t noise_num = GetParam().noise_num;
 
-//   auto param = MpParam(mp_vole_size, noise_num);
-//   param.GenIndexes();
-//   auto cot = yc::MockCots(param.require_ot_num_, yc::RandU128());
+  auto param = MpParam(mp_vole_size, noise_num);
+  param.GenIndexes();
+  auto cot = yc::MockCots(param.require_ot_num_, yc::RandU128());
 
-//   auto v = internal::op::Rand(noise_num);
-//   auto w = internal::op::Rand(noise_num);
+  auto w = internal::op::Rand(noise_num);
 
-//   auto rank0 = std::async([&] {
-//     auto cr = context[0]->GetState<Correlation>();
-//     auto conn = context[0]->GetConnection();
+  auto rank0 = std::async([&] {
+    auto cr = context[0]->GetState<Correlation>();
+    auto conn = context[0]->GetConnection();
 
-//     std::vector<internal::PTy> output(mp_vole_size);
-//     MpVoleSend(conn, cot.send, param, absl::MakeSpan(w),
-//                absl::MakeSpan(output));
-//     return output;
-//   });
-//   auto rank1 = std::async([&] {
-//     auto cr = context[1]->GetState<Correlation>();
-//     auto conn = context[1]->GetConnection();
+    std::vector<internal::PTy> output(mp_vole_size);
+    MpFssSend(conn, cot.send, param, absl::MakeSpan(w), absl::MakeSpan(output));
+    return output;
+  });
+  auto rank1 = std::async([&] {
+    auto cr = context[1]->GetState<Correlation>();
+    auto conn = context[1]->GetConnection();
 
-//     std::vector<internal::PTy> output(mp_vole_size);
-//     MpVoleRecv(conn, cot.recv, param, absl::MakeSpan(v),
-//                absl::MakeSpan(output));
-//     return output;
-//   });
+    std::vector<internal::PTy> output(mp_vole_size);
+    MpFssRecv(conn, cot.recv, param, absl::MakeSpan(output));
+    return output;
+  });
 
-//   auto s_output = rank0.get();
-//   auto r_output = rank1.get();
+  auto s_output = rank0.get();
+  auto r_output = rank1.get();
 
-//   std::set<size_t> indexes;
-//   for (size_t i = 0; i < noise_num; ++i) {
-//     indexes.insert(i * param.sp_vole_size_ + param.indexes_[i]);
-//   }
+  std::set<size_t> indexes;
+  for (size_t i = 0; i < noise_num; ++i) {
+    indexes.insert(i * param.sp_vole_size_ + param.indexes_[i]);
+  }
 
-//   size_t i = 0;
-//   size_t j = 0;
-//   for (; i < mp_vole_size && j < noise_num; ++i) {
-//     if (s_output[i] != r_output[i]) {
-//       EXPECT_EQ(s_output[i] - r_output[i], w[j] - v[j]);
-//       EXPECT_TRUE(indexes.count(i));
-//       ++j;
-//     }
-//   }
-//   for (; i < mp_vole_size; ++i) {
-//     EXPECT_EQ(s_output[i], r_output[i]);
-//   }
-// }
+  size_t i = 0;
+  size_t j = 0;
+  for (; i < mp_vole_size && j < noise_num; ++i) {
+    if (s_output[i] != r_output[i]) {
+      EXPECT_TRUE(indexes.count(i));
+      EXPECT_EQ(s_output[i] - r_output[i], w[j]);
+      ++j;
+    }
+  }
+  for (; i < mp_vole_size; ++i) {
+    EXPECT_EQ(s_output[i], r_output[i]);
+  }
+}
+
+TEST_P(MpVoleTest, MpVoleWork) {
+  auto context = TestParam::GetContext();
+  const size_t mp_vole_size = GetParam().mp_vole_size;
+  const size_t noise_num = GetParam().noise_num;
+
+  auto param = MpParam(mp_vole_size, noise_num);
+  param.GenIndexes();
+  auto cot = yc::MockCots(param.require_ot_num_, yc::RandU128());
+
+  auto v = internal::op::Rand(noise_num);
+  auto w = internal::op::Rand(noise_num);
+
+  auto rank0 = std::async([&] {
+    auto cr = context[0]->GetState<Correlation>();
+    auto conn = context[0]->GetConnection();
+
+    std::vector<internal::PTy> output(mp_vole_size);
+    MpVoleSend(conn, cot.send, param, absl::MakeSpan(w),
+               absl::MakeSpan(output));
+    return output;
+  });
+  auto rank1 = std::async([&] {
+    auto cr = context[1]->GetState<Correlation>();
+    auto conn = context[1]->GetConnection();
+
+    std::vector<internal::PTy> output(mp_vole_size);
+    MpVoleRecv(conn, cot.recv, param, absl::MakeSpan(v),
+               absl::MakeSpan(output));
+    return output;
+  });
+
+  auto s_output = rank0.get();
+  auto r_output = rank1.get();
+
+  std::set<size_t> indexes;
+  for (size_t i = 0; i < noise_num; ++i) {
+    indexes.insert(i * param.sp_vole_size_ + param.indexes_[i]);
+  }
+
+  size_t i = 0;
+  size_t j = 0;
+  for (; i < mp_vole_size && j < noise_num; ++i) {
+    if (s_output[i] != r_output[i]) {
+      EXPECT_TRUE(indexes.count(i));
+      EXPECT_EQ(s_output[i] - r_output[i], w[j] - v[j]);
+      ++j;
+    }
+  }
+  for (; i < mp_vole_size; ++i) {
+    EXPECT_EQ(s_output[i], r_output[i]);
+  }
+}
 
 TEST(WolverineVoleTest, PreWork) {
-  auto context = MockContext(2);
-  MockSetupContext(context);
+  auto context = TestParam::GetContext();
 
-  auto param = LpnParam::GetPreDefault();
+  auto lpn_param = LpnParam::GetPreDefault();
+  auto param = VoleParam(lpn_param);
   param.mp_param_.GenIndexes();
   auto cot = yc::MockCots(param.mp_param_.require_ot_num_, yc::RandU128());
-  size_t pre_num = param.k_;
-  size_t vole_num = param.n_;
+  size_t pre_num = lpn_param.k_;
+  size_t vole_num = lpn_param.n_;
 
   auto pre_a = internal::op::Rand(pre_num);
   auto pre_b = internal::op::Rand(pre_num);
@@ -123,14 +199,14 @@ TEST(WolverineVoleTest, PreWork) {
 }
 
 TEST(WolverineVoleTest, BootStrapWork) {
-  auto context = MockContext(2);
-  MockSetupContext(context);
+  auto context = TestParam::GetContext();
 
-  auto param = LpnParam::GetDefault();
+  auto lpn_param = LpnParam::GetDefault();
+  auto param = VoleParam(lpn_param);
   param.mp_param_.GenIndexes();
   auto cot = yc::MockCots(param.mp_param_.require_ot_num_, yc::RandU128());
-  size_t pre_num = param.k_;
-  size_t vole_num = param.n_;
+  size_t pre_num = lpn_param.k_;
+  size_t vole_num = lpn_param.n_;
 
   auto pre_a = internal::op::Rand(pre_num);
   auto pre_b = internal::op::Rand(pre_num);
