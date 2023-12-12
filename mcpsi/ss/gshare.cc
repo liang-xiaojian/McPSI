@@ -150,31 +150,6 @@ std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
     }
   }
 
-  // std::vector<uint64_t> lhs(reveal0.size());
-  // std::vector<uint64_t> rhs(reveal1.size());
-
-  // std::transform(
-  //     reveal0.begin(), reveal0.end(), lhs.begin(),
-  //     [](const auto& e) -> uint64_t { return e.template Get<uint64_t>(); });
-  // std::transform(
-  //     reveal1.begin(), reveal1.end(), rhs.begin(),
-  //     [](const auto& e) -> uint64_t { return e.template Get<uint64_t>(); });
-
-  // std::sort(lhs.begin(), lhs.end());
-  // std::sort(rhs.begin(), rhs.end());
-
-  // std::vector<uint64_t> psi;
-  // std::set_intersection(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
-  //                       std::back_inserter(psi));
-
-  // std::vector<size_t> indexes;
-  // for (size_t i = 0; i < reveal1.size(); ++i) {
-  //   auto ptr = std::find(psi.begin(), psi.end(), reveal1[i].Get<uint64_t>());
-  //   if (ptr != psi.end()) {
-  //     indexes.emplace_back(i);
-  //   }
-  // }
-
   auto selected_data = prot->FilterA(absl::MakeConstSpan(shuffle_data),
                                      absl::MakeConstSpan(indexes));
   return selected_data;

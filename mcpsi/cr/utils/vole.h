@@ -1,5 +1,6 @@
 #pragma once
 #include "mcpsi/context/state.h"
+#include "mcpsi/cr/utils/mpfss.h"
 #include "mcpsi/ss/type.h"
 #include "mcpsi/utils/field.h"
 #include "yacl/crypto/primitives/ot/ot_store.h"
@@ -10,57 +11,56 @@ namespace mcpsi::vole {
 namespace ym = yacl::math;
 namespace yc = yacl::crypto;
 
-// [Warning] MpVole && Wolverine Vole are semi-honest version
-// TODO: change them into malicious version
+// // Multi-point Vole Parameters
+// struct MpParam {
+//   size_t sp_vole_size_;
+//   size_t last_sp_vole_size_;
 
-// Multi-point Vole Parameters
-struct MpParam {
-  size_t sp_vole_size_;
-  size_t last_sp_vole_size_;
+//   size_t mp_vole_size_;
+//   size_t noise_num_;
+//   size_t require_ot_num_;
+//   std::vector<size_t> indexes_;
 
-  size_t mp_vole_size_;
-  size_t noise_num_;
-  size_t require_ot_num_;
-  std::vector<size_t> indexes_;
+//   MpParam(size_t mp_vole_size, size_t noise_num) {
+//     YACL_ENFORCE(mp_vole_size >= 2 * noise_num);
+//     mp_vole_size_ = mp_vole_size;
+//     noise_num_ = noise_num;
+//     //
+//     sp_vole_size_ = mp_vole_size_ / noise_num_;
+//     last_sp_vole_size_ = mp_vole_size_ - sp_vole_size_ * (noise_num_ - 1);
+//     require_ot_num_ = ym::Log2Ceil(sp_vole_size_) +
+//                       ym::Log2Ceil(last_sp_vole_size_) * (noise_num_ - 1);
+//   };
 
-  MpParam(size_t mp_vole_size, size_t noise_num) {
-    YACL_ENFORCE(mp_vole_size >= 2 * noise_num);
-    mp_vole_size_ = mp_vole_size;
-    noise_num_ = noise_num;
-    //
-    sp_vole_size_ = mp_vole_size_ / noise_num_;
-    last_sp_vole_size_ = mp_vole_size_ - sp_vole_size_ * (noise_num_ - 1);
-    require_ot_num_ = ym::Log2Ceil(sp_vole_size_) +
-                      ym::Log2Ceil(last_sp_vole_size_) * (noise_num_ - 1);
-  };
+//   // [Warning] indexes is not strictly uniform
+//   void GenIndexes() {
+//     indexes_ = yc::RandVec<size_t>(noise_num_);
+//     for (size_t i = 0; i < noise_num_ - 1; ++i) {
+//       indexes_[i] %= sp_vole_size_;
+//     }
+//     indexes_[noise_num_ - 1] %= last_sp_vole_size_;
+//   }
 
-  // [Warning] indexes is not strictly uniform
-  void GenIndexes() {
-    indexes_ = yc::RandVec<size_t>(noise_num_);
-    for (size_t i = 0; i < noise_num_ - 1; ++i) {
-      indexes_[i] %= sp_vole_size_;
-    }
-    indexes_[noise_num_ - 1] %= last_sp_vole_size_;
-  }
+//   // [Warning] it won't check whether the range of indexes is correct
+//   void SetIndexes(absl::Span<const size_t> indexes) {
+//     YACL_ENFORCE(indexes.size() >= noise_num_);
+//     for (size_t i = 0; i < noise_num_ - 1; ++i) {
+//       indexes_[i] = indexes[i] % sp_vole_size_;
+//     }
+//     indexes_[noise_num_ - 1] = indexes[noise_num_ - 1] % last_sp_vole_size_;
+//   }
+// };
 
-  // [Warning] it won't check whether the range of indexes is correct
-  void SetIndexes(absl::Span<const size_t> indexes) {
-    YACL_ENFORCE(indexes.size() >= noise_num_);
-    for (size_t i = 0; i < noise_num_ - 1; ++i) {
-      indexes_[i] = indexes[i] % sp_vole_size_;
-    }
-    indexes_[noise_num_ - 1] = indexes[noise_num_ - 1] % last_sp_vole_size_;
-  }
-};
+// // Multi-point Vole
+// void MpVoleSend(const std::shared_ptr<Connection>& conn,
+//                 const yc::OtSendStore& send_ot, const MpParam& param,
+//                 absl::Span<internal::PTy> w, absl::Span<internal::PTy>
+//                 output);
 
-// Multi-point Vole
-void MpVoleSend(const std::shared_ptr<Connection>& conn,
-                const yc::OtSendStore& send_ot, const MpParam& param,
-                absl::Span<internal::PTy> w, absl::Span<internal::PTy> output);
-
-void MpVoleRecv(const std::shared_ptr<Connection>& conn,
-                const yc::OtRecvStore& recv_ot, const MpParam& param,
-                absl::Span<internal::PTy> v, absl::Span<internal::PTy> output);
+// void MpVoleRecv(const std::shared_ptr<Connection>& conn,
+//                 const yc::OtRecvStore& recv_ot, const MpParam& param,
+//                 absl::Span<internal::PTy> v, absl::Span<internal::PTy>
+//                 output);
 
 struct LpnParam {
   size_t n_ = 10485760;
@@ -91,6 +91,8 @@ struct LpnParam {
 // the following equation would hold:
 // > pre_c = pre_a * delta + pre_b
 // > c     =     a * delta +     b
+// > Sender holds c && delta
+// > Receiver holds a && b
 void WolverineVoleSend(const std::shared_ptr<Connection>& conn,
                        const yc::OtSendStore& send_ot, const LpnParam& param,
                        absl::Span<internal::PTy> pre_c,
