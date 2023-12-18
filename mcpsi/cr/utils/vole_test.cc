@@ -156,11 +156,11 @@ TEST(WolverineVoleTest, PreWork) {
   auto context = TestParam::GetContext();
 
   auto lpn_param = LpnParam::GetPreDefault();
-  auto param = VoleParam(lpn_param);
+  auto param = VoleParam(lpn_param, true);
   param.mp_param_.GenIndexes();
-  auto cot = yc::MockCots(param.mp_param_.require_ot_num_, yc::RandU128());
-  size_t pre_num = lpn_param.k_;
-  size_t vole_num = lpn_param.n_;
+  auto cot = yc::MockCots(param.mp_vole_ot_num_, yc::RandU128());
+  size_t pre_num = param.base_vole_num_;
+  size_t vole_num = param.vole_num_;
 
   auto pre_a = internal::op::Rand(pre_num);
   auto pre_b = internal::op::Rand(pre_num);
@@ -175,7 +175,7 @@ TEST(WolverineVoleTest, PreWork) {
     auto cr = context[0]->GetState<Correlation>();
     auto conn = context[0]->GetConnection();
     std::vector<internal::PTy> c(vole_num, 0);
-    WolverineVoleSend(conn, cot.send, param, absl::MakeSpan(pre_c),
+    WolverineVoleSend(conn, cot.send, param, delta, absl::MakeSpan(pre_c),
                       absl::MakeSpan(c));
     return c;
   });
@@ -202,11 +202,11 @@ TEST(WolverineVoleTest, BootStrapWork) {
   auto context = TestParam::GetContext();
 
   auto lpn_param = LpnParam::GetDefault();
-  auto param = VoleParam(lpn_param);
+  auto param = VoleParam(lpn_param, true);
   param.mp_param_.GenIndexes();
-  auto cot = yc::MockCots(param.mp_param_.require_ot_num_, yc::RandU128());
-  size_t pre_num = lpn_param.k_;
-  size_t vole_num = lpn_param.n_;
+  auto cot = yc::MockCots(param.mp_vole_ot_num_, yc::RandU128());
+  size_t pre_num = param.base_vole_num_;
+  size_t vole_num = param.vole_num_;
 
   auto pre_a = internal::op::Rand(pre_num);
   auto pre_b = internal::op::Rand(pre_num);
@@ -221,7 +221,7 @@ TEST(WolverineVoleTest, BootStrapWork) {
     auto cr = context[0]->GetState<Correlation>();
     auto conn = context[0]->GetConnection();
     std::vector<internal::PTy> c(vole_num, 0);
-    WolverineVoleSend(conn, cot.send, param, absl::MakeSpan(pre_c),
+    WolverineVoleSend(conn, cot.send, param, delta, absl::MakeSpan(pre_c),
                       absl::MakeSpan(c));
     return c;
   });

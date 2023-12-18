@@ -38,12 +38,11 @@ class WolverineVoleAdapter : public VoleAdapter {
     is_sender_ = ot_ptr_->IsSender();
     YACL_ENFORCE(is_sender_ == true);  // Vole Sender has delta
     delta_ = delta;
-    vole_param_ = VoleParam(LpnParam::GetDefault());
+    vole_param_ = VoleParam(LpnParam::GetDefault(), true);
 
-    auto& lpn_param = vole_param_.lpn_param_;
-    // a_ = std::vector<internal::PTy>(lpn_param.n_, 0);
-    // b_ = std::vector<internal::PTy>(lpn_param.n_, 0);
-    c_ = std::vector<internal::PTy>(lpn_param.n_, 0);
+    // a_ = std::vector<internal::PTy>(vole_param_.vole_num_, 0);
+    // b_ = std::vector<internal::PTy>(vole_param_.vole_num_, 0);
+    c_ = std::vector<internal::PTy>(vole_param_.vole_num_, 0);
   }
 
   WolverineVoleAdapter(const std::shared_ptr<Connection>& conn,
@@ -52,12 +51,11 @@ class WolverineVoleAdapter : public VoleAdapter {
     conn_ = conn;
     is_sender_ = ot_ptr_->IsSender();
     YACL_ENFORCE(is_sender_ == false);  // Vole Receiver
-    vole_param_ = VoleParam(LpnParam::GetDefault());
+    vole_param_ = VoleParam(LpnParam::GetDefault(), true);
 
-    auto& lpn_param = vole_param_.lpn_param_;
-    a_ = std::vector<internal::PTy>(lpn_param.n_, 0);
-    b_ = std::vector<internal::PTy>(lpn_param.n_, 0);
-    // c_ = std::vector<internal::PTy>(lpn_param.n_, 0);
+    a_ = std::vector<internal::PTy>(vole_param_.vole_num_, 0);
+    b_ = std::vector<internal::PTy>(vole_param_.vole_num_, 0);
+    // c_ = std::vector<internal::PTy>(vole_param_.vole_num_, 0);
   }
 
   void rsend(absl::Span<internal::PTy> c) override;
