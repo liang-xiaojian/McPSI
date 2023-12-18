@@ -87,6 +87,28 @@ mcpsi_cc_test(
 )
 
 mcpsi_cc_library(
+    name = "mpfss",
+    srcs = [
+        "mpfss.cc",
+    ],
+    hdrs = [
+        "mpfss.h",
+    ],
+    deps = [
+        "//mcpsi/context:state",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/base:byte_container_view",
+        "@yacl//yacl/crypto/primitives/ot:gywz_ote",
+        "@yacl//yacl/crypto/primitives/ot:ot_store",
+        "@yacl//yacl/crypto/tools:random_permutation",
+        "@yacl//yacl/crypto/utils:rand",
+        "@yacl//yacl/math:gadget",
+    ],
+)
+
+mcpsi_cc_library(
     name = "vole",
     srcs = [
         "vole.cc",
@@ -96,12 +118,12 @@ mcpsi_cc_library(
     ],
     deps = [
         ":linear_code",
+        ":mpfss",
         "//mcpsi/context:state",
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
         "@yacl//yacl/base:byte_container_view",
-        "@yacl//yacl/crypto/primitives/ot:gywz_ote",
         "@yacl//yacl/crypto/primitives/ot:ot_store",
         "@yacl//yacl/crypto/tools:random_permutation",
         "@yacl//yacl/crypto/utils:rand",
@@ -116,6 +138,7 @@ mcpsi_cc_test(
     ],
     deps = [
         ":vole",
+        ":mpfss",
         "//mcpsi/context:register",
         "//mcpsi/cr",
         "//mcpsi/utils:test_util",
@@ -123,7 +146,6 @@ mcpsi_cc_test(
         "@yacl//yacl/crypto/utils:rand",
     ],
 )
-
 
 mcpsi_cc_library(
     name = "vole_adapter",

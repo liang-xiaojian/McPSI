@@ -1,5 +1,6 @@
 #pragma once
 #include "mcpsi/context/state.h"
+#include "mcpsi/cr/utils/mpfss.h"
 #include "mcpsi/ss/type.h"
 #include "mcpsi/utils/field.h"
 #include "yacl/crypto/primitives/ot/ot_store.h"
@@ -10,70 +11,50 @@ namespace mcpsi::vole {
 namespace ym = yacl::math;
 namespace yc = yacl::crypto;
 
-// [Warning] MpVole && Wolverine Vole are semi-honest version
-// TODO: change them into malicious version
-
-// Multi-point Vole Parameters
-struct MpParam {
-  size_t sp_vole_size_;
-  size_t last_sp_vole_size_;
-
-  size_t mp_vole_size_;
-  size_t noise_num_;
-  size_t require_ot_num_;
-  std::vector<size_t> indexes_;
-
-  MpParam(size_t mp_vole_size, size_t noise_num) {
-    YACL_ENFORCE(mp_vole_size >= 2 * noise_num);
-    mp_vole_size_ = mp_vole_size;
-    noise_num_ = noise_num;
-    //
-    sp_vole_size_ = mp_vole_size_ / noise_num_;
-    last_sp_vole_size_ = mp_vole_size_ - sp_vole_size_ * (noise_num_ - 1);
-    require_ot_num_ = ym::Log2Ceil(sp_vole_size_) +
-                      ym::Log2Ceil(last_sp_vole_size_) * (noise_num_ - 1);
-  };
-
-  // [Warning] indexes is not strictly uniform
-  void GenIndexes() {
-    indexes_ = yc::RandVec<size_t>(noise_num_);
-    for (size_t i = 0; i < noise_num_ - 1; ++i) {
-      indexes_[i] %= sp_vole_size_;
-    }
-    indexes_[noise_num_ - 1] %= last_sp_vole_size_;
-  }
-
-  // [Warning] it won't check whether the range of indexes is correct
-  void SetIndexes(absl::Span<const size_t> indexes) {
-    YACL_ENFORCE(indexes.size() >= noise_num_);
-    for (size_t i = 0; i < noise_num_ - 1; ++i) {
-      indexes_[i] = indexes[i] % sp_vole_size_;
-    }
-    indexes_[noise_num_ - 1] = indexes[noise_num_ - 1] % last_sp_vole_size_;
-  }
-};
-
-// Multi-point Vole
-void MpVoleSend(const std::shared_ptr<Connection>& conn,
-                const yc::OtSendStore& send_ot, const MpParam& param,
-                absl::Span<internal::PTy> w, absl::Span<internal::PTy> output);
-
-void MpVoleRecv(const std::shared_ptr<Connection>& conn,
-                const yc::OtRecvStore& recv_ot, const MpParam& param,
-                absl::Span<internal::PTy> v, absl::Span<internal::PTy> output);
-
 struct LpnParam {
   size_t n_ = 10485760;
   size_t k_ = 452000;
   size_t t_ = 1280;
 
-  // MpVole
+  LpnParam() : LpnParam(10485760, 452000, 1280) {}
+  LpnParam(size_t n, size_t k, size_t t) : n_(n), k_(k), t_(t) {}
+
+  static LpnParam GetDefault() { return LpnParam(10485760, 452000, 1280); }
+  static LpnParam GetPreDefault() { return LpnParam(470016, 32768, 918); }
+};
+
+struct VoleParam {
+  LpnParam lpn_param_ = LpnParam::GetDefault();
   MpParam mp_param_{10485760, 1280};
 
-  LpnParam() : LpnParam(10485760, 452000, 1280) {}
+  size_t base_vole_num_{0};
+  size_t base_vole_ot_num_{0};  // OT for constructing base-Vole
+  size_t mp_vole_ot_num_{0};    // OT for constructing mpfss
+  size_t require_ot_num_{0};    // total OT number
 
-  LpnParam(size_t n, size_t k, size_t t) : n_(n), k_(k), t_(t) {
-    mp_param_ = MpParam(n_, t_);
+  size_t vole_num_{0};  // Output size
+
+  bool is_mal_ = false;
+
+  VoleParam() : VoleParam(LpnParam::GetDefault()) {}
+
+  VoleParam(LpnParam lpn_param, bool mal = false) {
+    lpn_param_ = lpn_param;
+    mp_param_ = MpParam(lpn_param.n_, lpn_param.t_);
+
+    base_vole_num_ = lpn_param_.k_;
+    base_vole_ot_num_ = lpn_param_.k_ * sizeof(internal::PTy);
+    mp_vole_ot_num_ = mp_param_.require_ot_num_;
+    require_ot_num_ = base_vole_num_ + mp_vole_ot_num_;
+    vole_num_ = lpn_param_.n_;
+
+    is_mal_ = mal;
+
+    if (is_mal_) {
+      base_vole_num_ += 1;
+      base_vole_ot_num_ += sizeof(internal::PTy);
+      require_ot_num_ += sizeof(internal::PTy);
+    }
   }
 
   void GenIndexes() { mp_param_.GenIndexes(); }
@@ -81,26 +62,64 @@ struct LpnParam {
   void SetIndexes(absl::Span<const size_t> indexes) {
     mp_param_.SetIndexes(indexes);
   }
-
-  static LpnParam GetDefault() { return LpnParam(10485760, 452000, 1280); }
-
-  static LpnParam GetPreDefault() { return LpnParam(470016, 32768, 918); }
 };
 
 // Wolverine Vole
 // the following equation would hold:
 // > pre_c = pre_a * delta + pre_b
 // > c     =     a * delta +     b
+// > Sender holds c && delta
+// > Receiver holds a && b
 void WolverineVoleSend(const std::shared_ptr<Connection>& conn,
-                       const yc::OtSendStore& send_ot, const LpnParam& param,
-                       absl::Span<internal::PTy> pre_c,
+                       const yc::OtSendStore& send_ot, const VoleParam& param,
+                       internal::PTy delta, absl::Span<internal::PTy> pre_c,
                        absl::Span<internal::PTy> c);
 
 void WolverineVoleRecv(const std::shared_ptr<Connection>& conn,
-                       const yc::OtRecvStore& recv_ot, const LpnParam& param,
+                       const yc::OtRecvStore& recv_ot, const VoleParam& param,
                        absl::Span<internal::PTy> pre_a,
                        absl::Span<internal::PTy> pre_b,
                        absl::Span<internal::PTy> a,
                        absl::Span<internal::PTy> b);
+
+// consistency check tools
+inline internal::PTy UniversalHash(internal::PTy seed,
+                                   absl::Span<const internal::PTy> in) {
+  internal::PTy result(0);
+  std::for_each(in.rbegin(), in.rend(),
+                [&result, &seed](const internal::PTy& val) {
+                  result = (result + val) * seed;
+                });
+  return result;
+}
+
+inline std::vector<internal::PTy> ExtractCeof(
+    internal::PTy seed, absl::Span<const size_t> indexes) {
+  auto max_index = indexes.back();
+  auto bits = yacl::math::Log2Ceil(max_index + 1);
+
+  std::array<internal::PTy, 64> buf;
+  buf[0] = seed;
+  for (size_t i = 1; i < 64 && i <= bits; ++i) {
+    buf[i] = buf[i - 1] * buf[i - 1];
+  }
+
+  std::vector<internal::PTy> ceof;
+  for (const auto& index : indexes) {
+    auto index_plus_one = index + 1;
+    size_t mask = 1;
+
+    internal::PTy tmp(1);
+    for (size_t i = 0; i < 64 && mask <= index_plus_one; ++i) {
+      if (mask & index_plus_one) {
+        tmp = tmp * buf[i];
+      }
+      mask <<= 1;
+    }
+    ceof.emplace_back(tmp);
+  }
+
+  return ceof;
+}
 
 }  // namespace mcpsi::vole
