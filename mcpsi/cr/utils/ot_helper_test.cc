@@ -84,6 +84,63 @@ TEST(OtHelperTest, BeaverWork) {
   }
 }
 
+TEST(OtHelperTest, BeaverExtendWork) {
+  auto context = TestParam::GetContext();
+  const size_t num = 10000;
+
+  auto rank0 = std::async([&] {
+    auto cr = context[0]->GetState<Correlation>();
+    auto conn = context[0]->GetConnection();
+    auto ot_sender = cr->ot_sender_;
+    auto ot_receiver = cr->ot_receiver_;
+
+    auto helper = OtHelper(ot_sender, ot_receiver);
+
+    std::vector<internal::PTy> a(num);
+    std::vector<internal::PTy> b(num);
+    std::vector<internal::PTy> c(num);
+    std::vector<internal::PTy> A(num);
+    std::vector<internal::PTy> C(num);
+    helper.BeaverTripleExtend(conn, absl::MakeSpan(a), absl::MakeSpan(b),
+                              absl::MakeSpan(c), absl::MakeSpan(A),
+                              absl::MakeSpan(C));
+    return std::make_tuple(a, b, c, A, C);
+  });
+  auto rank1 = std::async([&] {
+    auto cr = context[1]->GetState<Correlation>();
+    auto conn = context[1]->GetConnection();
+    auto ot_sender = cr->ot_sender_;
+    auto ot_receiver = cr->ot_receiver_;
+
+    auto helper = OtHelper(ot_sender, ot_receiver);
+
+    std::vector<internal::PTy> a(num);
+    std::vector<internal::PTy> b(num);
+    std::vector<internal::PTy> c(num);
+    std::vector<internal::PTy> A(num);
+    std::vector<internal::PTy> C(num);
+    helper.BeaverTripleExtend(conn, absl::MakeSpan(a), absl::MakeSpan(b),
+                              absl::MakeSpan(c), absl::MakeSpan(A),
+                              absl::MakeSpan(C));
+    return std::make_tuple(a, b, c, A, C);
+  });
+
+  auto [a0, b0, c0, A0, C0] = rank0.get();
+  auto [a1, b1, c1, A1, C1] = rank1.get();
+
+  auto a = internal::op::Add(absl::MakeSpan(a0), absl::MakeSpan(a1));
+  auto b = internal::op::Add(absl::MakeSpan(b0), absl::MakeSpan(b1));
+  auto c = internal::op::Add(absl::MakeSpan(c0), absl::MakeSpan(c1));
+
+  auto A = internal::op::Add(absl::MakeSpan(A0), absl::MakeSpan(A1));
+  auto C = internal::op::Add(absl::MakeSpan(C0), absl::MakeSpan(C1));
+
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(a[i] * b[i], c[i]);
+    EXPECT_EQ(A[i] * b[i], C[i]);
+  }
+}
+
 TEST(OtHelperTest, BaseVoleWork) {
   auto context = TestParam::GetContext();
   const size_t num = 10000;
