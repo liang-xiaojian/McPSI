@@ -14,15 +14,34 @@ class OtHelper {
     ot_receiver_ = ot_receiver;
   }
 
-  void MulPPSend(std::shared_ptr<Connection> conn, absl::Span<internal::PTy> a,
+  void MulPPSend(std::shared_ptr<Connection> conn, absl::Span<internal::PTy> b,
                  absl::Span<internal::PTy> c);
 
-  void MulPPRecv(std::shared_ptr<Connection> conn, absl::Span<internal::PTy> b,
+  void MulPPRecv(std::shared_ptr<Connection> conn, absl::Span<internal::PTy> a,
                  absl::Span<internal::PTy> c);
 
   void BeaverTriple(std::shared_ptr<Connection> conn,
                     absl::Span<internal::PTy> a, absl::Span<internal::PTy> b,
                     absl::Span<internal::PTy> c);
+
+  // a * b = c && A * b = C
+  void MulPPExtendSend(std::shared_ptr<Connection> conn,
+                       absl::Span<internal::PTy> b, absl::Span<internal::PTy> c,
+                       absl::Span<internal::PTy> C);
+
+  // a * b = c && A * b = C
+  void MulPPExtendRecv(std::shared_ptr<Connection> conn,
+                       absl::Span<internal::PTy> a, absl::Span<internal::PTy> c,
+                       absl::Span<internal::PTy> A,
+                       absl::Span<internal::PTy> C);
+
+  // a * b = c && A * b = C
+  void BeaverTripleExtend(std::shared_ptr<Connection> conn,
+                          absl::Span<internal::PTy> a,
+                          absl::Span<internal::PTy> b,
+                          absl::Span<internal::PTy> c,
+                          absl::Span<internal::PTy> A,
+                          absl::Span<internal::PTy> C);
 
   void BaseVoleSend(std::shared_ptr<Connection> conn, internal::PTy delta,
                     absl::Span<internal::PTy> c);

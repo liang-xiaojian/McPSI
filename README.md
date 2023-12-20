@@ -53,6 +53,12 @@ test components
 bazel run -c opt //mcpsi/utils:field_test # test field operation 
 bazel run -c opt //mcpsi/utils:vec_op_test # test vec field operation 
 bazel run -c opt //mcpsi/context:context_test # test context 
+bazel run -c opt //mcpsi/cr:cr_test # test corelated randomness
+bazel run -c opt //mcpsi/cr/utils:liner_code_test # test local linear code over field
+bazel run -c opt //mcpsi/cr/utils:vole_test # test vole over field
+bazel run -c opt //mcpsi/cr/utils:ot_adapter_test # test ot adapter
+bazel run -c opt //mcpsi/cr/utils:vole_adapter_test # test vole adapter
+bazel run -c opt //mcpsi/cr/utils:ot_helper_test # test ot helper (generating Beaver Triple && Base Vole)
 bazel run -c opt //mcpsi/ss:public_test # test public (operation between PP)
 bazel run -c opt //mcpsi/ss:ashare_test # test a-share (operation between AA,AP,PA) 
 bazel run -c opt //mcpsi/ss:gshare_test # test g-share (DY-PRF)
