@@ -7,10 +7,10 @@ The project depends on [YACL](https://github.com/secretflow/yacl), which provide
 （Still in **developing stage**!!!）
 
 ### File layout:
-+ [context](test/context/): provide runtime environment
-+ [cr](test/cr/): correlated-randomness (e.g. Beaver Triple) 
-+ [ss](test/ss/): SPDZ-like protocol, supports several operators (e.g. Mul, Shuffle) between public value and arithmetic share.
-+ [utils](test/utils/): basic tools (e.g. 64bit field)
++ [context](mcpsi/context/): provide runtime environment
++ [cr](mcpsi/cr/): correlated-randomness (e.g. Beaver Triple) 
++ [ss](mcpsi/ss/): SPDZ-like protocol, supports several operators (e.g. Mul, Shuffle) between public value and arithmetic share.
++ [utils](mcpsi/utils/): basic tools (e.g. 64bit field)
 
 ### Dependencies
 
