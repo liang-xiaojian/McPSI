@@ -27,10 +27,8 @@ void OtHelper::MulPPSend(std::shared_ptr<Connection> conn,
   YACL_ENFORCE(num == c.size());
   // bits in Public Type
   const size_t PTy_bits = sizeof(internal::PTy) * 8;
-  // beaver extend num = num * extend factor
-  const size_t ext_num = num * kExtFactor;
-  // ot num = num * extend factor * bits of Public Type
-  const size_t ot_num = ext_num * PTy_bits;
+  // ot num = num * bits of Public Type
+  const size_t ot_num = num * PTy_bits;
   internal::op::Rand(absl::MakeSpan(b));
 
   std::vector<std::array<uint128_t, 2>> ot_send_msgs(ot_num);
@@ -41,15 +39,12 @@ void OtHelper::MulPPSend(std::shared_ptr<Connection> conn,
   for (size_t i = 0; i < num; ++i) {
     // ot_block0 - ot_block1 + b
     // c = - block0
-    for (size_t j = 0; j < kExtFactor; ++j) {
-      const size_t offset = i * kExtFactor * PTy_bits + j * PTy_bits;
-      auto bi_k = b[i];
-      for (size_t k = 0; k < PTy_bits; ++k) {
-        send_msgs[offset + k] = internal::PTy(ot_send_msgs[offset + k][0]) -
-                                internal::PTy(ot_send_msgs[offset + k][1]) +
-                                bi_k;
-        bi_k = bi_k * internal::PTy(2);
-      }
+    const size_t offset = i * PTy_bits;
+    auto bi_k = b[i];
+    for (size_t k = 0; k < PTy_bits; ++k) {
+      send_msgs[offset + k] = internal::PTy(ot_send_msgs[offset + k][0]) -
+                              internal::PTy(ot_send_msgs[offset + k][1]) + bi_k;
+      bi_k = bi_k * internal::PTy(2);
     }
   }
 
@@ -60,24 +55,11 @@ void OtHelper::MulPPSend(std::shared_ptr<Connection> conn,
                               send_msgs.size() * sizeof(internal::PTy)),
       "Beaver:MulPP");
 
-  auto ext_c = internal::op::Zeros(ext_num);
-  for (size_t i = 0; i < ext_num; ++i) {
-    const size_t offset = i * PTy_bits;
-    for (size_t j = 0; j < PTy_bits; ++j) {
-      ext_c[i] = ext_c[i] - internal::PTy(ot_send_msgs[offset + j][0]);
-    }
-  }
-
-  // sync and generate the coefficient
-  auto seed = conn->SyncSeed();
-  auto coef = internal::op::Rand(seed, ext_num);
-  internal::op::Mul(absl::MakeConstSpan(ext_c), absl::MakeConstSpan(coef),
-                    absl::MakeSpan(ext_c));
-
   for (size_t i = 0; i < num; ++i) {
     c[i] = internal::PTy::Zero();
-    for (size_t j = 0; j < kExtFactor; ++j) {
-      c[i] = c[i] + ext_c[i * kExtFactor + j];
+    const size_t offset = i * PTy_bits;
+    for (size_t j = 0; j < PTy_bits; ++j) {
+      c[i] = c[i] - internal::PTy(ot_send_msgs[offset + j][0]);
     }
   }
 }
@@ -89,14 +71,12 @@ void OtHelper::MulPPRecv(std::shared_ptr<Connection> conn,
   YACL_ENFORCE(num == c.size());
   // bits in Public Type
   const size_t PTy_bits = sizeof(internal::PTy) * 8;
-  // beaver extend num = num * extend factor
-  const size_t ext_num = num * kExtFactor;
-  // ot num = num * extend factor * bits of Public Type
-  const size_t ot_num = ext_num * PTy_bits;
+  // ot num = num * bits of Public Type
+  const size_t ot_num = num * PTy_bits;
 
-  auto ext_a = internal::op::Rand(ext_num);
+  internal::op::Rand(a);  // rand a
   auto choices = yacl::dynamic_bitset<uint128_t>(ot_num);
-  memcpy(choices.data(), ext_a.data(), ext_num * sizeof(internal::PTy));
+  memcpy(choices.data(), a.data(), num * sizeof(internal::PTy));
 
   std::vector<uint128_t> ot_recv_msgs(ot_num);
   ot_receiver_->recv_rot(absl::MakeSpan(ot_recv_msgs), choices);
@@ -105,30 +85,14 @@ void OtHelper::MulPPRecv(std::shared_ptr<Connection> conn,
   auto recv_span = absl::MakeConstSpan(
       reinterpret_cast<internal::PTy *>(recv_buf.data()), ot_num);
 
-  auto ext_c = internal::op::Zeros(ext_num);
-  for (size_t i = 0; i < ext_num; ++i) {
-    const size_t offset = i * PTy_bits;
-    for (size_t j = 0; j < PTy_bits; ++j) {
-      ext_c[i] = ext_c[i] + internal::PTy(ot_recv_msgs[offset + j]);
-      if (choices[offset + j]) {
-        ext_c[i] = ext_c[i] + internal::PTy(recv_span[offset + j]);
-      }
-    }
-  }
-  // sync and generate the coefficient
-  auto seed = conn->SyncSeed();
-  auto coef = internal::op::Rand(seed, ext_num);
-  internal::op::Mul(absl::MakeConstSpan(ext_a), absl::MakeConstSpan(coef),
-                    absl::MakeSpan(ext_a));
-  internal::op::Mul(absl::MakeConstSpan(ext_c), absl::MakeConstSpan(coef),
-                    absl::MakeSpan(ext_c));
-
   for (size_t i = 0; i < num; ++i) {
     c[i] = internal::PTy::Zero();
-    a[i] = internal::PTy::Zero();
-    for (size_t j = 0; j < kExtFactor; ++j) {
-      c[i] = c[i] + ext_c[i * kExtFactor + j];
-      a[i] = a[i] + ext_a[i * kExtFactor + j];
+    const size_t offset = i * PTy_bits;
+    for (size_t j = 0; j < PTy_bits; ++j) {
+      c[i] = c[i] + internal::PTy(ot_recv_msgs[offset + j]);
+      if (choices[offset + j]) {
+        c[i] = c[i] + internal::PTy(recv_span[offset + j]);
+      }
     }
   }
 }
@@ -350,9 +314,8 @@ void OtHelper::BeaverTripleExtend(std::shared_ptr<Connection> conn,
 void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
                             internal::PTy delta, absl::Span<internal::PTy> c) {
   const size_t num = c.size();
-
+  const size_t ext_num = num + 1;
   size_t PTy_bits = sizeof(internal::PTy) * 8;
-  const size_t ext_num = num * kExtFactor;
   size_t ot_num = ext_num * PTy_bits;
 
   // initalize delta , delta * 2 , ...
@@ -367,15 +330,13 @@ void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
 
   // Convert ROT to additive-COT
   auto send_msgs = std::vector<internal::PTy>(ot_num);
-  for (size_t i = 0; i < num; ++i) {
+  for (size_t i = 0; i < ext_num; ++i) {
     // ot_block0 - ot_block1 + b
-    for (size_t j = 0; j < kExtFactor; ++j) {
-      const size_t offset = i * kExtFactor * PTy_bits + j * PTy_bits;
-      for (size_t k = 0; k < PTy_bits; ++k) {
-        send_msgs[offset + k] = internal::PTy(ot_send_msgs[offset + k][0]) -
-                                internal::PTy(ot_send_msgs[offset + k][1]) +
-                                deltas[k];
-      }
+    const size_t offset = i * PTy_bits;
+    for (size_t k = 0; k < PTy_bits; ++k) {
+      send_msgs[offset + k] = internal::PTy(ot_send_msgs[offset + k][0]) -
+                              internal::PTy(ot_send_msgs[offset + k][1]) +
+                              deltas[k];
     }
   }
 
@@ -386,27 +347,32 @@ void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
                               send_msgs.size() * sizeof(internal::PTy)),
       "Beaver:BaseVole");
 
-  auto ext_c = internal::op::Zeros(ext_num);
-  for (size_t i = 0; i < ext_num; ++i) {
+  for (size_t i = 0; i < num; ++i) {
+    c[i] = internal::PTy::Zero();
     const size_t offset = i * PTy_bits;
     for (size_t j = 0; j < PTy_bits; ++j) {
       // c = block0
-      ext_c[i] = ext_c[i] - internal::PTy(ot_send_msgs[offset + j][0]);
+      c[i] = c[i] - internal::PTy(ot_send_msgs[offset + j][0]);
     }
   }
 
-  // sync and generate the coefficient
+  auto extra_c = internal::PTy::Zero();
+  {
+    const size_t offset = num * PTy_bits;
+    for (size_t j = 0; j < PTy_bits; ++j) {
+      // c = block0
+      extra_c = extra_c - internal::PTy(ot_send_msgs[offset + j][0]);
+    }
+  }
+
+  // Consistency check;
   auto seed = conn->SyncSeed();
-  auto coef = internal::op::Rand(seed, ext_num);
-  internal::op::Mul(absl::MakeConstSpan(ext_c), absl::MakeConstSpan(coef),
-                    absl::MakeSpan(ext_c));
-
-  for (size_t i = 0; i < num; ++i) {
-    c[i] = internal::PTy::Zero();
-    for (size_t j = 0; j < kExtFactor; ++j) {
-      c[i] = c[i] + ext_c[i * kExtFactor + j];
-    }
-  }
+  auto coef = internal::op::Rand(seed, num);
+  extra_c = extra_c + internal::op::InPro(absl::MakeSpan(coef), c);
+  auto buf = conn->Recv(conn->NextRank(), "MalBaseVole");
+  auto extra_ab =
+      absl::MakeSpan(reinterpret_cast<internal::PTy *>(buf.data()), 2);
+  YACL_ENFORCE(extra_ab[0] * delta + extra_ab[1] == extra_c);
 }
 
 void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
@@ -414,15 +380,15 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
                             absl::Span<internal::PTy> b) {
   const size_t num = a.size();
   YACL_ENFORCE(num == b.size());
+  const size_t ext_num = num + 1;
   // bits in Public Type
   const size_t PTy_bits = sizeof(internal::PTy) * 8;
-  // beaver extend num = num * extend factor
-  const size_t ext_num = num * kExtFactor;
-  // ot num = num * extend factor * bits of Public Type
+  // ot num = ext_num * bits of Public Type
   const size_t ot_num = ext_num * PTy_bits;
 
-  auto ext_a = internal::op::Rand(ext_num);
+  auto ext_a = internal::op::Rand(ext_num);  // rand a
   auto choices = yacl::dynamic_bitset<uint128_t>(ot_num);
+  memcpy(a.data(), ext_a.data(), num * sizeof(internal::PTy));
   memcpy(choices.data(), ext_a.data(), ext_num * sizeof(internal::PTy));
 
   std::vector<uint128_t> ot_recv_msgs(ot_num);
@@ -432,32 +398,40 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
   auto recv_span = absl::MakeConstSpan(
       reinterpret_cast<internal::PTy *>(recv_buf.data()), ot_num);
 
-  auto ext_b = internal::op::Zeros(ext_num);
-  for (size_t i = 0; i < ext_num; ++i) {
+  for (size_t i = 0; i < num; ++i) {
+    b[i] = internal::PTy::Zero();
     const size_t offset = i * PTy_bits;
     for (size_t j = 0; j < PTy_bits; ++j) {
-      ext_b[i] = ext_b[i] + internal::PTy(ot_recv_msgs[offset + j]);
+      b[i] = b[i] - internal::PTy(ot_recv_msgs[offset + j]);
       if (choices[offset + j]) {
-        ext_b[i] = ext_b[i] + internal::PTy(recv_span[offset + j]);
+        b[i] = b[i] - internal::PTy(recv_span[offset + j]);
       }
     }
   }
-  // sync and generate the coefficient
-  auto seed = conn->SyncSeed();
-  auto coef = internal::op::Rand(seed, ext_num);
-  internal::op::Mul(absl::MakeConstSpan(ext_a), absl::MakeConstSpan(coef),
-                    absl::MakeSpan(ext_a));
-  internal::op::Mul(absl::MakeConstSpan(ext_b), absl::MakeConstSpan(coef),
-                    absl::MakeSpan(ext_b));
 
-  for (size_t i = 0; i < num; ++i) {
-    a[i] = internal::PTy::Zero();
-    b[i] = internal::PTy::Zero();
-    for (size_t j = 0; j < kExtFactor; ++j) {
-      a[i] = a[i] + ext_a[i * kExtFactor + j];
-      b[i] = b[i] - ext_b[i * kExtFactor + j];
+  std::array<internal::PTy, 2> extra_ab;  // extra_a && extra_b
+  extra_ab[0] = ext_a[num];
+  extra_ab[1] = internal::PTy::Zero();
+  {
+    const size_t offset = num * PTy_bits;
+    for (size_t j = 0; j < PTy_bits; ++j) {
+      extra_ab[1] = extra_ab[1] - internal::PTy(ot_recv_msgs[offset + j]);
+      if (choices[offset + j]) {
+        extra_ab[1] = extra_ab[1] - internal::PTy(recv_span[offset + j]);
+      }
     }
   }
+
+  // Consistency check;
+  auto seed = conn->SyncSeed();
+  auto coef = internal::op::Rand(seed, num);
+  extra_ab[0] = extra_ab[0] + internal::op::InPro(absl::MakeSpan(coef), a);
+  extra_ab[1] = extra_ab[1] + internal::op::InPro(absl::MakeSpan(coef), b);
+
+  conn->SendAsync(
+      conn->NextRank(),
+      yacl::ByteContainerView(extra_ab.data(), 2 * sizeof(internal::PTy)),
+      "MalBaseVole");
 }
 
 // ---------------------
