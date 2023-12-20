@@ -192,19 +192,6 @@ std::vector<PTy> A2P(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()), size),
           absl::MakeConstSpan(val), absl::MakeSpan(real_val));
 
-  // if (ctx->GetRank() == 0) {
-  //   conn->SendAsync(ctx->NextRank(), val_bv, "A2P:0");
-  //   auto buf = conn->Recv(ctx->NextRank(), "A2P:1");
-  //   op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()),
-  //   size),
-  //           absl::MakeConstSpan(val), absl::MakeSpan(real_val));
-  // } else {
-  //   auto buf = conn->Recv(ctx->NextRank(), "A2P:0");
-  //   conn->SendAsync(ctx->NextRank(), val_bv, "A2P:1");
-  //   op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()),
-  //   size),
-  //           absl::MakeConstSpan(val), absl::MakeSpan(real_val));
-  // }
   // Generate Sync Seed After Open Value
   auto sync_seed = conn->SyncSeed();
   auto coef = op::Rand(sync_seed, size);

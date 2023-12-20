@@ -152,6 +152,11 @@ class Correlation : public State {
     ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b));
     return std::make_pair(a, b);
   }
+
+ private:
+  std::vector<internal::PTy> OpenAndCheck(absl::Span<const internal::ATy> in);
+  // TODO:
+  // internal::PTy SingleOpenAndCheck(const internal::ATy& in);
 };
 
 }  // namespace mcpsi
