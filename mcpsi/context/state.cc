@@ -41,38 +41,6 @@ yacl::Buffer Connection::_ExchangeWithCommit_Buffer(
 
   remote_buff.resize(bv.size());
   return remote_buff;
-
-  // yacl::Buffer ret;
-  // if (rank_ == 0) {
-  //   SendAsync(NextRank(), commitment_bv, "Commit:0");
-  //   auto remote_commitment = Recv(NextRank(), "Commit:1");
-
-  //   SendAsync(NextRank(), buff_bv, "val:0");
-  //   auto remote_buff = Recv(NextRank(), "val:1");
-
-  //   auto check_commitment = yacl::crypto::Sm3(remote_buff);
-  //   auto check_bv = yacl::ByteContainerView(check_commitment);
-
-  //   YACL_ENFORCE(yacl::ByteContainerView(remote_commitment) == check_bv);
-
-  //   ret = std::move(remote_buff);
-  //   ret.resize(bv.size());
-  // } else {
-  //   auto remote_commitment = Recv(NextRank(), "Commit:0");
-  //   SendAsync(NextRank(), commitment_bv, "Commit:1");
-
-  //   auto remote_buff = Recv(NextRank(), "val:0");
-  //   SendAsync(NextRank(), buff_bv, "val:1");
-
-  //   auto check_commitment = yacl::crypto::Sm3(remote_buff);
-  //   auto check_bv = yacl::ByteContainerView(check_commitment);
-
-  //   YACL_ENFORCE(yacl::ByteContainerView(remote_commitment) == check_bv);
-
-  //   ret = std::move(remote_buff);
-  //   ret.resize(bv.size());
-  // }
-  // return ret;
 }
 
 template <typename T>
