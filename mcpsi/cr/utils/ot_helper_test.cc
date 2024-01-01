@@ -10,42 +10,35 @@
 
 namespace mcpsi::ot {
 
-class TestParam {
- public:
-  static std::vector<std::shared_ptr<Context>> ctx;
-
-  // Getter
-  static std::vector<std::shared_ptr<Context>>& GetContext() {
-    if (ctx.empty()) {
-      ctx = Setup();
-    }
-    return ctx;
-  }
-
-  static std::vector<std::shared_ptr<Context>> Setup() {
-    auto ctx = MockContext(2);
-    MockSetupContext(ctx);
-    return ctx;
-  }
-};
-
-std::vector<std::shared_ptr<Context>> TestParam::ctx =
-    std::vector<std::shared_ptr<Context>>();
-
-TEST(Setup, InitializeWork) {
-  auto context = TestParam::GetContext();
-  EXPECT_EQ(context.size(), 2);
-}
-
 TEST(OtHelperTest, BeaverWork) {
-  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
+  auto lctxs = SetupWorld(2);
+  auto prev0 = std::async([&] {
+    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    otSender->OneTimeSetup();
+
+    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    otReceiver->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto prev1 = std::async([&] {
+    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    otReceiver->OneTimeSetup();
+
+    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    otSender->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto ot0 = prev0.get();
+  auto ot1 = prev1.get();
+
   auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
-    auto ot_sender = cr->ot_sender_;
-    auto ot_receiver = cr->ot_receiver_;
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
+    auto ot_sender = ot0.first;
+    auto ot_receiver = ot0.second;
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
@@ -57,10 +50,9 @@ TEST(OtHelperTest, BeaverWork) {
     return std::make_tuple(a, b, c);
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
-    auto ot_sender = cr->ot_sender_;
-    auto ot_receiver = cr->ot_receiver_;
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
+    auto ot_sender = ot1.first;
+    auto ot_receiver = ot1.second;
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
@@ -85,14 +77,34 @@ TEST(OtHelperTest, BeaverWork) {
 }
 
 TEST(OtHelperTest, BeaverExtendWork) {
-  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
+  auto lctxs = SetupWorld(2);
+  auto prev0 = std::async([&] {
+    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    otSender->OneTimeSetup();
+
+    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    otReceiver->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto prev1 = std::async([&] {
+    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    otReceiver->OneTimeSetup();
+
+    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    otSender->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto ot0 = prev0.get();
+  auto ot1 = prev1.get();
+
   auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
-    auto ot_sender = cr->ot_sender_;
-    auto ot_receiver = cr->ot_receiver_;
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
+    auto ot_sender = ot0.first;
+    auto ot_receiver = ot0.second;
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
@@ -107,10 +119,9 @@ TEST(OtHelperTest, BeaverExtendWork) {
     return std::make_tuple(a, b, c, A, C);
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
-    auto ot_sender = cr->ot_sender_;
-    auto ot_receiver = cr->ot_receiver_;
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
+    auto ot_sender = ot1.first;
+    auto ot_receiver = ot1.second;
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
@@ -142,15 +153,34 @@ TEST(OtHelperTest, BeaverExtendWork) {
 }
 
 TEST(OtHelperTest, BaseVoleWork) {
-  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
-  auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
-    auto ot_sender = cr->ot_sender_;
-    auto ot_receiver = cr->ot_receiver_;
+  auto lctxs = SetupWorld(2);
+  auto prev0 = std::async([&] {
+    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    otSender->OneTimeSetup();
 
+    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    otReceiver->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto prev1 = std::async([&] {
+    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    otReceiver->OneTimeSetup();
+
+    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    otSender->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto ot0 = prev0.get();
+  auto ot1 = prev1.get();
+
+  auto rank0 = std::async([&] {
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
+    auto ot_sender = ot0.first;
+    auto ot_receiver = ot0.second;
     auto helper = OtHelper(ot_sender, ot_receiver);
 
     auto delta = internal::op::Rand(1)[0];
@@ -159,10 +189,9 @@ TEST(OtHelperTest, BaseVoleWork) {
     return std::make_tuple(delta, c);
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
-    auto ot_sender = cr->ot_sender_;
-    auto ot_receiver = cr->ot_receiver_;
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
+    auto ot_sender = ot1.first;
+    auto ot_receiver = ot1.second;
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
@@ -181,14 +210,34 @@ TEST(OtHelperTest, BaseVoleWork) {
 }
 
 TEST(OtHelperTest, ShuffleWork) {
-  auto context = TestParam::GetContext();
   const size_t num = 10000;
 
+  auto lctxs = SetupWorld(2);
+  auto prev0 = std::async([&] {
+    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    otSender->OneTimeSetup();
+
+    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    otReceiver->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto prev1 = std::async([&] {
+    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    otReceiver->OneTimeSetup();
+
+    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    otSender->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto ot0 = prev0.get();
+  auto ot1 = prev1.get();
+
   auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
-    auto ot_sender = cr->ot_sender_;
-    auto ot_receiver = cr->ot_receiver_;
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
+    auto ot_sender = ot0.first;
+    auto ot_receiver = ot0.second;
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
@@ -198,10 +247,9 @@ TEST(OtHelperTest, ShuffleWork) {
     return std::make_tuple(perm, delta);
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
-    auto ot_sender = cr->ot_sender_;
-    auto ot_receiver = cr->ot_receiver_;
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
+    auto ot_sender = ot1.first;
+    auto ot_receiver = ot1.second;
 
     auto helper = OtHelper(ot_sender, ot_receiver);
 
