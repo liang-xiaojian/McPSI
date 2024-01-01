@@ -27,7 +27,7 @@ class StateContainer final {
 
   template <typename StateTy>
   void AddState(std::shared_ptr<StateTy> state) {
-    map_.insert(StateTy::id, state);
+    map_.emplace(StateTy::id, state);
   }
 
   template <typename StateTy, typename... Args>

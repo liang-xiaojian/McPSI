@@ -15,33 +15,6 @@ namespace mcpsi::vole {
 
 namespace yc = yacl::crypto;
 
-class TestParam {
- public:
-  static std::vector<std::shared_ptr<Context>> ctx;
-
-  // Getter
-  static std::vector<std::shared_ptr<Context>>& GetContext() {
-    if (ctx.empty()) {
-      ctx = Setup();
-    }
-    return ctx;
-  }
-
-  static std::vector<std::shared_ptr<Context>> Setup() {
-    auto ctx = MockContext(2);
-    MockSetupContext(ctx);
-    return ctx;
-  }
-};
-
-std::vector<std::shared_ptr<Context>> TestParam::ctx =
-    std::vector<std::shared_ptr<Context>>();
-
-TEST(Setup, InitializeWork) {
-  auto context = TestParam::GetContext();
-  EXPECT_EQ(context.size(), 2);
-}
-
 struct MpVoleTestParam {
   size_t mp_vole_size;
   size_t noise_num;
@@ -50,7 +23,6 @@ struct MpVoleTestParam {
 class MpVoleTest : public ::testing::TestWithParam<MpVoleTestParam> {};
 
 TEST_P(MpVoleTest, MpFssWork) {
-  auto context = TestParam::GetContext();
   const size_t mp_vole_size = GetParam().mp_vole_size;
   const size_t noise_num = GetParam().noise_num;
 
@@ -60,17 +32,17 @@ TEST_P(MpVoleTest, MpFssWork) {
 
   auto w = internal::op::Rand(noise_num);
 
+  auto lctxs = SetupWorld(2);
+
   auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
 
     std::vector<internal::PTy> output(mp_vole_size);
     MpFssSend(conn, cot.send, param, absl::MakeSpan(w), absl::MakeSpan(output));
     return output;
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
 
     std::vector<internal::PTy> output(mp_vole_size);
     MpFssRecv(conn, cot.recv, param, absl::MakeSpan(output));
@@ -100,7 +72,6 @@ TEST_P(MpVoleTest, MpFssWork) {
 }
 
 TEST_P(MpVoleTest, MpVoleWork) {
-  auto context = TestParam::GetContext();
   const size_t mp_vole_size = GetParam().mp_vole_size;
   const size_t noise_num = GetParam().noise_num;
 
@@ -111,9 +82,10 @@ TEST_P(MpVoleTest, MpVoleWork) {
   auto v = internal::op::Rand(noise_num);
   auto w = internal::op::Rand(noise_num);
 
+  auto lctxs = SetupWorld(2);
+
   auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
 
     std::vector<internal::PTy> output(mp_vole_size);
     MpVoleSend(conn, cot.send, param, absl::MakeSpan(w),
@@ -121,8 +93,7 @@ TEST_P(MpVoleTest, MpVoleWork) {
     return output;
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
 
     std::vector<internal::PTy> output(mp_vole_size);
     MpVoleRecv(conn, cot.recv, param, absl::MakeSpan(v),
@@ -153,8 +124,6 @@ TEST_P(MpVoleTest, MpVoleWork) {
 }
 
 TEST(WolverineVoleTest, PreWork) {
-  auto context = TestParam::GetContext();
-
   auto lpn_param = LpnParam::GetPreDefault();
   auto param = VoleParam(lpn_param, true);
   param.mp_param_.GenIndexes();
@@ -171,17 +140,17 @@ TEST(WolverineVoleTest, PreWork) {
   internal::op::Add(absl::MakeConstSpan(pre_c), absl::MakeConstSpan(pre_b),
                     absl::MakeSpan(pre_c));
 
+  auto lctxs = SetupWorld(2);
+
   auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
     std::vector<internal::PTy> c(vole_num, 0);
     WolverineVoleSend(conn, cot.send, param, delta, absl::MakeSpan(pre_c),
                       absl::MakeSpan(c));
     return c;
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
     std::vector<internal::PTy> a(vole_num, 0);
     std::vector<internal::PTy> b(vole_num, 0);
     WolverineVoleRecv(conn, cot.recv, param, absl::MakeSpan(pre_a),
@@ -199,8 +168,6 @@ TEST(WolverineVoleTest, PreWork) {
 }
 
 TEST(WolverineVoleTest, BootStrapWork) {
-  auto context = TestParam::GetContext();
-
   auto lpn_param = LpnParam::GetDefault();
   auto param = VoleParam(lpn_param, true);
   param.mp_param_.GenIndexes();
@@ -216,18 +183,17 @@ TEST(WolverineVoleTest, BootStrapWork) {
   auto pre_c = internal::op::ScalarMul(delta, absl::MakeSpan(pre_a));
   internal::op::Add(absl::MakeConstSpan(pre_c), absl::MakeConstSpan(pre_b),
                     absl::MakeSpan(pre_c));
+  auto lctxs = SetupWorld(2);
 
   auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
     std::vector<internal::PTy> c(vole_num, 0);
     WolverineVoleSend(conn, cot.send, param, delta, absl::MakeSpan(pre_c),
                       absl::MakeSpan(c));
     return c;
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
     std::vector<internal::PTy> a(vole_num, 0);
     std::vector<internal::PTy> b(vole_num, 0);
     WolverineVoleRecv(conn, cot.recv, param, absl::MakeSpan(pre_a),

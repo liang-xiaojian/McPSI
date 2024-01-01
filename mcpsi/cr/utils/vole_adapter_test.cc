@@ -24,31 +24,50 @@ struct VoleTestParam {
 
 class VoleAdapterTest : public ::testing::TestWithParam<VoleTestParam> {};
 
-// TODO: Fix Link Problem !!!
 TEST_P(VoleAdapterTest, Work) {
-  auto context = MockContext(2);
-  MockSetupContext(context);
   const size_t vole_num = GetParam().num;
   auto deltas = internal::op::Rand(1);
   auto delta = deltas[0];
 
+  auto lctxs = SetupWorld(2);
+  auto prev0 = std::async([&] {
+    auto otSender = std::make_shared<ot::YaclKosOtAdapter>(lctxs[0], true);
+    otSender->OneTimeSetup();
+
+    auto otReceiver = std::make_shared<ot::YaclKosOtAdapter>(lctxs[0], false);
+    otReceiver->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto prev1 = std::async([&] {
+    auto otReceiver = std::make_shared<ot::YaclKosOtAdapter>(lctxs[1], false);
+    otReceiver->OneTimeSetup();
+
+    auto otSender = std::make_shared<ot::YaclKosOtAdapter>(lctxs[1], true);
+    otSender->OneTimeSetup();
+
+    return std::make_pair(otSender, otReceiver);
+  });
+  auto ot0 = prev0.get();
+  auto ot1 = prev1.get();
+
   auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    auto conn = context[0]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[0]);
+    auto otSender = ot0.first;
 
     auto voleSender =
-        std::make_shared<WolverineVoleAdapter>(conn, cr->ot_sender_, delta);
+        std::make_shared<WolverineVoleAdapter>(conn, otSender, delta);
 
     std::vector<internal::PTy> c(vole_num);
     voleSender->rsend(absl::MakeSpan(c));
     return c;
   });
   auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    auto conn = context[1]->GetConnection();
+    auto conn = std::make_shared<Connection>(*lctxs[1]);
+    auto otReceiver = ot1.second;
 
     auto voleReceiver =
-        std::make_shared<WolverineVoleAdapter>(conn, cr->ot_receiver_);
+        std::make_shared<WolverineVoleAdapter>(conn, otReceiver);
     std::vector<internal::PTy> a(vole_num);
     std::vector<internal::PTy> b(vole_num);
     voleReceiver->rrecv(absl::MakeSpan(a), absl::MakeSpan(b));

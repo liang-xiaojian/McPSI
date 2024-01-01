@@ -4,159 +4,61 @@
 
 #include "mcpsi/context/context.h"
 #include "mcpsi/context/state.h"
-#include "mcpsi/cr/utils/ot_adapter.h"
-#include "mcpsi/cr/utils/vole_adapter.h"
 #include "mcpsi/ss/type.h"
 
 namespace mcpsi {
 
-// TODO: It might be better to create a "CorrelationInterface" ?
 class Correlation : public State {
- private:
+ protected:
   std::shared_ptr<Context> ctx_;
   internal::PTy key_;
-  bool setup_ot_{false};
-  bool setup_vole_{false};  // useless
 
  public:
   static const std::string id;
 
-  // OT adapter
-  std::shared_ptr<ot::OtAdapter> ot_sender_;
-  std::shared_ptr<ot::OtAdapter> ot_receiver_;
-  // Vole adapter
-  std::shared_ptr<vole::VoleAdapter> vole_sender_;
-  std::shared_ptr<vole::VoleAdapter> vole_receiver_;
-
   Correlation(std::shared_ptr<Context> ctx) : ctx_(ctx) {}
 
-  void InitOtAdapter() {
-    if (setup_ot_ == true) return;
+  virtual ~Correlation() {}
 
-    auto conn = ctx_->GetConnection();
-    if (ctx_->GetRank() == 0) {
-      ot_sender_ = std::make_shared<ot::YaclKosOtAdapter>(conn->Spawn(), true);
-      ot_sender_->OneTimeSetup();
+  virtual internal::PTy GetKey() const { return key_; }
 
-      ot_receiver_ =
-          std::make_shared<ot::YaclKosOtAdapter>(conn->Spawn(), false);
-      ot_receiver_->OneTimeSetup();
-    } else {
-      ot_receiver_ =
-          std::make_shared<ot::YaclKosOtAdapter>(conn->Spawn(), false);
-      ot_receiver_->OneTimeSetup();
+  virtual void SetKey(internal::PTy key) { key_ = key; }
 
-      ot_sender_ = std::make_shared<ot::YaclKosOtAdapter>(conn->Spawn(), true);
-      ot_sender_->OneTimeSetup();
-    }
-
-    setup_ot_ = true;
-  }
-
-  void InitVoleAdapter() {
-    YACL_ENFORCE(setup_vole_ == false);
-    if (setup_ot_ == false) InitOtAdapter();
-
-    auto conn = ctx_->GetConnection();
-    if (ctx_->GetRank() == 0) {
-      vole_sender_ =
-          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_sender_, key_);
-      vole_sender_->OneTimeSetup();
-
-      vole_receiver_ =
-          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_receiver_);
-      vole_receiver_->OneTimeSetup();
-    } else {
-      vole_receiver_ =
-          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_receiver_);
-      vole_receiver_->OneTimeSetup();
-
-      vole_sender_ =
-          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_sender_, key_);
-      vole_sender_->OneTimeSetup();
-    }
-    setup_vole_ = true;
-  }
-
-  void OneTimeSetup() {
-    if (setup_ot_ == true) return;
-    InitOtAdapter();
-    if (setup_vole_ == true) return;
-    InitVoleAdapter();
-  }
-
-  internal::PTy GetKey() const { return key_; }
-
-  void SetKey(internal::PTy key) {
-    key_ = key;
-
-    setup_vole_ = false;  // set it as false
-    InitVoleAdapter();
-    YACL_ENFORCE(setup_vole_ == true);
-  }
+  virtual void OneTimeSetup() = 0;
 
   // entry
-  void BeaverTriple(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
-                    absl::Span<internal::ATy> c);
+  virtual void BeaverTriple(absl::Span<internal::ATy> a,
+                            absl::Span<internal::ATy> b,
+                            absl::Span<internal::ATy> c) = 0;
 
-  std::array<std::vector<internal::ATy>, 3> inline BeaverTriple(size_t num) {
-    std::vector<internal::ATy> a(num);
-    std::vector<internal::ATy> b(num);
-    std::vector<internal::ATy> c(num);
-    BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-    return {a, b, c};
-  }
+  virtual std::array<std::vector<internal::ATy>, 3> BeaverTriple(
+      size_t num) = 0;
 
-  void AuthSet(absl::Span<const internal::PTy> in,
-               absl::Span<internal::ATy> out);
-  void AuthGet(absl::Span<internal::ATy> out);
+  virtual void AuthSet(absl::Span<const internal::PTy> in,
+                       absl::Span<internal::ATy> out) = 0;
+  virtual void AuthGet(absl::Span<internal::ATy> out) = 0;
 
   // entry
-  void RandomSet(absl::Span<internal::ATy> out);
-  void RandomGet(absl::Span<internal::ATy> out);
-  void RandomAuth(absl::Span<internal::ATy> out);
+  virtual void RandomSet(absl::Span<internal::ATy> out) = 0;
+  virtual void RandomGet(absl::Span<internal::ATy> out) = 0;
+  virtual void RandomAuth(absl::Span<internal::ATy> out) = 0;
 
-  std::vector<internal::ATy> RandomSet(size_t num) {
-    std::vector<internal::ATy> ret(num);
-    RandomSet(absl::MakeSpan(ret));
-    return ret;
-  }
-
-  std::vector<internal::ATy> RandomGet(size_t num) {
-    std::vector<internal::ATy> ret(num);
-    RandomGet(absl::MakeSpan(ret));
-    return ret;
-  }
-
-  std::vector<internal::ATy> RandomAuth(size_t num) {
-    std::vector<internal::ATy> ret(num);
-    RandomAuth(absl::MakeSpan(ret));
-    return ret;
-  }
+  virtual std::vector<internal::ATy> RandomSet(size_t num) = 0;
+  virtual std::vector<internal::ATy> RandomGet(size_t num) = 0;
+  virtual std::vector<internal::ATy> RandomAuth(size_t num) = 0;
 
   // entry
-  void ShuffleSet(absl::Span<const size_t> perm,
-                  absl::Span<internal::PTy> delta);
-  void ShuffleGet(absl::Span<internal::PTy> a, absl::Span<internal::PTy> b);
+  virtual void ShuffleSet(absl::Span<const size_t> perm,
+                          absl::Span<internal::PTy> delta) = 0;
 
-  std::vector<internal::PTy> ShuffleSet(absl::Span<const size_t> perm) {
-    std::vector<internal::PTy> delta(perm.size());
-    ShuffleSet(perm, absl::MakeSpan(delta));
-    return delta;
-  }
+  virtual void ShuffleGet(absl::Span<internal::PTy> a,
+                          absl::Span<internal::PTy> b) = 0;
 
-  std::pair<std::vector<internal::PTy>, std::vector<internal::PTy>> ShuffleGet(
-      size_t num) {
-    std::vector<internal::PTy> a(num);
-    std::vector<internal::PTy> b(num);
-    ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b));
-    return std::make_pair(a, b);
-  }
+  virtual std::vector<internal::PTy> ShuffleSet(
+      absl::Span<const size_t> perm) = 0;
 
- private:
-  std::vector<internal::PTy> OpenAndCheck(absl::Span<const internal::ATy> in);
-  // TODO:
-  // internal::PTy SingleOpenAndCheck(const internal::ATy& in);
+  virtual std::pair<std::vector<internal::PTy>, std::vector<internal::PTy>>
+  ShuffleGet(size_t num) = 0;
 };
 
 }  // namespace mcpsi

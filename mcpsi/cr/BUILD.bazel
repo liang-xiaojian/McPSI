@@ -11,11 +11,33 @@ mcpsi_cc_library(
         "fake_cr.h",
     ],
     deps = [
+        ":cr",
         "//mcpsi/context",
         "//mcpsi/context:state",
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
+    ],
+)
+
+mcpsi_cc_library(
+    name = "true_cr",
+    srcs = [
+        "true_cr.cc",
+    ],
+    hdrs = [
+        "true_cr.h",
+    ],
+    deps = [
+        ":cr",
+        "//mcpsi/context",
+        "//mcpsi/context:state",
+        "//mcpsi/ss:ss_type",
+        "//mcpsi/utils:field",
+        "//mcpsi/utils:vec_op",
+        "//mcpsi/cr/utils:ot_adapter",
+        "//mcpsi/cr/utils:ot_helper",
+        "//mcpsi/cr/utils:vole_adapter",
     ],
 )
 
@@ -33,9 +55,6 @@ mcpsi_cc_library(
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
-        "//mcpsi/cr/utils:ot_adapter",
-        "//mcpsi/cr/utils:ot_helper",
-        "//mcpsi/cr/utils:vole_adapter",
     ],
 )
 
@@ -44,6 +63,8 @@ mcpsi_cc_test(
     srcs = ["cr_test.cc"],
     deps = [
         ":cr",
+        ":true_cr",
+        ":fake_cr",
         "//mcpsi/context:register",
         "//mcpsi/utils:test_util",
         "//mcpsi/ss:ss_type",
