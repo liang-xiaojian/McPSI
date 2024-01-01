@@ -4,30 +4,28 @@
 
 #include "mcpsi/context/context.h"
 #include "mcpsi/context/state.h"
+#include "mcpsi/cr/cr.h"
 #include "mcpsi/ss/type.h"
 
 namespace mcpsi {
 
-class FakeCorrelation : public State {
- private:
-  std::shared_ptr<Context> ctx_;
-
-  internal::PTy key_;
-
+class FakeCorrelation : public Correlation {
  public:
-  static const std::string id;
+  FakeCorrelation(std::shared_ptr<Context> ctx) : Correlation(ctx) {}
 
-  FakeCorrelation(std::shared_ptr<Context> ctx) : ctx_(ctx) {}
+  ~FakeCorrelation() {}
 
-  internal::PTy GetKey() const { return key_; }
+  internal::PTy GetKey() const override { return key_; }
 
-  void SetKey(internal::PTy key) { key_ = key; }
+  void SetKey(internal::PTy key) override { key_ = key; }
+
+  void OneTimeSetup() override { ; }
 
   // entry
   void BeaverTriple(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
-                    absl::Span<internal::ATy> c);
+                    absl::Span<internal::ATy> c) override;
 
-  std::array<std::vector<internal::ATy>, 3> inline BeaverTriple(size_t num) {
+  std::array<std::vector<internal::ATy>, 3> BeaverTriple(size_t num) override {
     std::vector<internal::ATy> a(num);
     std::vector<internal::ATy> b(num);
     std::vector<internal::ATy> c(num);
@@ -35,24 +33,28 @@ class FakeCorrelation : public State {
     return {a, b, c};
   }
 
-  // entry
-  void RandomSet(absl::Span<internal::ATy> out);
-  void RandomGet(absl::Span<internal::ATy> out);
-  void RandomAuth(absl::Span<internal::ATy> out);
+  void AuthSet(absl::Span<const internal::PTy> in,
+               absl::Span<internal::ATy> out) override;
+  void AuthGet(absl::Span<internal::ATy> out) override;
 
-  std::vector<internal::ATy> RandomSet(size_t num) {
+  // entry
+  void RandomSet(absl::Span<internal::ATy> out) override;
+  void RandomGet(absl::Span<internal::ATy> out) override;
+  void RandomAuth(absl::Span<internal::ATy> out) override;
+
+  std::vector<internal::ATy> RandomSet(size_t num) override {
     std::vector<internal::ATy> ret(num);
     RandomSet(absl::MakeSpan(ret));
     return ret;
   }
 
-  std::vector<internal::ATy> RandomGet(size_t num) {
+  std::vector<internal::ATy> RandomGet(size_t num) override {
     std::vector<internal::ATy> ret(num);
     RandomGet(absl::MakeSpan(ret));
     return ret;
   }
 
-  std::vector<internal::ATy> RandomAuth(size_t num) {
+  std::vector<internal::ATy> RandomAuth(size_t num) override {
     std::vector<internal::ATy> ret(num);
     RandomAuth(absl::MakeSpan(ret));
     return ret;
@@ -60,17 +62,20 @@ class FakeCorrelation : public State {
 
   // entry
   void ShuffleSet(absl::Span<const size_t> perm,
-                  absl::Span<internal::PTy> delta);
-  void ShuffleGet(absl::Span<internal::PTy> a, absl::Span<internal::PTy> b);
+                  absl::Span<internal::PTy> delta) override;
 
-  std::vector<internal::PTy> ShuffleSet(absl::Span<const size_t> perm) {
+  void ShuffleGet(absl::Span<internal::PTy> a,
+                  absl::Span<internal::PTy> b) override;
+
+  std::vector<internal::PTy> ShuffleSet(
+      absl::Span<const size_t> perm) override {
     std::vector<internal::PTy> delta(perm.size());
     ShuffleSet(perm, absl::MakeSpan(delta));
     return delta;
   }
 
   std::pair<std::vector<internal::PTy>, std::vector<internal::PTy>> ShuffleGet(
-      size_t num) {
+      size_t num) override {
     std::vector<internal::PTy> a(num);
     std::vector<internal::PTy> b(num);
     ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b));

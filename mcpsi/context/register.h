@@ -3,11 +3,13 @@
 #include "mcpsi/context/context.h"
 #include "mcpsi/context/state.h"
 #include "mcpsi/cr/cr.h"
+#include "mcpsi/cr/fake_cr.h"
+#include "mcpsi/cr/true_cr.h"
 #include "mcpsi/ss/protocol.h"
 
 namespace mcpsi {
 
-void inline SetupContext(std::shared_ptr<Context> ctx) {
+void inline SetupContext(std::shared_ptr<Context> ctx, bool offline = true) {
   // Generate a same seed
   uint128_t seed = ctx->GetState<Connection>()->SyncSeed();
   // Shared Prg, all parities own a same Prg (with same seed)
@@ -17,7 +19,15 @@ void inline SetupContext(std::shared_ptr<Context> ctx) {
   // Get SPDZ key
   auto key = ctx->GetState<Protocol>()->GetKey();
   // Create Correlated Randomness Generator
-  ctx->AddState<Correlation>(ctx);
+  std::shared_ptr<Correlation> cr = nullptr;
+  if (offline) {
+    auto true_cr = std::make_shared<TrueCorrelation>(ctx);
+    cr = std::static_pointer_cast<Correlation>(true_cr);
+  } else {
+    auto fake_cr = std::make_shared<FakeCorrelation>(ctx);
+    cr = std::static_pointer_cast<Correlation>(fake_cr);
+  }
+  ctx->AddState<Correlation>(cr);
   // FIX ME: maybe?
   // 1. ctx->AddState<Correlation>(ctx,key);
   // 2. ctx->GetState<Correlation>()->OneTimeSetup();

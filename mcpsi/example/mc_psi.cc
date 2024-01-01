@@ -15,7 +15,9 @@ llvm::cl::opt<std::string> cl_parties(
     llvm::cl::desc("server list, format: host1:port1[,host2:port2, ...]"));
 llvm::cl::opt<uint32_t> cl_rank("rank", llvm::cl::init(0),
                                 llvm::cl::desc("self rank"));
-
+llvm::cl::opt<uint32_t> cl_offline(
+    "offline", llvm::cl::init(0),
+    llvm::cl::desc("0 for real offline, 1 for fake offline"));
 llvm::cl::opt<uint32_t> cl_mode(
     "mode", llvm::cl::init(0),
     llvm::cl::desc("0 for memory mode, 1 for socket mode"));
@@ -28,17 +30,24 @@ llvm::cl::opt<uint32_t> cl_interset_size(
     llvm::cl::desc("the size of intersection"));
 
 auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
-            absl::Span<PTy> set0, absl::Span<PTy> set1, absl::Span<PTy> val1) {
+            absl::Span<PTy> set0, absl::Span<PTy> set1, absl::Span<PTy> val1,
+            bool offline = true) {
   auto rank = lctx->Rank();
+
   if (rank == 0) {
-    SPDLOG_INFO("[P{}] having set0 (with size {})", rank, set0.size());
+    SPDLOG_INFO("[P{}] having set0 (with size {}), working mode: {}", rank,
+                set0.size(),
+                (offline ? std::string("Real Correlation")
+                         : std::string("Fake Correlation")));
   } else {
-    SPDLOG_INFO("[P{}] having set1 && data (with size {} && {})", rank,
-                set1.size(), val1.size());
+    SPDLOG_INFO("[P{}] having set1 && data (with size {}), working mode: {}",
+                rank, set1.size(),
+                (offline ? std::string("Real Correlation")
+                         : std::string("Fake Correlation")));
   }
   SPDLOG_INFO("[P{}] Initializing Context", rank);
   auto context = std::make_shared<Context>(lctx);
-  SetupContext(context);
+  SetupContext(context, offline);
 
   auto prot = context->GetState<Protocol>();
   SPDLOG_INFO("[P{}] uploading data", rank);
@@ -63,13 +72,15 @@ struct pack {
   uint32_t size0;
   uint32_t size1;
   uint32_t interset_size;
+  uint32_t offline;
   uint128_t seed;
 };
 
 bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
-              uint32_t size1, uint32_t interset_size, uint128_t& seed) {
+              uint32_t size1, uint32_t interset_size, uint32_t offline,
+              uint128_t& seed) {
   uint128_t tmp_seed = yacl::crypto::RandSeed();
-  pack tmp = {size0, size1, interset_size, tmp_seed};
+  pack tmp = {size0, size1, interset_size, offline, tmp_seed};
   auto bv = yacl::ByteContainerView(&tmp, sizeof(tmp));
 
   pack remote;
@@ -89,6 +100,7 @@ bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
   YACL_ENFORCE(remote.size0 == size0);
   YACL_ENFORCE(remote.size1 == size1);
   YACL_ENFORCE(remote.interset_size == interset_size);
+  YACL_ENFORCE(remote.offline == offline);
 
   seed = tmp_seed ^ remote.seed;
   return true;
@@ -111,6 +123,7 @@ int main(int argc, char** argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
   bool mem_mode = cl_mode.getValue() == 0;
+  bool offline = cl_offline.getValue();
 
   size_t size0 = cl_size0.getValue();
   size_t size1 = cl_size1.getValue();
@@ -145,11 +158,11 @@ int main(int argc, char** argv) {
     auto lctxs = SetupWorld(2);
     auto task0 = std::async([&] {
       return mc_psi(lctxs[0], absl::MakeSpan(key0), absl::MakeSpan(key1),
-                    absl::MakeSpan(data));
+                    absl::MakeSpan(data), offline == 0);
     });
     auto task1 = std::async([&] {
       return mc_psi(lctxs[1], absl::MakeSpan(key0), absl::MakeSpan(key1),
-                    absl::MakeSpan(data));
+                    absl::MakeSpan(data), offline == 0);
     });
     auto result0 = task0.get();
     auto result1 = task1.get();
@@ -158,7 +171,7 @@ int main(int argc, char** argv) {
   } else {
     auto lctx = MakeLink(cl_parties.getValue(), cl_rank.getValue());
     uint128_t seed = 0;
-    YACL_ENFORCE(SyncTask(lctx, size0, size1, interset_size, seed));
+    YACL_ENFORCE(SyncTask(lctx, size0, size1, interset_size, offline, seed));
     auto interset = OP::Rand(seed, interset_size);
     auto key0 = OP::Rand(size0);
     auto key1 = OP::Rand(size1);
@@ -168,7 +181,7 @@ int main(int argc, char** argv) {
     memcpy(key1.data(), interset.data(), interset.size() * sizeof(PTy));
 
     auto res = mc_psi(lctx, absl::MakeSpan(key0), absl::MakeSpan(key1),
-                      absl::MakeSpan(data));
+                      absl::MakeSpan(data), offline == 0);
     std::cout << "P" << cl_rank.getValue() << " result (sum): " << res[0]
               << std::endl;
   }
