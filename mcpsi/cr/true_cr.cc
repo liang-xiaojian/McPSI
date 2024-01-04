@@ -207,15 +207,33 @@ void TrueCorrelation::RandomAuth(absl::Span<internal::ATy> out) {
 
 // TODO: acheive malicious secure
 void TrueCorrelation::ShuffleSet(absl::Span<const size_t> perm,
-                                 absl::Span<internal::PTy> delta) {
+                                 absl::Span<internal::PTy> delta,
+                                 size_t repeat) {
   auto conn = ctx_->GetConnection();
-  ot::OtHelper(ot_sender_, ot_receiver_).ShuffleSend(conn, perm, delta);
+  const size_t batch_size = perm.size();
+  const size_t full_size = delta.size();
+  YACL_ENFORCE(full_size == batch_size * repeat);
+
+  for (size_t i = 0; i < repeat; ++i) {
+    ot::OtHelper(ot_sender_, ot_receiver_)
+        .ShuffleSend(conn, perm, delta.subspan(i * batch_size, batch_size));
+  }
 }
 
 void TrueCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
-                                 absl::Span<internal::PTy> b) {
+                                 absl::Span<internal::PTy> b, size_t repeat) {
   auto conn = ctx_->GetConnection();
-  ot::OtHelper(ot_sender_, ot_receiver_).ShuffleRecv(conn, a, b);
+
+  const size_t full_size = a.size();
+  const size_t batch_size = a.size() / repeat;
+  YACL_ENFORCE(full_size == b.size());
+  YACL_ENFORCE(full_size == batch_size * repeat);
+
+  for (size_t i = 0; i < repeat; ++i) {
+    ot::OtHelper(ot_sender_, ot_receiver_)
+        .ShuffleRecv(conn, a.subspan(i * batch_size, batch_size),
+                     b.subspan(i * batch_size, batch_size));
+  }
 }
 
 // Copy from A2P

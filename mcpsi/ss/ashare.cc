@@ -203,8 +203,8 @@ std::vector<PTy> A2P(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   auto key = ctx->GetState<Protocol>()->GetKey();
   auto zero_mac = mac_affine - real_val_affine * key;
 
-  auto remote_mac_u64 = conn->ExchangeWithCommit(zero_mac.GetVal());
-  YACL_ENFORCE(zero_mac + PTy(remote_mac_u64) == PTy::Zero());
+  auto remote_mac_int = conn->ExchangeWithCommit(zero_mac.GetVal());
+  YACL_ENFORCE(zero_mac + PTy(remote_mac_int) == PTy::Zero());
   return real_val;
 }
 
@@ -227,8 +227,11 @@ std::vector<ATy> ShuffleAGet(std::shared_ptr<Context>& ctx,
   const size_t num = in.size();
   // correlation
   // [Warning] low efficiency!!! optimize it
-  auto [val_a, val_b] = ctx->GetState<Correlation>()->ShuffleGet(num);
-  auto [mac_a, mac_b] = ctx->GetState<Correlation>()->ShuffleGet(num);
+  auto [_a, _b] = ctx->GetState<Correlation>()->ShuffleGet(num, 2);
+  auto val_a = absl::MakeSpan(_a).subspan(0, num);
+  auto val_b = absl::MakeSpan(_b).subspan(0, num);
+  auto mac_a = absl::MakeSpan(_a).subspan(num, num);
+  auto mac_b = absl::MakeSpan(_b).subspan(num, num);
 
   auto [val_in, mac_in] = Unpack(absl::MakeConstSpan(in));
 
@@ -257,8 +260,9 @@ std::vector<ATy> ShuffleASet(std::shared_ptr<Context>& ctx,
   YACL_ENFORCE(num == perm.size());
   // correlation
   // [Warning] low efficiency!!! optimize it
-  auto val_delta = ctx->GetState<Correlation>()->ShuffleSet(perm);
-  auto mac_delta = ctx->GetState<Correlation>()->ShuffleSet(perm);
+  auto _delta = ctx->GetState<Correlation>()->ShuffleSet(perm, 2);
+  auto val_delta = absl::MakeSpan(_delta).subspan(0, num);
+  auto mac_delta = absl::MakeSpan(_delta).subspan(num, num);
 
   auto conn = ctx->GetConnection();
   auto val_buf = conn->Recv(ctx->NextRank(), "send:a");
@@ -289,6 +293,120 @@ std::vector<ATy> ShuffleA(std::shared_ptr<Context>& ctx,
   }
   auto tmp = ShuffleAGet(ctx, in);
   return ShuffleASet(ctx, tmp, perm);
+}
+
+// shuffle inputs with same permuation
+std::array<std::vector<ATy>, 2> ShuffleAGet(std::shared_ptr<Context>& ctx,
+                                            absl::Span<const ATy> in0,
+                                            absl::Span<const ATy> in1) {
+  const size_t num = in0.size();
+  YACL_ENFORCE(in1.size() == num);
+  // correlation
+  // [Warning] low efficiency!!! optimize it
+  auto [_a, _b] = ctx->GetState<Correlation>()->ShuffleGet(num, 4);
+  auto val_a0 = absl::MakeSpan(_a).subspan(0 * num, num);
+  auto val_b0 = absl::MakeSpan(_b).subspan(0 * num, num);
+  auto mac_a0 = absl::MakeSpan(_a).subspan(1 * num, num);
+  auto mac_b0 = absl::MakeSpan(_b).subspan(1 * num, num);
+
+  auto val_a1 = absl::MakeSpan(_a).subspan(2 * num, num);
+  auto val_b1 = absl::MakeSpan(_b).subspan(2 * num, num);
+  auto mac_a1 = absl::MakeSpan(_a).subspan(3 * num, num);
+  auto mac_b1 = absl::MakeSpan(_b).subspan(3 * num, num);
+
+  auto [val_in0, mac_in0] = Unpack(absl::MakeConstSpan(in0));
+  auto [val_in1, mac_in1] = Unpack(absl::MakeConstSpan(in1));
+
+  op::Add(absl::MakeConstSpan(val_a0), absl::MakeConstSpan(val_in0),
+          absl::MakeSpan(val_a0));
+  op::Add(absl::MakeConstSpan(mac_a0), absl::MakeConstSpan(mac_in0),
+          absl::MakeSpan(mac_a0));
+  op::Add(absl::MakeConstSpan(val_a1), absl::MakeConstSpan(val_in1),
+          absl::MakeSpan(val_a1));
+  op::Add(absl::MakeConstSpan(mac_a1), absl::MakeConstSpan(mac_in1),
+          absl::MakeSpan(mac_a1));
+
+  auto conn = ctx->GetConnection();
+  conn->SendAsync(
+      ctx->NextRank(),
+      yacl::ByteContainerView(val_a0.data(), val_a0.size() * sizeof(PTy)),
+      "send:a+x val0");
+  conn->SendAsync(
+      ctx->NextRank(),
+      yacl::ByteContainerView(mac_a0.data(), mac_a0.size() * sizeof(PTy)),
+      "send:a+x mac0");
+  conn->SendAsync(
+      ctx->NextRank(),
+      yacl::ByteContainerView(val_a1.data(), val_a1.size() * sizeof(PTy)),
+      "send:a+x val1");
+  conn->SendAsync(
+      ctx->NextRank(),
+      yacl::ByteContainerView(mac_a1.data(), mac_a1.size() * sizeof(PTy)),
+      "send:a+x mac1");
+
+  return {Pack(absl::MakeConstSpan(val_b0), absl::MakeConstSpan(mac_b0)),
+          Pack(absl::MakeConstSpan(val_b1), absl::MakeConstSpan(mac_b1))};
+}
+
+std::array<std::vector<ATy>, 2> ShuffleASet(std::shared_ptr<Context>& ctx,
+                                            absl::Span<const ATy> in0,
+                                            absl::Span<const ATy> in1,
+                                            absl::Span<const size_t> perm) {
+  const size_t num = perm.size();
+  YACL_ENFORCE(num == in0.size());
+  YACL_ENFORCE(num == in1.size());
+  // correlation
+  // [Warning] low efficiency!!! optimize it
+  auto _delta = ctx->GetState<Correlation>()->ShuffleSet(perm, 4);
+  auto val_delta0 = absl::MakeSpan(_delta).subspan(0 * num, num);
+  auto mac_delta0 = absl::MakeSpan(_delta).subspan(1 * num, num);
+  auto val_delta1 = absl::MakeSpan(_delta).subspan(2 * num, num);
+  auto mac_delta1 = absl::MakeSpan(_delta).subspan(3 * num, num);
+
+  auto conn = ctx->GetConnection();
+  auto val_buf0 = conn->Recv(ctx->NextRank(), "send:a0");
+  auto mac_buf0 = conn->Recv(ctx->NextRank(), "send:b0");
+  auto val_buf1 = conn->Recv(ctx->NextRank(), "send:a1");
+  auto mac_buf1 = conn->Recv(ctx->NextRank(), "send:b1");
+
+  auto val_tmp0 = absl::MakeSpan(reinterpret_cast<PTy*>(val_buf0.data()), num);
+  auto mac_tmp0 = absl::MakeSpan(reinterpret_cast<PTy*>(mac_buf0.data()), num);
+  auto val_tmp1 = absl::MakeSpan(reinterpret_cast<PTy*>(val_buf1.data()), num);
+  auto mac_tmp1 = absl::MakeSpan(reinterpret_cast<PTy*>(mac_buf1.data()), num);
+
+  auto [val_in0, mac_in0] = Unpack(absl::MakeConstSpan(in0));
+  auto [val_in1, mac_in1] = Unpack(absl::MakeConstSpan(in1));
+
+  op::Add(absl::MakeConstSpan(val_in0), absl::MakeConstSpan(val_tmp0),
+          absl::MakeSpan(val_tmp0));
+  op::Add(absl::MakeConstSpan(mac_in0), absl::MakeConstSpan(mac_tmp0),
+          absl::MakeSpan(mac_tmp0));
+  op::Add(absl::MakeConstSpan(val_in1), absl::MakeConstSpan(val_tmp1),
+          absl::MakeSpan(val_tmp1));
+  op::Add(absl::MakeConstSpan(mac_in1), absl::MakeConstSpan(mac_tmp1),
+          absl::MakeSpan(mac_tmp1));
+
+  for (size_t i = 0; i < num; ++i) {
+    val_delta0[i] = val_delta0[i] + val_tmp0[perm[i]];
+    mac_delta0[i] = mac_delta0[i] + mac_tmp0[perm[i]];
+    val_delta1[i] = val_delta1[i] + val_tmp1[perm[i]];
+    mac_delta1[i] = mac_delta1[i] + mac_tmp1[perm[i]];
+  }
+  return {
+      Pack(absl::MakeConstSpan(val_delta0), absl::MakeConstSpan(mac_delta0)),
+      Pack(absl::MakeConstSpan(val_delta1), absl::MakeConstSpan(mac_delta1))};
+}
+
+std::array<std::vector<ATy>, 2> ShuffleA(std::shared_ptr<Context>& ctx,
+                                         absl::Span<const ATy> in0,
+                                         absl::Span<const ATy> in1,
+                                         absl::Span<const size_t> perm) {
+  if (ctx->GetRank() == 0) {
+    auto tmp = ShuffleASet(ctx, in0, in1, perm);
+    return ShuffleAGet(ctx, tmp[0], tmp[1]);
+  }
+  auto tmp = ShuffleAGet(ctx, in0, in1);
+  return ShuffleASet(ctx, tmp[0], tmp[1], perm);
 }
 
 // A-share Setter, return A-share ( in , in * key + r )

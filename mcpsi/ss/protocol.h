@@ -119,6 +119,18 @@ class Protocol : public State {
                                absl::Span<const size_t> perm);
   std::vector<ATy> ShuffleAGet(absl::Span<const ATy> in);
 
+  std::array<std::vector<ATy>, 2> ShuffleA(absl::Span<const ATy> in0,
+                                           absl::Span<const ATy> in1);
+  // shuffle entry
+  std::array<std::vector<ATy>, 2> ShuffleA(absl::Span<const ATy> in0,
+                                           absl::Span<const ATy> in1,
+                                           absl::Span<const size_t> perm);
+  std::array<std::vector<ATy>, 2> ShuffleASet(absl::Span<const ATy> in0,
+                                              absl::Span<const ATy> in1,
+                                              absl::Span<const size_t> perm);
+  std::array<std::vector<ATy>, 2> ShuffleAGet(absl::Span<const ATy> in0,
+                                              absl::Span<const ATy> in1);
+
   // circuit PSI entry
   std::vector<ATy> CPSI(absl::Span<const ATy> set0, absl::Span<const ATy> set1,
                         absl::Span<const ATy> data);

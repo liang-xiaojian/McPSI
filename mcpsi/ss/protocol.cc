@@ -121,6 +121,28 @@ std::vector<ATy> Protocol::ShuffleAGet(absl::Span<const ATy> in) {
   return internal::ShuffleAGet(ctx_, in);
 }
 
+std::array<std::vector<ATy>, 2> Protocol::ShuffleA(absl::Span<const ATy> in0,
+                                                   absl::Span<const ATy> in1) {
+  return internal::ShuffleA(ctx_, in0, in1);
+}
+
+std::array<std::vector<ATy>, 2> Protocol::ShuffleA(
+    absl::Span<const ATy> in0, absl::Span<const ATy> in1,
+    absl::Span<const size_t> perm) {
+  return internal::ShuffleA(ctx_, in0, in1, perm);
+}
+
+std::array<std::vector<ATy>, 2> Protocol::ShuffleASet(
+    absl::Span<const ATy> in0, absl::Span<const ATy> in1,
+    absl::Span<const size_t> perm) {
+  return internal::ShuffleASet(ctx_, in0, in1, perm);
+}
+
+std::array<std::vector<ATy>, 2> Protocol::ShuffleAGet(
+    absl::Span<const ATy> in0, absl::Span<const ATy> in1) {
+  return internal::ShuffleAGet(ctx_, in0, in1);
+}
+
 std::vector<ATy> Protocol::CPSI(absl::Span<const ATy> set0,
                                 absl::Span<const ATy> set1,
                                 absl::Span<const ATy> data) {

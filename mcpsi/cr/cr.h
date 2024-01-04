@@ -49,16 +49,17 @@ class Correlation : public State {
 
   // entry
   virtual void ShuffleSet(absl::Span<const size_t> perm,
-                          absl::Span<internal::PTy> delta) = 0;
+                          absl::Span<internal::PTy> delta,
+                          size_t repeat = 1) = 0;
 
   virtual void ShuffleGet(absl::Span<internal::PTy> a,
-                          absl::Span<internal::PTy> b) = 0;
+                          absl::Span<internal::PTy> b, size_t repeat = 1) = 0;
 
-  virtual std::vector<internal::PTy> ShuffleSet(
-      absl::Span<const size_t> perm) = 0;
+  virtual std::vector<internal::PTy> ShuffleSet(absl::Span<const size_t> perm,
+                                                size_t repeat = 1) = 0;
 
   virtual std::pair<std::vector<internal::PTy>, std::vector<internal::PTy>>
-  ShuffleGet(size_t num) = 0;
+  ShuffleGet(size_t num, size_t repeat = 1) = 0;
 };
 
 }  // namespace mcpsi
