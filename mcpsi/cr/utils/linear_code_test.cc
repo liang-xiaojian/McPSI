@@ -10,7 +10,7 @@ namespace mcpsi::code {
 
 TEST(Llc, LlcWorks) {
   // GIVEN
-  uint128_t seed = yacl::crypto::RandSeed();
+  uint128_t seed = yacl::crypto::SecureRandU128();
   uint32_t n = 102400;
   uint32_t k = 1024;
   LocalLinearCode<10> llc(seed, n, k);

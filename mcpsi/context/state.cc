@@ -23,7 +23,7 @@ yacl::Buffer Connection::_ExchangeWithCommit_Buffer(
   yacl::Buffer buff(bv.size() + sizeof(uint128_t));
   memcpy(buff.data(), bv.data(), bv.size());
   *reinterpret_cast<uint128_t*>((uint8_t*)buff.data() + bv.size()) =
-      yacl::crypto::RandU128(true);
+      yacl::crypto::SecureRandU128();
 
   auto buff_bv = yacl::ByteContainerView(buff);
 

@@ -38,7 +38,7 @@ class Protocol : public State {
 
   Protocol(std::shared_ptr<Context> ctx) : ctx_(ctx) {
     // SPDZ key setup
-    key_ = PTy(yacl::crypto::RandU64(true));
+    key_ = PTy(yacl::crypto::SecureRandU64());
   }
   // SPDZ key
   PTy GetKey() const { return key_; }

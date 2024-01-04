@@ -8,7 +8,7 @@
 #include "mcpsi/ss/type.h"
 #include "yacl/base/exception.h"
 #include "yacl/base/int128.h"
-#include "yacl/crypto/tools/random_permutation.h"
+#include "yacl/crypto/tools/rp.h"
 
 #ifndef __aarch64__
 // sse
@@ -182,7 +182,7 @@ class LocalLinearCode : LinearCodeInterface {
  private:
   uint32_t n_;  // num
   uint32_t k_;  // dimention
-  yc::RandomPerm rp_;
+  yc::RP rp_;
   uint32_t mask_;
   uint128_t extend_mask_;
   uint128_t extend_k_;

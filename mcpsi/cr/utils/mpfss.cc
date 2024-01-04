@@ -4,7 +4,7 @@
 #include "mcpsi/utils/vec_op.h"
 #include "yacl/base/byte_container_view.h"
 #include "yacl/crypto/primitives/ot/gywz_ote.h"
-#include "yacl/crypto/tools/random_permutation.h"
+#include "yacl/crypto/tools/crhash.h"
 
 namespace mcpsi::vole {
 

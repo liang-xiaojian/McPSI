@@ -28,7 +28,7 @@ TEST_P(MpVoleTest, MpFssWork) {
 
   auto param = MpParam(mp_vole_size, noise_num);
   param.GenIndexes();
-  auto cot = yc::MockCots(param.require_ot_num_, yc::RandU128());
+  auto cot = yc::MockCots(param.require_ot_num_, yc::SecureRandU128());
 
   auto w = internal::op::Rand(noise_num);
 
@@ -77,7 +77,7 @@ TEST_P(MpVoleTest, MpVoleWork) {
 
   auto param = MpParam(mp_vole_size, noise_num);
   param.GenIndexes();
-  auto cot = yc::MockCots(param.require_ot_num_, yc::RandU128());
+  auto cot = yc::MockCots(param.require_ot_num_, yc::SecureRandU128());
 
   auto v = internal::op::Rand(noise_num);
   auto w = internal::op::Rand(noise_num);
@@ -127,7 +127,7 @@ TEST(WolverineVoleTest, PreWork) {
   auto lpn_param = LpnParam::GetPreDefault();
   auto param = VoleParam(lpn_param, true);
   param.mp_param_.GenIndexes();
-  auto cot = yc::MockCots(param.mp_vole_ot_num_, yc::RandU128());
+  auto cot = yc::MockCots(param.mp_vole_ot_num_, yc::SecureRandU128());
   size_t pre_num = param.base_vole_num_;
   size_t vole_num = param.vole_num_;
 
@@ -171,7 +171,7 @@ TEST(WolverineVoleTest, BootStrapWork) {
   auto lpn_param = LpnParam::GetDefault();
   auto param = VoleParam(lpn_param, true);
   param.mp_param_.GenIndexes();
-  auto cot = yc::MockCots(param.mp_vole_ot_num_, yc::RandU128());
+  auto cot = yc::MockCots(param.mp_vole_ot_num_, yc::SecureRandU128());
   size_t pre_num = param.base_vole_num_;
   size_t vole_num = param.vole_num_;
 

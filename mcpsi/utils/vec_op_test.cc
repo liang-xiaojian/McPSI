@@ -73,7 +73,7 @@ TEST(kFp64Test, InvWork) {
 
 TEST(kFp64Test, PrgWork) {
   size_t num = 10000;
-  uint128_t seed = yacl::crypto::RandU128(true);
+  uint128_t seed = yacl::crypto::SecureRandU128();
 
   yacl::crypto::Prg<uint8_t> prg0(seed);
   yacl::crypto::Prg<uint8_t> prg1(seed);
@@ -169,7 +169,7 @@ TEST(kFp128Test, InvWork) {
 
 TEST(kFp128Test, PrgWork) {
   size_t num = 10000;
-  uint128_t seed = yacl::crypto::RandU128(true);
+  uint128_t seed = yacl::crypto::SecureRandU128();
 
   yacl::crypto::Prg<uint8_t> prg0(seed);
   yacl::crypto::Prg<uint8_t> prg1(seed);

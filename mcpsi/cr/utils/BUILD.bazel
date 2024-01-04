@@ -46,7 +46,7 @@ mcpsi_cc_library(
         "//mcpsi/utils:vec_op",
         "@yacl//yacl/crypto/primitives/ot:gywz_ote",
         "@yacl//yacl/math:gadget",
-        "@yacl//yacl/crypto/tools:random_permutation",
+        "@yacl//yacl/crypto/tools:crhash",
     ],
 )
 
@@ -71,7 +71,7 @@ mcpsi_cc_library(
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
         "@yacl//yacl/base:int128",
-        "@yacl//yacl/crypto/tools:random_permutation",
+        "@yacl//yacl/crypto/tools:rp",
         "@yacl//yacl/utils:thread_pool",
     ],
 )
@@ -102,7 +102,7 @@ mcpsi_cc_library(
         "@yacl//yacl/base:byte_container_view",
         "@yacl//yacl/crypto/primitives/ot:gywz_ote",
         "@yacl//yacl/crypto/primitives/ot:ot_store",
-        "@yacl//yacl/crypto/tools:random_permutation",
+        "@yacl//yacl/crypto/tools:crhash",
         "@yacl//yacl/crypto/utils:rand",
         "@yacl//yacl/math:gadget",
     ],
@@ -125,7 +125,6 @@ mcpsi_cc_library(
         "//mcpsi/utils:vec_op",
         "@yacl//yacl/base:byte_container_view",
         "@yacl//yacl/crypto/primitives/ot:ot_store",
-        "@yacl//yacl/crypto/tools:random_permutation",
         "@yacl//yacl/crypto/utils:rand",
         "@yacl//yacl/math:gadget",
     ],

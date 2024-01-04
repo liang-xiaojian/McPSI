@@ -79,7 +79,7 @@ struct pack {
 bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
               uint32_t size1, uint32_t interset_size, uint32_t offline,
               uint128_t& seed) {
-  uint128_t tmp_seed = yacl::crypto::RandSeed();
+  uint128_t tmp_seed = yacl::crypto::SecureRandU128();
   pack tmp = {size0, size1, interset_size, offline, tmp_seed};
   auto bv = yacl::ByteContainerView(&tmp, sizeof(tmp));
 
