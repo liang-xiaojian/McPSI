@@ -15,19 +15,19 @@ TEST(OtHelperTest, BeaverWork) {
 
   auto lctxs = SetupWorld(2);
   auto prev0 = std::async([&] {
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[0], true);
     otSender->OneTimeSetup();
 
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[0], false);
     otReceiver->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
   });
   auto prev1 = std::async([&] {
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[1], false);
     otReceiver->OneTimeSetup();
 
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[1], true);
     otSender->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
@@ -81,19 +81,19 @@ TEST(OtHelperTest, BeaverExtendWork) {
 
   auto lctxs = SetupWorld(2);
   auto prev0 = std::async([&] {
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[0], true);
     otSender->OneTimeSetup();
 
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[0], false);
     otReceiver->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
   });
   auto prev1 = std::async([&] {
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[1], false);
     otReceiver->OneTimeSetup();
 
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[1], true);
     otSender->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
@@ -157,19 +157,19 @@ TEST(OtHelperTest, BaseVoleWork) {
 
   auto lctxs = SetupWorld(2);
   auto prev0 = std::async([&] {
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[0], true);
     otSender->OneTimeSetup();
 
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[0], false);
     otReceiver->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
   });
   auto prev1 = std::async([&] {
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[1], false);
     otReceiver->OneTimeSetup();
 
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[1], true);
     otSender->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
@@ -214,19 +214,19 @@ TEST(OtHelperTest, ShuffleWork) {
 
   auto lctxs = SetupWorld(2);
   auto prev0 = std::async([&] {
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[0], true);
     otSender->OneTimeSetup();
 
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[0], false);
     otReceiver->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
   });
   auto prev1 = std::async([&] {
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[1], false);
     otReceiver->OneTimeSetup();
 
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[1], true);
     otSender->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
@@ -273,19 +273,19 @@ TEST(OtHelperTest, RepeatShuffleWork) {
 
   auto lctxs = SetupWorld(2);
   auto prev0 = std::async([&] {
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[0], true);
     otSender->OneTimeSetup();
 
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[0], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[0], false);
     otReceiver->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);
   });
   auto prev1 = std::async([&] {
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[1], false);
     otReceiver->OneTimeSetup();
 
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[1], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[1], true);
     otSender->OneTimeSetup();
 
     return std::make_pair(otSender, otReceiver);

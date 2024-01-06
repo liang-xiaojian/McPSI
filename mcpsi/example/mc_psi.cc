@@ -68,39 +68,43 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   return ret;
 }
 
-struct pack {
+struct ArgPack {
   uint32_t size0;
   uint32_t size1;
   uint32_t interset_size;
   uint32_t offline;
   uint128_t seed;
+
+  bool operator==(const ArgPack& other) const {
+    return (size0 == other.size0) && (size1 == other.size1) &&
+           (interset_size == other.interset_size) && (offline == other.offline);
+  }
+
+  bool operator!=(const ArgPack& other) const { return !(*this == other); }
 };
 
 bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
               uint32_t size1, uint32_t interset_size, uint32_t offline,
               uint128_t& seed) {
   uint128_t tmp_seed = yacl::crypto::SecureRandU128();
-  pack tmp = {size0, size1, interset_size, offline, tmp_seed};
+  ArgPack tmp = {size0, size1, interset_size, offline, tmp_seed};
   auto bv = yacl::ByteContainerView(&tmp, sizeof(tmp));
 
-  pack remote;
+  ArgPack remote;
   if (lctx->Rank()) {
     lctx->SendAsync(lctx->NextRank(), bv, "Sync0");
     auto buf = lctx->Recv(lctx->NextRank(), "Sync1");
-    YACL_ENFORCE(buf.size() == sizeof(pack));
+    YACL_ENFORCE(buf.size() == sizeof(ArgPack));
     memcpy(&remote, buf.data(), buf.size());
 
   } else {
     auto buf = lctx->Recv(lctx->NextRank(), "Sync0");
     lctx->SendAsync(lctx->NextRank(), bv, "Sync1");
-    YACL_ENFORCE(buf.size() == sizeof(pack));
+    YACL_ENFORCE(buf.size() == sizeof(ArgPack));
     memcpy(&remote, buf.data(), buf.size());
   }
 
-  YACL_ENFORCE(remote.size0 == size0);
-  YACL_ENFORCE(remote.size1 == size1);
-  YACL_ENFORCE(remote.interset_size == interset_size);
-  YACL_ENFORCE(remote.offline == offline);
+  YACL_ENFORCE(remote == tmp);
 
   seed = tmp_seed ^ remote.seed;
   return true;

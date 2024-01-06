@@ -1,4 +1,5 @@
 load("//bazel:mcpsi.bzl", "mcpsi_cc_library", "mcpsi_cc_test")
+load("@yacl//bazel:yacl.bzl", "AES_COPT_FLAGS")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -14,6 +15,7 @@ mcpsi_cc_library(
         "@yacl//yacl/base:dynamic_bitset",
         "@yacl//yacl/crypto/primitives/ot:base_ot",
         "@yacl//yacl/crypto/primitives/ot:kos_ote",
+        "@yacl//yacl/crypto/primitives/ot:softspoken_ote",
         "@yacl//yacl/crypto/primitives/ot:ot_store",
         "@yacl//yacl/crypto/utils:rand",
     ],
@@ -38,6 +40,7 @@ mcpsi_cc_library(
     hdrs = [
         "shuffle.h",
     ],
+    copts = AES_COPT_FLAGS,
     deps = [
         ":ot_adapter",
         "//mcpsi/context:state",
@@ -46,6 +49,8 @@ mcpsi_cc_library(
         "@yacl//yacl/base:dynamic_bitset",
         "@yacl//yacl/crypto/primitives/ot:gywz_ote",
         "@yacl//yacl/crypto/utils:rand",
+        "@yacl//yacl/crypto/base/aes:aes_opt",
+        "@yacl//yacl/crypto/base/aes:aes_intrinsics",
     ],
 )
 
@@ -86,6 +91,7 @@ mcpsi_cc_test(
 mcpsi_cc_library(
     name = "linear_code",
     hdrs = ["linear_code.h"],
+    copts = AES_COPT_FLAGS,
     deps = [
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",
