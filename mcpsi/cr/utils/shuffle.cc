@@ -159,7 +159,7 @@ void ShuffleRecv(std::shared_ptr<Connection> conn,
 
   YACL_ENFORCE(repeat < kPrfKey.size());
 
-  std::memset(a.data(), 0, full_size * sizeof(internal::PTy));
+  internal::op::Zeros(a);
 
   std::vector<internal::PTy> opv(full_size);
   std::vector<uint128_t> all_msgs(batch_size);
