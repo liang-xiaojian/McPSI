@@ -51,10 +51,11 @@ class OtHelper {
 
   void ShuffleSend(std::shared_ptr<Connection> conn,
                    absl::Span<const size_t> perm,
-                   absl::Span<internal::PTy> delta);
+                   absl::Span<internal::PTy> delta, size_t repeat = 1);
 
   void ShuffleRecv(std::shared_ptr<Connection> conn,
-                   absl::Span<internal::PTy> a, absl::Span<internal::PTy> b);
+                   absl::Span<internal::PTy> a, absl::Span<internal::PTy> b,
+                   size_t repeat = 1);
 
  private:
   std::shared_ptr<OtAdapter> ot_sender_{nullptr};

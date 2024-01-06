@@ -31,6 +31,25 @@ mcpsi_cc_test(
 )
 
 mcpsi_cc_library(
+    name = "shuffle",
+    srcs = [
+        "shuffle.cc",
+    ],
+    hdrs = [
+        "shuffle.h",
+    ],
+    deps = [
+        ":ot_adapter",
+        "//mcpsi/context:state",
+        "//mcpsi/ss:ss_type",
+        "@yacl//yacl/math:gadget",
+        "@yacl//yacl/base:dynamic_bitset",
+        "@yacl//yacl/crypto/primitives/ot:gywz_ote",
+        "@yacl//yacl/crypto/utils:rand",
+    ],
+)
+
+mcpsi_cc_library(
     name = "ot_helper",
     srcs = [
         "ot_helper.cc",
@@ -40,6 +59,7 @@ mcpsi_cc_library(
     ],
     deps = [
         ":ot_adapter",
+        ":shuffle",
         "//mcpsi/context:state",
         "//mcpsi/ss:ss_type",
         "//mcpsi/utils:field",

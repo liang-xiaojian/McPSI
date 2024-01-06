@@ -214,10 +214,7 @@ void TrueCorrelation::ShuffleSet(absl::Span<const size_t> perm,
   const size_t full_size = delta.size();
   YACL_ENFORCE(full_size == batch_size * repeat);
 
-  for (size_t i = 0; i < repeat; ++i) {
-    ot::OtHelper(ot_sender_, ot_receiver_)
-        .ShuffleSend(conn, perm, delta.subspan(i * batch_size, batch_size));
-  }
+  ot::OtHelper(ot_sender_, ot_receiver_).ShuffleSend(conn, perm, delta, repeat);
 }
 
 void TrueCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
@@ -229,11 +226,7 @@ void TrueCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
   YACL_ENFORCE(full_size == b.size());
   YACL_ENFORCE(full_size == batch_size * repeat);
 
-  for (size_t i = 0; i < repeat; ++i) {
-    ot::OtHelper(ot_sender_, ot_receiver_)
-        .ShuffleRecv(conn, a.subspan(i * batch_size, batch_size),
-                     b.subspan(i * batch_size, batch_size));
-  }
+  ot::OtHelper(ot_sender_, ot_receiver_).ShuffleRecv(conn, a, b, repeat);
 }
 
 // Copy from A2P
