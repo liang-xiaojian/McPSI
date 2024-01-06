@@ -113,21 +113,16 @@ void op64::Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
 }
 
 void op64::Ones(absl::Span<kFp64> out) {
-  const size_t size = out.size();
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = kFp64::One();
-  }
+  auto tmp = absl::Span(reinterpret_cast<uint64_t*>(out.data()), out.size());
+  std::for_each(tmp.begin(), tmp.end(), [](uint64_t& val) { val = 1; });
 }
 
 void op64::Zeros(absl::Span<kFp64> out) {
-  const size_t size = out.size();
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = kFp64::Zero();
-  }
+  auto tmp = absl::Span(reinterpret_cast<uint64_t*>(out.data()), out.size());
+  std::for_each(tmp.begin(), tmp.end(), [](uint64_t& val) { val = 0; });
 }
 
 void op64::Rand(absl::Span<kFp64> out) {
-  const uint32_t size = out.size();
   const uint64_t prime = kFp64::GetPrime();
 
   auto out64 =
@@ -136,21 +131,20 @@ void op64::Rand(absl::Span<kFp64> out) {
   auto prg = yacl::crypto::Prg<uint8_t>(yacl::crypto::SecureRandU128());
   prg.Fill(out64);
 
-  for (uint32_t i = 0; i < size; ++i) {
-    out64[i] %= prime;
+  for (auto& e : out64) {
+    e %= prime;
   }
 }
 
 void op64::Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp64> out) {
-  const uint32_t size = out.size();
   const uint64_t prime = kFp64::GetPrime();
 
   auto out64 =
       absl::MakeSpan(reinterpret_cast<uint64_t*>(out.data()), out.size());
   prg.Fill(out64);
 
-  for (uint32_t i = 0; i < size; ++i) {
-    out64[i] %= prime;
+  for (auto& e : out64) {
+    e %= prime;
   }
 }
 
@@ -263,21 +257,16 @@ void op128::Inv(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
 }
 
 void op128::Ones(absl::Span<kFp128> out) {
-  const size_t size = out.size();
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = kFp128::One();
-  }
+  auto tmp = absl::Span(reinterpret_cast<uint128_t*>(out.data()), out.size());
+  std::for_each(tmp.begin(), tmp.end(), [](uint128_t& val) { val = 0; });
 }
 
 void op128::Zeros(absl::Span<kFp128> out) {
-  const size_t size = out.size();
-  for (uint32_t i = 0; i < size; ++i) {
-    out[i] = kFp128::Zero();
-  }
+  auto tmp = absl::Span(reinterpret_cast<uint128_t*>(out.data()), out.size());
+  std::for_each(tmp.begin(), tmp.end(), [](uint128_t& val) { val = 0; });
 }
 
 void op128::Rand(absl::Span<kFp128> out) {
-  const uint32_t size = out.size();
   const uint128_t prime = kFp128::GetPrime();
 
   auto out128 =
@@ -285,21 +274,20 @@ void op128::Rand(absl::Span<kFp128> out) {
   auto prg = yacl::crypto::Prg<uint8_t>(yacl::crypto::SecureRandU128());
   prg.Fill(out128);
 
-  for (uint32_t i = 0; i < size; ++i) {
-    out128[i] %= prime;
+  for (auto& e : out128) {
+    e %= prime;
   }
 }
 
 void op128::Rand(yacl::crypto::Prg<uint8_t>& prg, absl::Span<kFp128> out) {
-  const uint32_t size = out.size();
   const uint128_t prime = kFp128::GetPrime();
 
   auto out128 =
       absl::MakeSpan(reinterpret_cast<uint128_t*>(out.data()), out.size());
   prg.Fill(out128);
 
-  for (uint32_t i = 0; i < size; ++i) {
-    out128[i] %= prime;
+  for (auto& e : out128) {
+    e %= prime;
   }
 }
 
