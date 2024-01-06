@@ -62,23 +62,23 @@ class FakeCorrelation : public Correlation {
 
   // entry
   void ShuffleSet(absl::Span<const size_t> perm,
-                  absl::Span<internal::PTy> delta) override;
+                  absl::Span<internal::PTy> delta, size_t repeat = 1) override;
 
-  void ShuffleGet(absl::Span<internal::PTy> a,
-                  absl::Span<internal::PTy> b) override;
+  void ShuffleGet(absl::Span<internal::PTy> a, absl::Span<internal::PTy> b,
+                  size_t repeat = 1) override;
 
-  std::vector<internal::PTy> ShuffleSet(
-      absl::Span<const size_t> perm) override {
-    std::vector<internal::PTy> delta(perm.size());
-    ShuffleSet(perm, absl::MakeSpan(delta));
+  std::vector<internal::PTy> ShuffleSet(absl::Span<const size_t> perm,
+                                        size_t repeat = 1) override {
+    std::vector<internal::PTy> delta(perm.size() * repeat);
+    ShuffleSet(perm, absl::MakeSpan(delta), repeat);
     return delta;
   }
 
   std::pair<std::vector<internal::PTy>, std::vector<internal::PTy>> ShuffleGet(
-      size_t num) override {
-    std::vector<internal::PTy> a(num);
-    std::vector<internal::PTy> b(num);
-    ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b));
+      size_t num, size_t repeat = 1) override {
+    std::vector<internal::PTy> a(num * repeat);
+    std::vector<internal::PTy> b(num * repeat);
+    ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b), repeat);
     return std::make_pair(a, b);
   }
 };

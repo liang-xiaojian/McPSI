@@ -1,7 +1,7 @@
 #include "mcpsi/cr/utils/ot_adapter.h"
 
 namespace mcpsi::ot {
-
+// ----------- KOS ---------------
 void YaclKosOtAdapter::OneTimeSetup() {
   if (is_setup_) {
     return;
@@ -53,6 +53,49 @@ void YaclKosOtAdapter::recv_rot(
     const yacl::dynamic_bitset<uint128_t>& choices) {
   YACL_ENFORCE(is_sender_ == false);
   yc::KosOtExtRecv(ctx_, *send_ot_ptr_, choices, absl::MakeSpan(data), false);
+}
+
+// --------- Softspoken ------------
+void YaclSsOtAdapter::OneTimeSetup() {
+  if (is_setup_) {
+    return;
+  }
+
+  if (is_sender_) {
+    ss_ot_sender_->OneTimeSetup(ctx_);
+    Delta = ss_ot_sender_->GetDelta();
+  } else {
+    ss_ot_receiver_->OneTimeSetup(ctx_);
+  }
+
+  is_setup_ = true;
+}
+
+void YaclSsOtAdapter::send_cot(absl::Span<uint128_t> data) {
+  YACL_ENFORCE(is_sender_);
+  // [Warning] copy, low efficiency
+  std::vector<std::array<uint128_t, 2>> send_blocks(data.size());
+  ss_ot_sender_->Send(ctx_, absl::MakeSpan(send_blocks), true);
+  for (uint64_t i = 0; i < data.size(); ++i) {
+    data[i] = send_blocks[i][0];
+  }
+}
+
+void YaclSsOtAdapter::recv_cot(absl::Span<uint128_t> data,
+                               const yacl::dynamic_bitset<uint128_t>& choices) {
+  YACL_ENFORCE(is_sender_ == false);
+  ss_ot_receiver_->Recv(ctx_, choices, absl::MakeSpan(data), true);
+}
+
+void YaclSsOtAdapter::send_rot(absl::Span<std::array<uint128_t, 2>> data) {
+  YACL_ENFORCE(is_sender_);
+  ss_ot_sender_->Send(ctx_, absl::MakeSpan(data), false);
+}
+
+void YaclSsOtAdapter::recv_rot(absl::Span<uint128_t> data,
+                               const yacl::dynamic_bitset<uint128_t>& choices) {
+  YACL_ENFORCE(is_sender_ == false);
+  ss_ot_receiver_->Recv(ctx_, choices, absl::MakeSpan(data), false);
 }
 
 };  // namespace mcpsi::ot

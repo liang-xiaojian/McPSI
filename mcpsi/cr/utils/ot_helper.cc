@@ -1,8 +1,9 @@
 #include "mcpsi/cr/utils/ot_helper.h"
 
+#include "mcpsi/cr/utils/shuffle.h"
 #include "mcpsi/utils/vec_op.h"
 #include "yacl/crypto/primitives/ot/gywz_ote.h"
-#include "yacl/crypto/tools/random_permutation.h"
+#include "yacl/crypto/tools/crhash.h"
 #include "yacl/math/gadget.h"
 
 namespace mcpsi::ot {
@@ -308,6 +309,7 @@ void OtHelper::BeaverTripleExtend(std::shared_ptr<Connection> conn,
   internal::op::Add(absl::MakeConstSpan(C), absl::MakeConstSpan(C0),
                     absl::MakeSpan(C));
 }
+
 // ----------------
 //  Base Vole
 // ----------------
@@ -440,73 +442,14 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
 
 void OtHelper::ShuffleSend(std::shared_ptr<Connection> conn,
                            absl::Span<const size_t> perm,
-                           absl::Span<internal::PTy> delta) {
-  const size_t num = perm.size();
-  YACL_ENFORCE(delta.size() == num);
-  const size_t ot_num = ym::Log2Ceil(num);
-  const size_t required_ot = num * ot_num;
-
-  std::vector<internal::PTy> a(num, internal::PTy(0));
-  std::vector<internal::PTy> b(num, internal::PTy(0));
-  std::vector<internal::PTy> opv(num);
-  std::vector<uint128_t> punctured_msgs(num);
-
-  std::vector<uint128_t> ot_buff(required_ot);
-  yacl::dynamic_bitset<uint128_t> choices(required_ot);
-
-  ot_receiver_->recv_rcot(absl::MakeSpan(ot_buff), choices);
-  auto ot_store = yc::MakeOtRecvStore(choices, ot_buff);
-
-  for (size_t i = 0; i < num; ++i) {
-    auto ot_recv = ot_store.NextSlice(ot_num);
-    yc::GywzOtExtRecv(conn, ot_recv, num, perm[i],
-                      absl::MakeSpan(punctured_msgs));
-    // break correlation
-    yc::ParaCrHashInplace_128(absl::MakeSpan(punctured_msgs));
-    punctured_msgs[perm[i]] = 0;
-
-    std::transform(punctured_msgs.begin(), punctured_msgs.begin() + num,
-                   opv.begin(),
-                   [](uint128_t val) { return internal::PTy(val); });
-    internal::op::Add(absl::MakeConstSpan(a), absl::MakeConstSpan(opv),
-                      absl::MakeSpan(a));
-    b[i] = std::reduce(opv.begin(), opv.begin() + num, internal::PTy(0),
-                       std::plus<internal::PTy>());
-  }
-  for (size_t i = 0; i < num; ++i) {
-    delta[i] = a[perm[i]] - b[i];
-  }
+                           absl::Span<internal::PTy> delta, size_t repeat) {
+  shuffle::ShuffleSend(conn, ot_receiver_, perm, delta, repeat);
 }
 
 void OtHelper::ShuffleRecv(std::shared_ptr<Connection> conn,
                            absl::Span<internal::PTy> a,
-                           absl::Span<internal::PTy> b) {
-  const size_t num = a.size();
-  YACL_ENFORCE(b.size() == num);
-  const size_t ot_num = ym::Log2Ceil(num);
-  const size_t required_ot = num * ot_num;
-
-  std::memset(a.data(), 0, num * sizeof(internal::PTy));
-  std::vector<internal::PTy> opv(num);
-  std::vector<uint128_t> all_msgs(num);
-
-  std::vector<uint128_t> ot_buff(required_ot);
-  ot_sender_->send_rcot(absl::MakeSpan(ot_buff));
-  auto ot_store = yc::MakeCompactOtSendStore(ot_buff, ot_sender_->GetDelta());
-
-  for (size_t i = 0; i < num; ++i) {
-    auto ot_send = ot_store.NextSlice(ot_num);
-    yc::GywzOtExtSend(conn, ot_send, num, absl::MakeSpan(all_msgs));
-    // break correlation
-    yc::ParaCrHashInplace_128(absl::MakeSpan(all_msgs));
-
-    std::transform(all_msgs.begin(), all_msgs.begin() + num, opv.begin(),
-                   [](uint128_t val) { return internal::PTy(val); });
-    internal::op::Sub(absl::MakeConstSpan(a), absl::MakeConstSpan(opv),
-                      absl::MakeSpan(a));
-    b[i] = std::reduce(opv.begin(), opv.begin() + num, internal::PTy(0),
-                       std::plus<internal::PTy>());
-  }
+                           absl::Span<internal::PTy> b, size_t repeat) {
+  shuffle::ShuffleRecv(conn, ot_sender_, a, b, repeat);
 }
 
 }  // namespace mcpsi::ot

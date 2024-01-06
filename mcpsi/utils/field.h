@@ -101,7 +101,7 @@ class kFp64 {
   static bool Equal(const kFp64& lhs, const kFp64& rhs) { return lhs == rhs; }
 
   static kFp64 Rand() {
-    uint64_t rand_val = yacl::crypto::RandU64(true);
+    uint64_t rand_val = yacl::crypto::SecureRandU64();
     return kFp64(rand_val);
   }
 
@@ -168,7 +168,7 @@ class kFp128 {
   static bool Equal(const kFp128& lhs, const kFp128& rhs) { return lhs == rhs; }
 
   static kFp128 Rand() {
-    uint128_t rand_val = yacl::crypto::RandU128(true);
+    uint128_t rand_val = yacl::crypto::SecureRandU128();
     return kFp128(rand_val);
   }
 

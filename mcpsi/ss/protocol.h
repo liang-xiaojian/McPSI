@@ -38,7 +38,7 @@ class Protocol : public State {
 
   Protocol(std::shared_ptr<Context> ctx) : ctx_(ctx) {
     // SPDZ key setup
-    key_ = PTy(yacl::crypto::RandU64(true));
+    key_ = PTy(yacl::crypto::SecureRandU64());
   }
   // SPDZ key
   PTy GetKey() const { return key_; }
@@ -118,6 +118,18 @@ class Protocol : public State {
   std::vector<ATy> ShuffleASet(absl::Span<const ATy> in,
                                absl::Span<const size_t> perm);
   std::vector<ATy> ShuffleAGet(absl::Span<const ATy> in);
+
+  std::array<std::vector<ATy>, 2> ShuffleA(absl::Span<const ATy> in0,
+                                           absl::Span<const ATy> in1);
+  // shuffle entry
+  std::array<std::vector<ATy>, 2> ShuffleA(absl::Span<const ATy> in0,
+                                           absl::Span<const ATy> in1,
+                                           absl::Span<const size_t> perm);
+  std::array<std::vector<ATy>, 2> ShuffleASet(absl::Span<const ATy> in0,
+                                              absl::Span<const ATy> in1,
+                                              absl::Span<const size_t> perm);
+  std::array<std::vector<ATy>, 2> ShuffleAGet(absl::Span<const ATy> in0,
+                                              absl::Span<const ATy> in1);
 
   // circuit PSI entry
   std::vector<ATy> CPSI(absl::Span<const ATy> set0, absl::Span<const ATy> set1,

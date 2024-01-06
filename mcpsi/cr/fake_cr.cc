@@ -112,33 +112,40 @@ void FakeCorrelation::RandomAuth(absl::Span<internal::ATy> out) {
 }
 
 void FakeCorrelation::ShuffleSet(absl::Span<const size_t> perm,
-                                 absl::Span<internal::PTy> delta) {
-  const size_t num = delta.size();
+                                 absl::Span<internal::PTy> delta,
+                                 size_t repeat) {
+  const size_t batch_size = perm.size();
+  const size_t full_size = delta.size();
+  YACL_ENFORCE(batch_size * repeat == full_size);
 
   std::vector<uint128_t> seeds(2);
   ctx_->GetState<Prg>()->Fill(absl::MakeSpan(seeds));
-  auto a = internal::op::Rand(seeds[0], num);
-  auto b = internal::op::Rand(seeds[1], num);
+  auto a = internal::op::Rand(seeds[0], full_size);
+  auto b = internal::op::Rand(seeds[1], full_size);
 
-  for (size_t i = 0; i < num; ++i) {
-    delta[i] = a[perm[i]] + b[i];
+  for (size_t offset = 0; offset < full_size; offset += batch_size) {
+    for (size_t i = 0; i < batch_size; ++i) {
+      delta[offset + i] = a[offset + perm[i]] + b[offset + i];
+    }
   }
   // delta = - \Pi(a) - b
   internal::op::Neg(absl::MakeConstSpan(delta), absl::MakeSpan(delta));
 }
 
 void FakeCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
-                                 absl::Span<internal::PTy> b) {
-  const size_t num = a.size();
-  YACL_ENFORCE(num == b.size());
+                                 absl::Span<internal::PTy> b, size_t repeat) {
+  const size_t full_size = a.size();
+  const size_t batch_size = full_size / repeat;
+  YACL_ENFORCE(full_size == b.size());
+  YACL_ENFORCE(full_size == batch_size * repeat);
 
   std::vector<uint128_t> seeds(2);
   ctx_->GetState<Prg>()->Fill(absl::MakeSpan(seeds));
-  auto a_buf = internal::op::Rand(seeds[0], num);
-  auto b_buf = internal::op::Rand(seeds[1], num);
+  auto a_buf = internal::op::Rand(seeds[0], full_size);
+  auto b_buf = internal::op::Rand(seeds[1], full_size);
 
-  memcpy(a.data(), a_buf.data(), num * sizeof(internal::PTy));
-  memcpy(b.data(), b_buf.data(), num * sizeof(internal::PTy));
+  memcpy(a.data(), a_buf.data(), full_size * sizeof(internal::PTy));
+  memcpy(b.data(), b_buf.data(), full_size * sizeof(internal::PTy));
 }
 
 }  // namespace mcpsi

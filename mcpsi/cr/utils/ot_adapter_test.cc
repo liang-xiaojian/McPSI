@@ -13,12 +13,12 @@ TEST(OtAdapterTest, ROT) {
   yacl::dynamic_bitset<uint128_t> choices(num);
   auto lctxs = SetupWorld(2);
   auto rank0 = std::async([&] {
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[0], true);
     otSender->OneTimeSetup();
     otSender->send_rrot(absl::MakeSpan(send_data));
   });
   auto rank1 = std::async([&] {
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[1], false);
     otReceiver->OneTimeSetup();
     otReceiver->recv_rrot(absl::MakeSpan(recv_data), choices);
   });
@@ -39,13 +39,13 @@ TEST(OtAdapterTest, COT) {
 
   auto lctxs = SetupWorld(2);
   auto rank0 = std::async([&] {
-    auto otSender = std::make_shared<YaclKosOtAdapter>(lctxs[0], true);
+    auto otSender = std::make_shared<YaclSsOtAdapter>(lctxs[0], true);
     otSender->OneTimeSetup();
     otSender->send_rcot(absl::MakeSpan(send_data));
     return otSender->GetDelta();
   });
   auto rank1 = std::async([&] {
-    auto otReceiver = std::make_shared<YaclKosOtAdapter>(lctxs[1], false);
+    auto otReceiver = std::make_shared<YaclSsOtAdapter>(lctxs[1], false);
     otReceiver->OneTimeSetup();
     otReceiver->recv_rcot(absl::MakeSpan(recv_data), choices);
   });

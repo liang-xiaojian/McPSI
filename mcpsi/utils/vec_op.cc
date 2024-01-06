@@ -132,7 +132,9 @@ void op64::Rand(absl::Span<kFp64> out) {
 
   auto out64 =
       absl::MakeSpan(reinterpret_cast<uint64_t*>(out.data()), out.size());
-  yacl::crypto::FillRand(out64, true);
+
+  auto prg = yacl::crypto::Prg<uint8_t>(yacl::crypto::SecureRandU128());
+  prg.Fill(out64);
 
   for (uint32_t i = 0; i < size; ++i) {
     out64[i] %= prime;
@@ -280,7 +282,8 @@ void op128::Rand(absl::Span<kFp128> out) {
 
   auto out128 =
       absl::MakeSpan(reinterpret_cast<uint128_t*>(out.data()), out.size());
-  yacl::crypto::FillRand(out128, true);
+  auto prg = yacl::crypto::Prg<uint8_t>(yacl::crypto::SecureRandU128());
+  prg.Fill(out128);
 
   for (uint32_t i = 0; i < size; ++i) {
     out128[i] %= prime;

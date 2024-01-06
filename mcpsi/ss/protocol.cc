@@ -13,21 +13,11 @@ const std::string Protocol::id = std::string("Protocol");
     return internal::name##PP(ctx_, lhs, rhs);                 \
   }
 
-RegPP(Add);
-RegPP(Sub);
-RegPP(Mul);
-RegPP(Div);
-
 #define RegAP(name)                                            \
   std::vector<ATy> Protocol::name(absl::Span<const ATy> lhs,   \
                                   absl::Span<const PTy> rhs) { \
     return internal::name##AP(ctx_, lhs, rhs);                 \
   }
-
-RegAP(Add);
-RegAP(Sub);
-RegAP(Mul);
-RegAP(Div);
 
 #define RegPA(name)                                            \
   std::vector<ATy> Protocol::name(absl::Span<const PTy> lhs,   \
@@ -35,21 +25,22 @@ RegAP(Div);
     return internal::name##PA(ctx_, lhs, rhs);                 \
   }
 
-RegPA(Add);
-RegPA(Sub);
-RegPA(Mul);
-RegPA(Div);
-
 #define RegAA(name)                                            \
   std::vector<ATy> Protocol::name(absl::Span<const ATy> lhs,   \
                                   absl::Span<const ATy> rhs) { \
     return internal::name##AA(ctx_, lhs, rhs);                 \
   }
 
-RegAA(Add);
-RegAA(Sub);
-RegAA(Mul);
-RegAA(Div);
+#define RegBi(name) \
+  RegAA(name);      \
+  RegAP(name);      \
+  RegPA(name);      \
+  RegPP(name)
+
+RegBi(Add);
+RegBi(Sub);
+RegBi(Mul);
+RegBi(Div);
 
 #define RegP(name)                                            \
   std::vector<PTy> Protocol::name(absl::Span<const PTy> in) { \
@@ -61,10 +52,12 @@ RegAA(Div);
     return internal::name##A(ctx_, in);                       \
   }
 
-RegP(Neg);
-RegP(Inv);
-RegA(Neg);
-RegA(Inv);
+#define RegSi(name) \
+  RegP(name);       \
+  RegA(name)
+
+RegSi(Neg);
+RegSi(Inv);
 
 #define RegConvert(FROM, TO)                                                 \
   std::vector<TO##Ty> Protocol::FROM##2##TO(absl::Span<const FROM##Ty> in) { \
@@ -126,6 +119,28 @@ std::vector<ATy> Protocol::ShuffleASet(absl::Span<const ATy> in,
 }
 std::vector<ATy> Protocol::ShuffleAGet(absl::Span<const ATy> in) {
   return internal::ShuffleAGet(ctx_, in);
+}
+
+std::array<std::vector<ATy>, 2> Protocol::ShuffleA(absl::Span<const ATy> in0,
+                                                   absl::Span<const ATy> in1) {
+  return internal::ShuffleA(ctx_, in0, in1);
+}
+
+std::array<std::vector<ATy>, 2> Protocol::ShuffleA(
+    absl::Span<const ATy> in0, absl::Span<const ATy> in1,
+    absl::Span<const size_t> perm) {
+  return internal::ShuffleA(ctx_, in0, in1, perm);
+}
+
+std::array<std::vector<ATy>, 2> Protocol::ShuffleASet(
+    absl::Span<const ATy> in0, absl::Span<const ATy> in1,
+    absl::Span<const size_t> perm) {
+  return internal::ShuffleASet(ctx_, in0, in1, perm);
+}
+
+std::array<std::vector<ATy>, 2> Protocol::ShuffleAGet(
+    absl::Span<const ATy> in0, absl::Span<const ATy> in1) {
+  return internal::ShuffleAGet(ctx_, in0, in1);
 }
 
 std::vector<ATy> Protocol::CPSI(absl::Span<const ATy> set0,

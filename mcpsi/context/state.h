@@ -64,7 +64,7 @@ class Connection : public State, public yacl::link::Context {
       : yacl::link::Context(std::forward<Args>(args)...) {}
 
   uint128_t SyncSeed() {
-    auto seed = yacl::crypto::RandU128(true);
+    auto seed = yacl::crypto::SecureRandU128();
     return seed ^ ExchangeWithCommit(seed);
   }
 

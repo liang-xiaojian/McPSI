@@ -6,6 +6,7 @@
 #include "field.h"
 #include "mcpsi/utils/field.h"
 #include "yacl/crypto/tools/prg.h"
+#include "yacl/crypto/utils/rand.h"
 
 namespace mcpsi {
 
