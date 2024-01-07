@@ -84,7 +84,7 @@ docker build -t mcpsi:latest .
 docker run -it --name mcpsi-dev --cap-add=NET_ADMIN --privileged=true mcpsi:latest bash
 
 # re-enter it or stop it
-docker start mcpsi-dev          #start 
-docker exec -it mcpsi-dev bash  #lunch
-docker stop mcpsi-dev           #stop
+docker start mcpsi-dev          # start 
+docker exec -it mcpsi-dev bash  # launch the terminal
+docker stop mcpsi-dev           # stop
 ```
