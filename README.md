@@ -76,3 +76,15 @@ mcpsi under socket network
 bazel run -c opt //mcpsi/example:mc_psi -- --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --offline 0/1 --mode 1 --rank 0 # run malicious circuit psi for party 0
 bazel run -c opt //mcpsi/example:mc_psi -- --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --offline 0/1 --mode 1 --rank 1 # run malicious circuit psi for party 1
 ```
+
+### Abort Dockerfile
+```sh
+# build docker image
+docker build -t mcpsi:latest .   
+docker run -it --name mcpsi-dev --cap-add=NET_ADMIN --privileged=true mcpsi:latest bash
+
+# re-enter it or stop it
+docker start mcpsi-dev          #start 
+docker exec -it mcpsi-dev bash  #lunch
+docker stop mcpsi-dev           #stop
+```
