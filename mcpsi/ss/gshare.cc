@@ -122,7 +122,7 @@ std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
   YACL_ENFORCE(set1.size() == data.size());
   auto prot = ctx->GetState<Protocol>();
   auto Ggroup = prot->GetGroup();
-  // TODO:
+
   auto perm0 = GenPerm(set0.size());
   auto perm1 = GenPerm(set1.size());
 

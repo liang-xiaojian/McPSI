@@ -5,7 +5,6 @@
 #include "mcpsi/context/context.h"
 #include "yacl/link/test_util.h"
 
-
 namespace mcpsi {
 
 namespace yl = yacl::link;
@@ -30,6 +29,7 @@ inline std::vector<std::shared_ptr<yl::Context>> SetupBrpcWorld(
     const auto host = fmt::format("127.0.0.1:{}", 11111 + rank);
     ctx_desc.parties.push_back({party_id, host});
   }
+  ctx_desc.throttle_window_size = 0;
 
   std::vector<std::shared_ptr<yl::Context>> contexts(world_size);
   for (size_t rank = 0; rank < world_size; rank++) {

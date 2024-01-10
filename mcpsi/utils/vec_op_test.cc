@@ -11,9 +11,11 @@ TEST(kFp64Test, AddWork) {
 
   auto ret = op64::Add(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
   auto ret2 = op64::Add(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  op64::AddInplace(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], ret2[i]);
+    EXPECT_EQ(ret[i], lhs[i]);
   }
 }
 
@@ -26,9 +28,12 @@ TEST(kFp64Test, SubWork) {
   auto ret2 = op64::Sub(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
   auto ret3 = op64::Add(absl::MakeSpan(ret), absl::MakeSpan(ret2));
+  op64::SubInplace(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  op64::AddInplace(absl::MakeSpan(lhs), absl::MakeSpan(ret2));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp64(0));
+    EXPECT_EQ(lhs[i], kFp64(0));
   }
 }
 
@@ -39,9 +44,11 @@ TEST(kFp64Test, MulWork) {
 
   auto ret = op64::Mul(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
   auto ret2 = op64::Mul(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  op64::MulInplace(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], ret2[i]);
+    EXPECT_EQ(ret[i], lhs[i]);
   }
 }
 
@@ -54,9 +61,12 @@ TEST(kFp64Test, DivWork) {
   auto ret2 = op64::Div(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
   auto ret3 = op64::Mul(absl::MakeSpan(ret), absl::MakeSpan(ret2));
+  op64::DivInplace(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  op64::MulInplace(absl::MakeSpan(lhs), absl::MakeSpan(ret2));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp64(1));
+    EXPECT_EQ(lhs[i], kFp64(1));
   }
 }
 
@@ -107,9 +117,11 @@ TEST(kFp128Test, AddWork) {
 
   auto ret = op128::Add(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
   auto ret2 = op128::Add(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  op128::AddInplace(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], ret2[i]);
+    EXPECT_EQ(ret[i], lhs[i]);
   }
 }
 
@@ -122,9 +134,12 @@ TEST(kFp128Test, SubWork) {
   auto ret2 = op128::Sub(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
   auto ret3 = op128::Add(absl::MakeSpan(ret), absl::MakeSpan(ret2));
+  op128::SubInplace(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  op128::AddInplace(absl::MakeSpan(lhs), absl::MakeSpan(ret2));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp128(0));
+    EXPECT_EQ(lhs[i], kFp128(0));
   }
 }
 
@@ -135,9 +150,11 @@ TEST(kFp128Test, MulWork) {
 
   auto ret = op128::Mul(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
   auto ret2 = op128::Mul(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
+  op128::MulInplace(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret[i], ret2[i]);
+    EXPECT_EQ(ret[i], lhs[i]);
   }
 }
 
@@ -150,9 +167,12 @@ TEST(kFp128Test, DivWork) {
   auto ret2 = op128::Div(absl::MakeSpan(rhs), absl::MakeSpan(lhs));
 
   auto ret3 = op128::Mul(absl::MakeSpan(ret), absl::MakeSpan(ret2));
+  op128::DivInplace(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
+  op128::MulInplace(absl::MakeSpan(lhs), absl::MakeSpan(ret2));
 
   for (size_t i = 0; i < num; ++i) {
     EXPECT_EQ(ret3[i], kFp128(1));
+    EXPECT_EQ(lhs[i], kFp128(1));
   }
 }
 

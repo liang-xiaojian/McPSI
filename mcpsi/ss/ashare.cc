@@ -114,14 +114,14 @@ std::vector<ATy> AddAP([[maybe_unused]] std::shared_ptr<Context>& ctx,
   YACL_ENFORCE(size == rhs.size());
   auto [val, mac] = Unpack(lhs);
   if (ctx->GetRank() == 0) {
-    op::Add(absl::MakeConstSpan(val), absl::MakeConstSpan(rhs),
-            absl::MakeSpan(val));
+    // val += rhs
+    op::AddInplace(absl::MakeSpan(val), absl::MakeConstSpan(rhs));
   }
   std::vector<PTy> rhs_mac(size);
   op::ScalarMul(ctx->GetState<Protocol>()->GetKey(), absl::MakeConstSpan(rhs),
                 absl::MakeSpan(rhs_mac));
-  op::Add(absl::MakeConstSpan(mac), absl::MakeConstSpan(rhs_mac),
-          absl::MakeSpan(mac));
+  // mac += rhs_mac
+  op::AddInplace(absl::MakeSpan(mac), absl::MakeConstSpan(rhs_mac));
   return Pack(absl::MakeSpan(val), absl::MakeSpan(mac));
 }
 
@@ -138,10 +138,8 @@ std::vector<ATy> MulAP([[maybe_unused]] std::shared_ptr<Context>& ctx,
   const size_t size = lhs.size();
   YACL_ENFORCE(size == rhs.size());
   auto [val, mac] = Unpack(absl::MakeConstSpan(lhs));
-  op::Mul(absl::MakeConstSpan(rhs), absl::MakeConstSpan(val),
-          absl::MakeSpan(val));
-  op::Mul(absl::MakeConstSpan(rhs), absl::MakeConstSpan(mac),
-          absl::MakeSpan(mac));
+  op::MulInplace(absl::MakeSpan(val), absl::MakeConstSpan(rhs));
+  op::MulInplace(absl::MakeSpan(mac), absl::MakeConstSpan(rhs));
   return Pack(absl::MakeSpan(val), absl::MakeSpan(mac));
 }
 
@@ -213,12 +211,12 @@ std::vector<ATy> P2A(std::shared_ptr<Context>& ctx, absl::Span<const PTy> in) {
   auto zero = ZerosA(ctx, size);
   auto [zero_val, zero_mac] = Unpack(zero);
   if (ctx->GetRank() == 0) {
-    op::Add(absl::MakeConstSpan(zero_val), absl::MakeConstSpan(in),
-            absl::MakeSpan(zero_val));
+    // zero_val += in
+    op::AddInplace(absl::MakeSpan(zero_val), absl::MakeConstSpan(in));
   }
   auto in_mac = op::ScalarMul(ctx->GetState<Protocol>()->GetKey(), in);
-  op::Add(absl::MakeConstSpan(zero_mac), absl::MakeConstSpan(in_mac),
-          absl::MakeSpan(zero_mac));
+  // zero_mac += in_mac
+  op::AddInplace(absl::MakeSpan(zero_mac), absl::MakeConstSpan(in_mac));
   return Pack(absl::MakeSpan(zero_val), absl::MakeSpan(zero_mac));
 }
 
@@ -235,10 +233,8 @@ std::vector<ATy> ShuffleAGet(std::shared_ptr<Context>& ctx,
 
   auto [val_in, mac_in] = Unpack(absl::MakeConstSpan(in));
 
-  op::Add(absl::MakeConstSpan(val_a), absl::MakeConstSpan(val_in),
-          absl::MakeSpan(val_a));
-  op::Add(absl::MakeConstSpan(mac_a), absl::MakeConstSpan(mac_in),
-          absl::MakeSpan(mac_a));
+  op::AddInplace(absl::MakeSpan(val_a), absl::MakeConstSpan(val_in));
+  op::AddInplace(absl::MakeSpan(mac_a), absl::MakeConstSpan(mac_in));
 
   auto conn = ctx->GetConnection();
   conn->SendAsync(
@@ -272,10 +268,10 @@ std::vector<ATy> ShuffleASet(std::shared_ptr<Context>& ctx,
   auto mac_tmp = absl::MakeSpan(reinterpret_cast<PTy*>(mac_buf.data()), num);
 
   auto [val_in, mac_in] = Unpack(absl::MakeConstSpan(in));
-  op::Add(absl::MakeConstSpan(val_in), absl::MakeConstSpan(val_tmp),
-          absl::MakeSpan(val_tmp));
-  op::Add(absl::MakeConstSpan(mac_in), absl::MakeConstSpan(mac_tmp),
-          absl::MakeSpan(mac_tmp));
+  // val_tmp += val_in
+  op::AddInplace(absl::MakeSpan(val_tmp), absl::MakeConstSpan(val_in));
+  // mac_tmp += mac_in
+  op::AddInplace(absl::MakeSpan(mac_tmp), absl::MakeConstSpan(mac_in));
 
   for (size_t i = 0; i < num; ++i) {
     val_delta[i] = val_delta[i] + val_tmp[perm[i]];
@@ -317,14 +313,10 @@ std::array<std::vector<ATy>, 2> ShuffleAGet(std::shared_ptr<Context>& ctx,
   auto [val_in0, mac_in0] = Unpack(absl::MakeConstSpan(in0));
   auto [val_in1, mac_in1] = Unpack(absl::MakeConstSpan(in1));
 
-  op::Add(absl::MakeConstSpan(val_a0), absl::MakeConstSpan(val_in0),
-          absl::MakeSpan(val_a0));
-  op::Add(absl::MakeConstSpan(mac_a0), absl::MakeConstSpan(mac_in0),
-          absl::MakeSpan(mac_a0));
-  op::Add(absl::MakeConstSpan(val_a1), absl::MakeConstSpan(val_in1),
-          absl::MakeSpan(val_a1));
-  op::Add(absl::MakeConstSpan(mac_a1), absl::MakeConstSpan(mac_in1),
-          absl::MakeSpan(mac_a1));
+  op::AddInplace(absl::MakeSpan(val_a0), absl::MakeConstSpan(val_in0));
+  op::AddInplace(absl::MakeSpan(mac_a0), absl::MakeConstSpan(mac_in0));
+  op::AddInplace(absl::MakeSpan(val_a1), absl::MakeConstSpan(val_in1));
+  op::AddInplace(absl::MakeSpan(mac_a1), absl::MakeConstSpan(mac_in1));
 
   auto conn = ctx->GetConnection();
   conn->SendAsync(
@@ -377,14 +369,10 @@ std::array<std::vector<ATy>, 2> ShuffleASet(std::shared_ptr<Context>& ctx,
   auto [val_in0, mac_in0] = Unpack(absl::MakeConstSpan(in0));
   auto [val_in1, mac_in1] = Unpack(absl::MakeConstSpan(in1));
 
-  op::Add(absl::MakeConstSpan(val_in0), absl::MakeConstSpan(val_tmp0),
-          absl::MakeSpan(val_tmp0));
-  op::Add(absl::MakeConstSpan(mac_in0), absl::MakeConstSpan(mac_tmp0),
-          absl::MakeSpan(mac_tmp0));
-  op::Add(absl::MakeConstSpan(val_in1), absl::MakeConstSpan(val_tmp1),
-          absl::MakeSpan(val_tmp1));
-  op::Add(absl::MakeConstSpan(mac_in1), absl::MakeConstSpan(mac_tmp1),
-          absl::MakeSpan(mac_tmp1));
+  op::AddInplace(absl::MakeSpan(val_tmp0), absl::MakeConstSpan(val_in0));
+  op::AddInplace(absl::MakeSpan(mac_tmp0), absl::MakeConstSpan(mac_in0));
+  op::AddInplace(absl::MakeSpan(val_tmp1), absl::MakeConstSpan(val_in1));
+  op::AddInplace(absl::MakeSpan(mac_tmp1), absl::MakeConstSpan(mac_in1));
 
   for (size_t i = 0; i < num; ++i) {
     val_delta0[i] = val_delta0[i] + val_tmp0[perm[i]];
@@ -423,8 +411,7 @@ std::vector<ATy> SetA(std::shared_ptr<Context>& ctx, absl::Span<const PTy> in) {
   auto diff_mac = op::ScalarMul(ctx->GetState<Protocol>()->GetKey(),
                                 absl::MakeConstSpan(diff));
   // mac = diff_mac + mac
-  op::Add(absl::MakeConstSpan(mac), absl::MakeConstSpan(diff_mac),
-          absl::MakeSpan(mac));
+  op::AddInplace(absl::MakeSpan(mac), absl::MakeConstSpan(diff_mac));
   return Pack(absl::MakeConstSpan(in), absl::MakeConstSpan(mac));
 }
 // A-share Getter, return A-share (  0 , in * key - r )
@@ -437,8 +424,7 @@ std::vector<ATy> GetA(std::shared_ptr<Context>& ctx, size_t num) {
   auto diff_mac = op::ScalarMul(ctx->GetState<Protocol>()->GetKey(),
                                 absl::MakeConstSpan(diff));
   // mac = diff_mac + mac
-  op::Add(absl::MakeConstSpan(mac), absl::MakeConstSpan(diff_mac),
-          absl::MakeSpan(mac));
+  op::AddInplace(absl::MakeSpan(mac), absl::MakeConstSpan(diff_mac));
   return Pack(absl::MakeConstSpan(val), absl::MakeConstSpan(mac));
 }
 

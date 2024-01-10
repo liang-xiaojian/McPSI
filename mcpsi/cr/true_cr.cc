@@ -31,8 +31,6 @@ void TrueCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   std::vector<internal::ATy> remote_auth_abcAC(num * 5);
   auto remote_auth_abcAC_span = absl::MakeSpan(remote_auth_abcAC);
 
-  // TODO: fix it
-  // It need choose-and-cut strategy
   if (ctx_->GetRank() == 0) {
     AuthSet(p_abcAC_span, auth_abcAC_span);
     AuthGet(remote_auth_abcAC_span);
@@ -59,7 +57,7 @@ void TrueCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   memcpy(b.data(), auth_b.data(), num * sizeof(internal::ATy));
   memcpy(c.data(), auth_c.data(), num * sizeof(internal::ATy));
 
-  // consistency check
+  // ---- consistency check ----
   auto auth_A = auth_abcAC_span.subspan(3 * num, num);
   auto auth_C = auth_abcAC_span.subspan(4 * num, num);
   auto seed = conn->SyncSeed();
@@ -117,6 +115,7 @@ void TrueCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   for (size_t i = 0; i < num; ++i) {
     YACL_ENFORCE(cC[i] == aA[i], "{} : cC is {}", i, cC[i].GetVal());
   }
+  // ---- consistency check ----
 }
 
 void TrueCorrelation::AuthSet(absl::Span<const internal::PTy> in,
@@ -205,7 +204,6 @@ void TrueCorrelation::RandomAuth(absl::Span<internal::ATy> out) {
       absl::MakeSpan(reinterpret_cast<internal::PTy*>(out.data()), 2 * num));
 }
 
-// TODO: acheive malicious secure
 void TrueCorrelation::ShuffleSet(absl::Span<const size_t> perm,
                                  absl::Span<internal::PTy> delta,
                                  size_t repeat) {

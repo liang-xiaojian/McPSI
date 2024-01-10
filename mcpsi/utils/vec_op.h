@@ -76,12 +76,44 @@ class op64 {
     return ret;
   }
 
+  static void inline AddInplace(absl::Span<kFp64> lhs,
+                                absl::Span<const kFp64> rhs) {
+    YACL_ENFORCE(lhs.size() == rhs.size());
+    Add(lhs, rhs, lhs);
+  }
+
+  static void inline SubInplace(absl::Span<kFp64> lhs,
+                                absl::Span<const kFp64> rhs) {
+    YACL_ENFORCE(lhs.size() == rhs.size());
+    Sub(lhs, rhs, lhs);
+  }
+
+  static void inline MulInplace(absl::Span<kFp64> lhs,
+                                absl::Span<const kFp64> rhs) {
+    YACL_ENFORCE(lhs.size() == rhs.size());
+    Mul(lhs, rhs, lhs);
+  }
+
+  static void inline ScalarMulInplace(const kFp64& scalar,
+                                      absl::Span<kFp64> in) {
+    ScalarMul(scalar, in, in);
+  }
+
+  static void inline DivInplace(absl::Span<kFp64> lhs,
+                                absl::Span<const kFp64> rhs) {
+    YACL_ENFORCE(lhs.size() == rhs.size());
+    auto inv = Inv(rhs);
+    MulInplace(lhs, absl::MakeConstSpan(inv));
+  }
+
   static std::vector<kFp64> inline Neg(absl::Span<const kFp64> in) {
     const size_t size = in.size();
     std::vector<kFp64> ret(size);
     Neg(in, absl::MakeSpan(ret));
     return ret;
   }
+
+  static void inline NegInplace(absl::Span<kFp64> in) { Neg(in, in); }
 
   static std::vector<kFp64> inline Inv(absl::Span<const kFp64> in) {
     const size_t size = in.size();
@@ -151,6 +183,36 @@ class op128 {
 
   static void Neg(absl::Span<const kFp128> in, absl::Span<kFp128> out);
 
+  static void inline AddInplace(absl::Span<kFp128> lhs,
+                                absl::Span<const kFp128> rhs) {
+    YACL_ENFORCE(lhs.size() == rhs.size());
+    Add(lhs, rhs, lhs);
+  }
+
+  static void inline SubInplace(absl::Span<kFp128> lhs,
+                                absl::Span<const kFp128> rhs) {
+    YACL_ENFORCE(lhs.size() == rhs.size());
+    Sub(lhs, rhs, lhs);
+  }
+
+  static void inline MulInplace(absl::Span<kFp128> lhs,
+                                absl::Span<const kFp128> rhs) {
+    YACL_ENFORCE(lhs.size() == rhs.size());
+    Mul(lhs, rhs, lhs);
+  }
+
+  static void inline ScalarMulInplace(const kFp128& scalar,
+                                      absl::Span<kFp128> in) {
+    ScalarMul(scalar, in, in);
+  }
+
+  static void inline DivInplace(absl::Span<kFp128> lhs,
+                                absl::Span<const kFp128> rhs) {
+    YACL_ENFORCE(lhs.size() == rhs.size());
+    auto inv = Inv(rhs);
+    MulInplace(lhs, absl::MakeConstSpan(inv));
+  }
+
   // fast batch inv
   static void Inv(absl::Span<const kFp128> in, absl::Span<kFp128> out);
   static void Ones(absl::Span<kFp128> out);
@@ -203,6 +265,8 @@ class op128 {
     Neg(in, absl::MakeSpan(ret));
     return ret;
   }
+
+  static void inline NegInplace(absl::Span<kFp128> in) { Neg(in, in); }
 
   static std::vector<kFp128> inline Inv(absl::Span<const kFp128> in) {
     const size_t size = in.size();

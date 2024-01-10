@@ -110,8 +110,7 @@ void ShuffleSend(std::shared_ptr<Connection>& conn,
                              uint128_t(0), std::bit_xor<uint128_t>());
     // ---- consistency check ----
 
-    internal::op::Add(absl::MakeConstSpan(a), absl::MakeConstSpan(opv),
-                      absl::MakeSpan(a));
+    internal::op::AddInplace(absl::MakeSpan(a), absl::MakeConstSpan(opv));
     for (size_t _ = 0; _ < repeat; ++_) {
       const size_t offset = _ * batch_size;
       b[offset + i] =
