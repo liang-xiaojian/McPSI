@@ -20,6 +20,7 @@ void WolverineVoleSend(const std::shared_ptr<Connection>& conn,
   YACL_ENFORCE(send_ot.Size() >= param.mp_vole_ot_num_);
   MpVoleSend(conn, send_ot, mp_param, pre_c, c);
 
+  // ---- consistency check ----
   if (param.is_mal_) {
     auto seed = conn->SyncSeed();
     auto uhash = UniversalHash(seed, c.subspan(0, param.vole_num_));
@@ -34,6 +35,7 @@ void WolverineVoleSend(const std::shared_ptr<Connection>& conn,
     conn->SendAsync(conn->NextRank(), yacl::ByteContainerView(hash),
                     "MalVoleHash");
   }
+  // ---- consistency check ----
 
   auto seed = conn->SyncSeed();
   auto llc = code::LocalLinearCode<10>(seed, lpn_param.n_, lpn_param.k_);
@@ -66,6 +68,7 @@ void WolverineVoleRecv(const std::shared_ptr<Connection>& conn,
   }
   MpVoleRecv(conn, recv_ot, mp_param, pre_b, b);
 
+  // ---- consistency check ----
   if (param.is_mal_) {
     auto seed = conn->SyncSeed();
     auto uhash = UniversalHash(seed, b.subspan(0, param.vole_num_));
@@ -83,6 +86,7 @@ void WolverineVoleRecv(const std::shared_ptr<Connection>& conn,
     YACL_ENFORCE(yacl::ByteContainerView(hash) ==
                  yacl::ByteContainerView(remote_hash));
   }
+  // ---- consistency check ----
 
   auto seed = conn->SyncSeed();
   auto llc = code::LocalLinearCode<10>(seed, lpn_param.n_, lpn_param.k_);

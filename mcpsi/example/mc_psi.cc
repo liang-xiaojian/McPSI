@@ -9,7 +9,6 @@
 
 using namespace mcpsi;
 
-// TODO: support separated terminal execution
 llvm::cl::opt<std::string> cl_parties(
     "parties", llvm::cl::init("127.0.0.1:39530,127.0.0.1:39531"),
     llvm::cl::desc("server list, format: host1:port1[,host2:port2, ...]"));
@@ -118,6 +117,7 @@ std::shared_ptr<yacl::link::Context> MakeLink(const std::string& parties,
     const auto id = fmt::format("party{}", rank);
     lctx_desc.parties.emplace_back(id, hosts[rank]);
   }
+  lctx_desc.throttle_window_size = 0;
   auto lctx = yacl::link::FactoryBrpc().CreateContext(lctx_desc, rank);
   lctx->ConnectToMesh();
   return lctx;

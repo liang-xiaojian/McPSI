@@ -358,6 +358,7 @@ void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
     }
   }
 
+  // ---- consistency check ----
   auto extra_c = internal::PTy::Zero();
   {
     const size_t offset = num * PTy_bits;
@@ -367,7 +368,6 @@ void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
     }
   }
 
-  // Consistency check;
   auto seed = conn->SyncSeed();
   auto coef = internal::op::Rand(seed, num);
   extra_c = extra_c + internal::op::InPro(absl::MakeSpan(coef), c);
@@ -375,6 +375,7 @@ void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
   auto extra_ab =
       absl::MakeSpan(reinterpret_cast<internal::PTy *>(buf.data()), 2);
   YACL_ENFORCE(extra_ab[0] * delta + extra_ab[1] == extra_c);
+  // ---- consistency check ----
 }
 
 void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
@@ -411,6 +412,7 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
     }
   }
 
+  // ---- consistency check ----
   std::array<internal::PTy, 2> extra_ab;  // extra_a && extra_b
   extra_ab[0] = ext_a[num];
   extra_ab[1] = internal::PTy::Zero();
@@ -424,7 +426,6 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
     }
   }
 
-  // Consistency check;
   auto seed = conn->SyncSeed();
   auto coef = internal::op::Rand(seed, num);
   extra_ab[0] = extra_ab[0] + internal::op::InPro(absl::MakeSpan(coef), a);
@@ -434,6 +435,7 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
       conn->NextRank(),
       yacl::ByteContainerView(extra_ab.data(), 2 * sizeof(internal::PTy)),
       "MalBaseVole");
+  // ---- consistency check ----
 }
 
 // ---------------------
