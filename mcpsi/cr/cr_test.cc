@@ -36,41 +36,6 @@ TEST(Setup, InitializeWork) {
   EXPECT_EQ(context.size(), 2);
 }
 
-TEST(CrTest, SetValueWork) {
-  auto context = TestParam::GetContext();
-  const size_t num = 10000;
-
-  auto value = internal::op::Rand(num);
-
-  auto rank0 = std::async([&] {
-    auto cr = context[0]->GetState<Correlation>();
-    std::vector<internal::ATy> out(num, {0, 0});
-    cr->AuthSet(absl::MakeConstSpan(value), absl::MakeSpan(out));
-    return out;
-  });
-  auto rank1 = std::async([&] {
-    auto cr = context[1]->GetState<Correlation>();
-    std::vector<internal::ATy> out(num, {0, 0});
-    cr->AuthGet(absl::MakeSpan(out));
-    return out;
-  });
-
-  auto ret0 = rank0.get();
-  auto ret1 = rank1.get();
-
-  auto mac0 = internal::ExtractMac(absl::MakeConstSpan(ret0));
-  auto mac1 = internal::ExtractMac(absl::MakeConstSpan(ret1));
-  auto mac =
-      internal::op::Add(absl::MakeConstSpan(mac0), absl::MakeConstSpan(mac1));
-  auto check =
-      internal::op::ScalarMul(context[0]->GetState<Correlation>()->GetKey() +
-                                  context[1]->GetState<Correlation>()->GetKey(),
-                              absl::MakeSpan(value));
-  for (size_t i = 0; i < num; ++i) {
-    EXPECT_EQ(check[i], mac[i]);
-  }
-}
-
 TEST(CrTest, AuthBeaverWork) {
   auto context = TestParam::GetContext();
   const size_t num = 10000;

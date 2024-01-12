@@ -97,40 +97,10 @@ class TrueCorrelation : public Correlation {
   void BeaverTriple(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
                     absl::Span<internal::ATy> c) override;
 
-  std::array<std::vector<internal::ATy>, 3> BeaverTriple(size_t num) override {
-    std::vector<internal::ATy> a(num);
-    std::vector<internal::ATy> b(num);
-    std::vector<internal::ATy> c(num);
-    BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-    return {a, b, c};
-  }
-
-  void AuthSet(absl::Span<const internal::PTy> in,
-               absl::Span<internal::ATy> out) override;
-  void AuthGet(absl::Span<internal::ATy> out) override;
-
   // entry
   void RandomSet(absl::Span<internal::ATy> out) override;
   void RandomGet(absl::Span<internal::ATy> out) override;
   void RandomAuth(absl::Span<internal::ATy> out) override;
-
-  std::vector<internal::ATy> RandomSet(size_t num) override {
-    std::vector<internal::ATy> ret(num);
-    RandomSet(absl::MakeSpan(ret));
-    return ret;
-  }
-
-  std::vector<internal::ATy> RandomGet(size_t num) override {
-    std::vector<internal::ATy> ret(num);
-    RandomGet(absl::MakeSpan(ret));
-    return ret;
-  }
-
-  std::vector<internal::ATy> RandomAuth(size_t num) override {
-    std::vector<internal::ATy> ret(num);
-    RandomAuth(absl::MakeSpan(ret));
-    return ret;
-  }
 
   // entry
   void ShuffleSet(absl::Span<const size_t> perm,
@@ -138,22 +108,10 @@ class TrueCorrelation : public Correlation {
   void ShuffleGet(absl::Span<internal::PTy> a, absl::Span<internal::PTy> b,
                   size_t repeat = 1) override;
 
-  std::vector<internal::PTy> ShuffleSet(absl::Span<const size_t> perm,
-                                        size_t repeat = 1) override {
-    std::vector<internal::PTy> delta(perm.size() * repeat);
-    ShuffleSet(perm, absl::MakeSpan(delta), repeat);
-    return delta;
-  }
-
-  std::pair<std::vector<internal::PTy>, std::vector<internal::PTy>> ShuffleGet(
-      size_t num, size_t repeat = 1) override {
-    std::vector<internal::PTy> a(num * repeat);
-    std::vector<internal::PTy> b(num * repeat);
-    ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b), repeat);
-    return std::make_pair(a, b);
-  }
-
  private:
+  void AuthSet(absl::Span<const internal::PTy> in,
+               absl::Span<internal::ATy> out);
+  void AuthGet(absl::Span<internal::ATy> out);
   std::vector<internal::PTy> OpenAndCheck(absl::Span<const internal::ATy> in);
   // TODO:
   // internal::PTy SingleOpenAndCheck(const internal::ATy& in);

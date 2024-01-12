@@ -105,7 +105,7 @@ std::vector<ATy> ZerosA(std::shared_ptr<Context>& ctx, size_t num) {
 }
 
 std::vector<ATy> RandA(std::shared_ptr<Context>& ctx, size_t num) {
-  return ctx->GetState<Correlation>()->RandomAuth(num);
+  return ctx->GetState<Correlation>()->RandomAuth(num).data;
 }
 
 std::vector<ATy> AddAP([[maybe_unused]] std::shared_ptr<Context>& ctx,
@@ -250,13 +250,11 @@ std::vector<ATy> ShuffleAGet(std::shared_ptr<Context>& ctx,
 }
 
 std::vector<ATy> ShuffleASet(std::shared_ptr<Context>& ctx,
-                             absl::Span<const ATy> in,
-                             absl::Span<const size_t> perm) {
+                             absl::Span<const ATy> in) {
   const size_t num = in.size();
-  YACL_ENFORCE(num == perm.size());
   // correlation
   // [Warning] low efficiency!!! optimize it
-  auto _delta = ctx->GetState<Correlation>()->ShuffleSet(perm, 2);
+  auto [_delta, perm] = ctx->GetState<Correlation>()->ShuffleSet(num, 2);
   auto val_delta = absl::MakeSpan(_delta).subspan(0, num);
   auto mac_delta = absl::MakeSpan(_delta).subspan(num, num);
 
@@ -281,14 +279,13 @@ std::vector<ATy> ShuffleASet(std::shared_ptr<Context>& ctx,
 }
 
 std::vector<ATy> ShuffleA(std::shared_ptr<Context>& ctx,
-                          absl::Span<const ATy> in,
-                          absl::Span<const size_t> perm) {
+                          absl::Span<const ATy> in) {
   if (ctx->GetRank() == 0) {
-    auto tmp = ShuffleASet(ctx, in, perm);
+    auto tmp = ShuffleASet(ctx, in);
     return ShuffleAGet(ctx, tmp);
   }
   auto tmp = ShuffleAGet(ctx, in);
-  return ShuffleASet(ctx, tmp, perm);
+  return ShuffleASet(ctx, tmp);
 }
 
 // shuffle inputs with same permuation
@@ -342,14 +339,12 @@ std::array<std::vector<ATy>, 2> ShuffleAGet(std::shared_ptr<Context>& ctx,
 
 std::array<std::vector<ATy>, 2> ShuffleASet(std::shared_ptr<Context>& ctx,
                                             absl::Span<const ATy> in0,
-                                            absl::Span<const ATy> in1,
-                                            absl::Span<const size_t> perm) {
-  const size_t num = perm.size();
-  YACL_ENFORCE(num == in0.size());
+                                            absl::Span<const ATy> in1) {
+  const size_t num = in0.size();
   YACL_ENFORCE(num == in1.size());
   // correlation
   // [Warning] low efficiency!!! optimize it
-  auto _delta = ctx->GetState<Correlation>()->ShuffleSet(perm, 4);
+  auto [_delta, perm] = ctx->GetState<Correlation>()->ShuffleSet(num, 4);
   auto val_delta0 = absl::MakeSpan(_delta).subspan(0 * num, num);
   auto mac_delta0 = absl::MakeSpan(_delta).subspan(1 * num, num);
   auto val_delta1 = absl::MakeSpan(_delta).subspan(2 * num, num);
@@ -387,14 +382,13 @@ std::array<std::vector<ATy>, 2> ShuffleASet(std::shared_ptr<Context>& ctx,
 
 std::array<std::vector<ATy>, 2> ShuffleA(std::shared_ptr<Context>& ctx,
                                          absl::Span<const ATy> in0,
-                                         absl::Span<const ATy> in1,
-                                         absl::Span<const size_t> perm) {
+                                         absl::Span<const ATy> in1) {
   if (ctx->GetRank() == 0) {
-    auto tmp = ShuffleASet(ctx, in0, in1, perm);
+    auto tmp = ShuffleASet(ctx, in0, in1);
     return ShuffleAGet(ctx, tmp[0], tmp[1]);
   }
   auto tmp = ShuffleAGet(ctx, in0, in1);
-  return ShuffleASet(ctx, tmp[0], tmp[1], perm);
+  return ShuffleASet(ctx, tmp[0], tmp[1]);
 }
 
 // A-share Setter, return A-share ( in , in * key + r )
@@ -429,11 +423,11 @@ std::vector<ATy> GetA(std::shared_ptr<Context>& ctx, size_t num) {
 }
 
 std::vector<ATy> RandASet(std::shared_ptr<Context>& ctx, size_t num) {
-  return ctx->GetState<Correlation>()->RandomSet(num);
+  return ctx->GetState<Correlation>()->RandomSet(num).data;
 }
 
 std::vector<ATy> RandAGet(std::shared_ptr<Context>& ctx, size_t num) {
-  return ctx->GetState<Correlation>()->RandomGet(num);
+  return ctx->GetState<Correlation>()->RandomGet(num).data;
 }
 
 std::vector<ATy> SumA([[maybe_unused]] std::shared_ptr<Context>& ctx,
