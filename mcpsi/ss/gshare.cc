@@ -123,11 +123,8 @@ std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
   auto prot = ctx->GetState<Protocol>();
   auto Ggroup = prot->GetGroup();
 
-  auto perm0 = GenPerm(set0.size());
-  auto perm1 = GenPerm(set1.size());
-
-  auto shuffle0 = prot->ShuffleA(set0, perm0);
-  auto _shuffle_tmp = prot->ShuffleA(set1, data, perm1);
+  auto shuffle0 = prot->ShuffleA(set0);
+  auto _shuffle_tmp = prot->ShuffleA(set1, data);
   auto& shuffle1 = _shuffle_tmp[0];
   auto& shuffle_data = _shuffle_tmp[1];
 

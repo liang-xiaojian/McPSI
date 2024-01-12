@@ -228,34 +228,6 @@ TEST(ProtocolTest, ConvertTest) {
   }
 };
 
-// Shuffle (one-side) Test
-TEST(ProtocolTest, ShuffleOneSideTest) {
-  auto context = TestParam::GetContext();
-  size_t num = 10000;
-  auto rank0 = std::async([&] {
-    auto prot = context[0]->GetState<Protocol>();
-    auto r_p = prot->RandP(num);
-    auto r_a = prot->P2A(r_p);
-    auto perm = GenPerm(num);
-    auto s_a = prot->ShuffleASet(r_a, perm);
-    auto s_p = prot->A2P(s_a);
-    for (size_t i = 0; i < num; ++i) {
-      EXPECT_EQ(s_p[i], r_p[perm[i]]);
-    }
-    return s_p;
-  });
-  auto rank1 = std::async([&] {
-    auto prot = context[1]->GetState<Protocol>();
-    auto r_p = prot->RandP(num);
-    auto r_a = prot->P2A(r_p);
-    auto s_a = prot->ShuffleAGet(r_a);
-    auto s_p = prot->A2P(s_a);
-    return s_p;
-  });
-  rank0.get();
-  rank1.get();
-};
-
 // Shuffle (two side) Test
 TEST(ProtocolTest, ShuffleTwoSideTest) {
   auto context = TestParam::GetContext();

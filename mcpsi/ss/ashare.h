@@ -67,11 +67,9 @@ std::vector<ATy> ShuffleAGet(std::shared_ptr<Context>& ctx,
                              absl::Span<const ATy> in);
 
 std::vector<ATy> ShuffleASet(std::shared_ptr<Context>& ctx,
-                             absl::Span<const ATy> in,
-                             absl::Span<const size_t> perm);
+                             absl::Span<const ATy> in);
 std::vector<ATy> ShuffleA(std::shared_ptr<Context>& ctx,
-                          absl::Span<const ATy> in,
-                          absl::Span<const size_t> perm);
+                          absl::Span<const ATy> in);
 
 // shuffle inputs with same permutation
 std::array<std::vector<ATy>, 2> ShuffleAGet(std::shared_ptr<Context>& ctx,
@@ -80,28 +78,11 @@ std::array<std::vector<ATy>, 2> ShuffleAGet(std::shared_ptr<Context>& ctx,
 
 std::array<std::vector<ATy>, 2> ShuffleASet(std::shared_ptr<Context>& ctx,
                                             absl::Span<const ATy> in0,
-                                            absl::Span<const ATy> in1,
-                                            absl::Span<const size_t> perm);
+                                            absl::Span<const ATy> in1);
 
 std::array<std::vector<ATy>, 2> ShuffleA(std::shared_ptr<Context>& ctx,
                                          absl::Span<const ATy> in0,
-                                         absl::Span<const ATy> in1,
-                                         absl::Span<const size_t> perm);
-
-// truly shuffle
-std::vector<ATy> inline ShuffleA(std::shared_ptr<Context>& ctx,
-                                 absl::Span<const ATy> in) {
-  auto perm = GenPerm(in.size());
-  return ShuffleA(ctx, in, absl::MakeSpan(perm));
-}
-
-std::array<std::vector<ATy>, 2> inline ShuffleA(std::shared_ptr<Context>& ctx,
-                                                absl::Span<const ATy> in0,
-                                                absl::Span<const ATy> in1) {
-  YACL_ENFORCE(in0.size() == in1.size());
-  auto perm = GenPerm(in0.size());
-  return ShuffleA(ctx, in0, in1, absl::MakeSpan(perm));
-}
+                                         absl::Span<const ATy> in1);
 
 // A-share Setter, return A-share ( in , in * key + r )
 std::vector<ATy> SetA(std::shared_ptr<Context>& ctx, absl::Span<const PTy> in);

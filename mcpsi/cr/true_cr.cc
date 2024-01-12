@@ -118,46 +118,6 @@ void TrueCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   // ---- consistency check ----
 }
 
-void TrueCorrelation::AuthSet(absl::Span<const internal::PTy> in,
-                              absl::Span<internal::ATy> out) {
-  RandomSet(out);
-  auto [val, mac] = internal::Unpack(out);
-  // val = in - val
-  internal::op::Sub(absl::MakeConstSpan(in), absl::MakeConstSpan(val),
-                    absl::MakeSpan(val));
-
-  auto conn = ctx_->GetConnection();
-  conn->SendAsync(
-      conn->NextRank(),
-      yacl::ByteContainerView(val.data(), val.size() * sizeof(internal::PTy)),
-      "AuthSet");
-
-  internal::op::Add(
-      absl::MakeConstSpan(mac),
-      absl::MakeConstSpan(internal::op::ScalarMul(key_, absl::MakeSpan(val))),
-      absl::MakeSpan(mac));
-  auto ret = internal::Pack(in, mac);
-  memcpy(out.data(), ret.data(), out.size() * sizeof(internal::ATy));
-}
-
-void TrueCorrelation::AuthGet(absl::Span<internal::ATy> out) {
-  RandomGet(out);
-  // val = 0
-  auto [val, mac] = internal::Unpack(out);
-
-  auto conn = ctx_->GetConnection();
-  auto recv_buf = conn->Recv(conn->NextRank(), "AuthSet");
-
-  auto diff = absl::MakeSpan(reinterpret_cast<internal::PTy*>(recv_buf.data()),
-                             out.size());
-
-  internal::op::Add(absl::MakeConstSpan(mac),
-                    absl::MakeConstSpan(internal::op::ScalarMul(key_, diff)),
-                    absl::MakeSpan(mac));
-  auto ret = internal::Pack(val, mac);
-  memcpy(out.data(), ret.data(), ret.size() * sizeof(internal::ATy));
-}
-
 void TrueCorrelation::RandomSet(absl::Span<internal::ATy> out) {
   const size_t num = out.size();
   std::vector<internal::PTy> a(num);
@@ -225,6 +185,46 @@ void TrueCorrelation::ShuffleGet(absl::Span<internal::PTy> a,
   YACL_ENFORCE(full_size == batch_size * repeat);
 
   ot::OtHelper(ot_sender_, ot_receiver_).ShuffleRecv(conn, a, b, repeat);
+}
+
+void TrueCorrelation::AuthSet(absl::Span<const internal::PTy> in,
+                              absl::Span<internal::ATy> out) {
+  RandomSet(out);
+  auto [val, mac] = internal::Unpack(out);
+  // val = in - val
+  internal::op::Sub(absl::MakeConstSpan(in), absl::MakeConstSpan(val),
+                    absl::MakeSpan(val));
+
+  auto conn = ctx_->GetConnection();
+  conn->SendAsync(
+      conn->NextRank(),
+      yacl::ByteContainerView(val.data(), val.size() * sizeof(internal::PTy)),
+      "AuthSet");
+
+  internal::op::Add(
+      absl::MakeConstSpan(mac),
+      absl::MakeConstSpan(internal::op::ScalarMul(key_, absl::MakeSpan(val))),
+      absl::MakeSpan(mac));
+  auto ret = internal::Pack(in, mac);
+  memcpy(out.data(), ret.data(), out.size() * sizeof(internal::ATy));
+}
+
+void TrueCorrelation::AuthGet(absl::Span<internal::ATy> out) {
+  RandomGet(out);
+  // val = 0
+  auto [val, mac] = internal::Unpack(out);
+
+  auto conn = ctx_->GetConnection();
+  auto recv_buf = conn->Recv(conn->NextRank(), "AuthSet");
+
+  auto diff = absl::MakeSpan(reinterpret_cast<internal::PTy*>(recv_buf.data()),
+                             out.size());
+
+  internal::op::Add(absl::MakeConstSpan(mac),
+                    absl::MakeConstSpan(internal::op::ScalarMul(key_, diff)),
+                    absl::MakeSpan(mac));
+  auto ret = internal::Pack(val, mac);
+  memcpy(out.data(), ret.data(), ret.size() * sizeof(internal::ATy));
 }
 
 // Copy from A2P

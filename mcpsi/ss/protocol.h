@@ -111,23 +111,16 @@ class Protocol : public State {
   std::vector<ATy> FilterA(absl::Span<const ATy> in,
                            absl::Span<const size_t> indexes);
 
-  std::vector<ATy> ShuffleA(absl::Span<const ATy> in);
   // shuffle entry
-  std::vector<ATy> ShuffleA(absl::Span<const ATy> in,
-                            absl::Span<const size_t> perm);
-  std::vector<ATy> ShuffleASet(absl::Span<const ATy> in,
-                               absl::Span<const size_t> perm);
+  std::vector<ATy> ShuffleA(absl::Span<const ATy> in);
+  std::vector<ATy> ShuffleASet(absl::Span<const ATy> in);
   std::vector<ATy> ShuffleAGet(absl::Span<const ATy> in);
 
-  std::array<std::vector<ATy>, 2> ShuffleA(absl::Span<const ATy> in0,
-                                           absl::Span<const ATy> in1);
   // shuffle entry
   std::array<std::vector<ATy>, 2> ShuffleA(absl::Span<const ATy> in0,
-                                           absl::Span<const ATy> in1,
-                                           absl::Span<const size_t> perm);
+                                           absl::Span<const ATy> in1);
   std::array<std::vector<ATy>, 2> ShuffleASet(absl::Span<const ATy> in0,
-                                              absl::Span<const ATy> in1,
-                                              absl::Span<const size_t> perm);
+                                              absl::Span<const ATy> in1);
   std::array<std::vector<ATy>, 2> ShuffleAGet(absl::Span<const ATy> in0,
                                               absl::Span<const ATy> in1);
 
