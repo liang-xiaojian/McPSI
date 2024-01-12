@@ -12,6 +12,7 @@ struct BeaverTy {
   std::vector<internal::ATy> a;
   std::vector<internal::ATy> b;
   std::vector<internal::ATy> c;
+  BeaverTy() { ; }
   BeaverTy(std::vector<internal::ATy>&& aa, std::vector<internal::ATy>&& bb,
            std::vector<internal::ATy>&& cc) {
     a = std::move(aa);
@@ -27,6 +28,7 @@ struct BeaverTy {
 
 struct AuthTy {
   std::vector<internal::ATy> data;
+  AuthTy() { ; }
   AuthTy(uint32_t n) { data.resize(n); }
   AuthTy(std::vector<internal::ATy>&& in) { data = std::move(in); }
 };
@@ -34,6 +36,7 @@ struct AuthTy {
 struct ShuffleSTy {
   std::vector<internal::PTy> delta;
   std::vector<size_t> perm;
+  ShuffleSTy() { ; }
   ShuffleSTy(uint32_t n, uint32_t repeat = 1) {
     delta.resize(n * repeat);
     perm.resize(n);
@@ -47,6 +50,7 @@ struct ShuffleSTy {
 struct ShuffleGTy {
   std::vector<internal::PTy> a;
   std::vector<internal::PTy> b;
+  ShuffleGTy() { ; }
   ShuffleGTy(uint32_t n, uint32_t repeat = 1) {
     a.resize(n * repeat);
     b.resize(n * repeat);
@@ -56,6 +60,8 @@ struct ShuffleGTy {
     b = std::move(_b);
   }
 };
+
+struct CorrelationCache;
 
 class Correlation : public State {
  protected:
@@ -75,64 +81,86 @@ class Correlation : public State {
 
   virtual void OneTimeSetup() = 0;
 
-  // entry
+  // implementation
   virtual void BeaverTriple(absl::Span<internal::ATy> a,
                             absl::Span<internal::ATy> b,
                             absl::Span<internal::ATy> c) = 0;
-
-  // entry
   virtual void RandomSet(absl::Span<internal::ATy> out) = 0;
   virtual void RandomGet(absl::Span<internal::ATy> out) = 0;
   virtual void RandomAuth(absl::Span<internal::ATy> out) = 0;
-
-  // entry
   virtual void ShuffleSet(absl::Span<const size_t> perm,
                           absl::Span<internal::PTy> delta,
                           size_t repeat = 1) = 0;
-
   virtual void ShuffleGet(absl::Span<internal::PTy> a,
                           absl::Span<internal::PTy> b, size_t repeat = 1) = 0;
 
   // interface
-  BeaverTy BeaverTriple(size_t num) {
-    std::vector<internal::ATy> a(num);
-    std::vector<internal::ATy> b(num);
-    std::vector<internal::ATy> c(num);
-    BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-    return BeaverTy(std::move(a), std::move(b), std::move(c));
+  BeaverTy BeaverTriple(size_t num);
+  AuthTy RandomSet(size_t num);
+  AuthTy RandomGet(size_t num);
+  AuthTy RandomAuth(size_t num);
+  ShuffleSTy ShuffleSet(size_t num, size_t repeat = 1);
+  ShuffleGTy ShuffleGet(size_t num, size_t repeat = 1);
+
+  // ------------ cache -------------
+ private:
+  size_t b_num_{0};
+  size_t r_s_num_{0};
+  size_t r_g_num_{0};
+  std::vector<uint64_t> s_s_shape_;
+  std::vector<uint64_t> s_g_shape_;
+  std::unique_ptr<CorrelationCache> cache_;
+
+ public:
+  // cache interface
+  void BeaverTriple_cache(size_t num) { b_num_ += num; }
+  void RandomSet_cache(size_t num) { r_s_num_ += num; }
+  void RandomGet_cache(size_t num) { r_g_num_ += num; }
+  void RandomAuth_cache(size_t num) {
+    RandomGet_cache(num);
+    RandomSet_cache(num);
+  }
+  void ShuffleSet_cache(size_t num, size_t repeat = 1) {
+    s_s_shape_.emplace_back(num << 2 | repeat);
+  }
+  void ShuffleGet_cache(size_t num, size_t repeat = 1) {
+    s_g_shape_.emplace_back(num << 2 | repeat);
   }
 
-  AuthTy RandomSet(size_t num) {
-    std::vector<internal::ATy> ret(num);
-    RandomSet(absl::MakeSpan(ret));
-    return AuthTy(std::move(ret));
+  // force cache
+  void force_cache() {
+    force_cache(b_num_, r_s_num_, r_g_num_, s_s_shape_, s_g_shape_);
   }
 
-  AuthTy RandomGet(size_t num) {
-    std::vector<internal::ATy> ret(num);
-    RandomGet(absl::MakeSpan(ret));
-    return AuthTy(std::move(ret));
+  void force_cache(size_t beaver_num, size_t rand_set_num, size_t rand_get_num,
+                   const std::vector<uint64_t>& shuffle_set_shape = {},
+                   const std::vector<uint64_t>& shuffle_get_shape = {});
+};
+
+struct CorrelationCache {
+  BeaverTy beaver_cache;
+  AuthTy random_set_cache;
+  AuthTy random_get_cache;
+  std::unordered_map<uint64_t, std::vector<ShuffleSTy>> shuffle_set_cache;
+  std::unordered_map<uint64_t, std::vector<ShuffleGTy>> shuffle_get_cache;
+
+  size_t BeaverCacheSize() { return beaver_cache.a.size(); }
+  size_t RandomSetSize() { return random_set_cache.data.size(); }
+  size_t RandomGetSize() { return random_get_cache.data.size(); }
+  size_t ShuffleSetCount(size_t num, size_t repeat = 1) {
+    uint64_t idx = (num << 2 | repeat);
+    return shuffle_set_cache.count(idx) ? shuffle_set_cache[idx].size() : 0;
+  }
+  size_t ShuffleGetCount(size_t num, size_t repeat = 1) {
+    uint64_t idx = (num << 2 | repeat);
+    return shuffle_get_cache.count(idx) ? shuffle_get_cache[idx].size() : 0;
   }
 
-  AuthTy RandomAuth(size_t num) {
-    std::vector<internal::ATy> ret(num);
-    RandomAuth(absl::MakeSpan(ret));
-    return AuthTy(std::move(ret));
-  }
-
-  ShuffleSTy ShuffleSet(size_t num, size_t repeat = 1) {
-    std::vector<internal::PTy> delta(num * repeat);
-    std::vector<size_t> perm = GenPerm(num);
-    ShuffleSet(absl::MakeSpan(perm), absl::MakeSpan(delta), repeat);
-    return ShuffleSTy(std::move(delta), std::move(perm));
-  }
-
-  ShuffleGTy ShuffleGet(size_t num, size_t repeat = 1) {
-    std::vector<internal::PTy> a(num * repeat);
-    std::vector<internal::PTy> b(num * repeat);
-    ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b), repeat);
-    return ShuffleGTy(std::move(a), std::move(b));
-  }
+  BeaverTy BeaverTriple(size_t num);
+  AuthTy RandomSet(size_t num);
+  AuthTy RandomGet(size_t num);
+  ShuffleSTy ShuffleSet(size_t num, size_t repeat = 1);
+  ShuffleGTy ShuffleGet(size_t num, size_t repeat = 1);
 };
 
 }  // namespace mcpsi
