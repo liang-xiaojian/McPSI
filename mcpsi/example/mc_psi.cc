@@ -52,12 +52,15 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   auto prot = context->GetState<Protocol>();
 
   if (cache) {
-    auto share0 =
-        (rank == 0 ? prot->SetA(set0, true) : prot->GetA(set0.size(), true));
-    auto share1 =
-        (rank == 1 ? prot->SetA(set1, true) : prot->GetA(set1.size(), true));
-    auto secret =
-        (rank == 1 ? prot->SetA(val1, true) : prot->GetA(val1.size(), true));
+    std::vector<PTy> empty_set0(set0.size());
+    std::vector<PTy> empty_set1(set1.size());
+    std::vector<PTy> empty_val1(val1.size());
+    auto share0 = (rank == 0 ? prot->SetA(empty_set0, true)
+                             : prot->GetA(empty_set0.size(), true));
+    auto share1 = (rank == 1 ? prot->SetA(empty_set1, true)
+                             : prot->GetA(empty_set1.size(), true));
+    auto secret = (rank == 1 ? prot->SetA(empty_val1, true)
+                             : prot->GetA(empty_val1.size(), true));
     auto result_s = prot->CPSI(share0, share1, secret, true);
     auto sum_s = prot->SumA(result_s, true);
     [[maybe_unused]] auto result_p = prot->A2P(sum_s, true);
