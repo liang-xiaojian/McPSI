@@ -30,6 +30,16 @@ std::vector<MTy> A2M(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   return ret;
 }
 
+std::vector<MTy> A2M_cache(std::shared_ptr<Context>& ctx,
+                           absl::Span<const ATy> in) {
+  const size_t num = in.size();
+
+  auto ext_k = std::vector<ATy>(num);
+  auto add = AddAA_cache(ctx, in, ext_k);
+  [[maybe_unused]] auto inv = InvA_cache(ctx, add);
+  return std::vector<MTy>(num);
+}
+
 std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
   const size_t num = in.size();
   auto spdz_key = ctx->GetState<Protocol>()->GetKey();
@@ -106,10 +116,22 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
   return ret;
 }
 
+std::vector<GTy> M2G_cache([[maybe_unused]] std::shared_ptr<Context>& ctx,
+                           absl::Span<const MTy> in) {
+  const size_t num = in.size();
+  return std::vector<GTy>(num);
+}
+
 // trival, since A2G = M2G( A2M )
 std::vector<GTy> A2G(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   auto in_m = A2M(ctx, in);
   return M2G(ctx, in_m);
+}
+
+std::vector<GTy> A2G_cache(std::shared_ptr<Context>& ctx,
+                           absl::Span<const ATy> in) {
+  auto in_m = A2M_cache(ctx, in);
+  return M2G_cache(ctx, in_m);
 }
 
 // std::vector<GTy> P2G([[maybe_unused]] std::shared_ptr<Context>& ctx,
@@ -153,4 +175,24 @@ std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
   return selected_data;
 }
 
+std::vector<ATy> CPSI_cache(std::shared_ptr<Context>& ctx,
+                            absl::Span<const ATy> set0,
+                            absl::Span<const ATy> set1,
+                            absl::Span<const ATy> data) {
+  YACL_ENFORCE(set1.size() == data.size());
+
+  auto shuffle0 = ShuffleA_cache(ctx, set0);
+  auto _shuffle_tmp = ShuffleA_cache(ctx, set1, data);
+  auto& shuffle1 = _shuffle_tmp[0];
+  auto& shuffle_data = _shuffle_tmp[1];
+
+  [[maybe_unused]] auto reveal0 = A2G_cache(ctx, shuffle0);
+  [[maybe_unused]] auto reveal1 = A2G_cache(ctx, shuffle1);
+
+  std::vector<size_t> indexes(data.size());
+
+  auto selected_data = FilterA_cache(ctx, absl::MakeConstSpan(shuffle_data),
+                                     absl::MakeConstSpan(indexes));
+  return selected_data;
+}
 }  // namespace mcpsi::internal

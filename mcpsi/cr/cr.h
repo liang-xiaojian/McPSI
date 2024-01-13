@@ -121,14 +121,19 @@ class Correlation : public State {
     RandomSet_cache(num);
   }
   void ShuffleSet_cache(size_t num, size_t repeat = 1) {
-    s_s_shape_.emplace_back(num << 2 | repeat);
+    s_s_shape_.emplace_back((num << 8) | repeat);
   }
   void ShuffleGet_cache(size_t num, size_t repeat = 1) {
-    s_g_shape_.emplace_back(num << 2 | repeat);
+    s_g_shape_.emplace_back((num << 8) | repeat);
   }
 
   // force cache
   void force_cache() {
+    SPDLOG_INFO(
+        "[P{}] FORCE CACHE!!! beaver num : {} , random set num : {} , random "
+        "get num: {} , shuffle set num: {} , shuffle get num: {} ",
+        ctx_->GetRank(), b_num_, r_s_num_, r_g_num_, s_s_shape_.size(),
+        s_g_shape_.size());
     force_cache(b_num_, r_s_num_, r_g_num_, s_s_shape_, s_g_shape_);
   }
 
@@ -148,11 +153,11 @@ struct CorrelationCache {
   size_t RandomSetSize() { return random_set_cache.data.size(); }
   size_t RandomGetSize() { return random_get_cache.data.size(); }
   size_t ShuffleSetCount(size_t num, size_t repeat = 1) {
-    uint64_t idx = (num << 2 | repeat);
+    uint64_t idx = ((num << 8) | repeat);
     return shuffle_set_cache.count(idx) ? shuffle_set_cache[idx].size() : 0;
   }
   size_t ShuffleGetCount(size_t num, size_t repeat = 1) {
-    uint64_t idx = (num << 2 | repeat);
+    uint64_t idx = ((num << 8) | repeat);
     return shuffle_get_cache.count(idx) ? shuffle_get_cache[idx].size() : 0;
   }
 

@@ -17,6 +17,8 @@ llvm::cl::opt<uint32_t> cl_rank("rank", llvm::cl::init(0),
 llvm::cl::opt<uint32_t> cl_offline(
     "offline", llvm::cl::init(0),
     llvm::cl::desc("0 for real offline, 1 for fake offline"));
+llvm::cl::opt<uint32_t> cl_cache("cache", llvm::cl::init(0),
+                                 llvm::cl::desc("0 for no cache, 1 for cache"));
 llvm::cl::opt<uint32_t> cl_mode(
     "mode", llvm::cl::init(0),
     llvm::cl::desc("0 for memory mode, 1 for socket mode"));
@@ -30,7 +32,7 @@ llvm::cl::opt<uint32_t> cl_interset_size(
 
 auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
             absl::Span<PTy> set0, absl::Span<PTy> set1, absl::Span<PTy> val1,
-            bool offline = true) {
+            bool offline = true, bool cache = true) {
   auto rank = lctx->Rank();
 
   if (rank == 0) {
@@ -47,8 +49,23 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   SPDLOG_INFO("[P{}] Initializing Context", rank);
   auto context = std::make_shared<Context>(lctx);
   SetupContext(context, offline);
-
   auto prot = context->GetState<Protocol>();
+
+  if (cache) {
+    auto share0 =
+        (rank == 0 ? prot->SetA(set0, true) : prot->GetA(set0.size(), true));
+    auto share1 =
+        (rank == 1 ? prot->SetA(set1, true) : prot->GetA(set1.size(), true));
+    auto secret =
+        (rank == 1 ? prot->SetA(val1, true) : prot->GetA(val1.size(), true));
+    auto result_s = prot->CPSI(share0, share1, secret, true);
+    auto sum_s = prot->SumA(result_s, true);
+    [[maybe_unused]] auto result_p = prot->A2P(sum_s, true);
+    SPDLOG_INFO("[P{}] start cache all correlation", rank);
+    context->GetState<Correlation>()->force_cache();
+    SPDLOG_INFO("[P{}] cache all finished!", rank);
+  }
+
   SPDLOG_INFO("[P{}] uploading data", rank);
   auto share0 = (rank == 0 ? prot->SetA(set0) : prot->GetA(set0.size()));
   auto share1 = (rank == 1 ? prot->SetA(set1) : prot->GetA(set1.size()));
@@ -56,14 +73,14 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   SPDLOG_INFO("[P{}] Then, executing Circuit-PSI, set0 {} && set1 {}", rank,
               share0.size(), share1.size());
   auto result_s = prot->CPSI(share0, share1, secret);
-  SPDLOG_INFO("[P0] interset size {}", result_s.size());
+  SPDLOG_INFO("[P{}] interset size {}", rank, result_s.size());
   auto sum_s = prot->SumA(result_s);
   auto result_p = prot->A2P(sum_s);
 
   typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
   auto ret = std::vector<INTEGER>(1);
   ret[0] = result_p[0].GetVal();
-  SPDLOG_INFO("[P0] sum is {}", ret[0]);
+  SPDLOG_INFO("[P{}] sum is {}", rank, ret[0]);
   return ret;
 }
 
@@ -72,11 +89,13 @@ struct ArgPack {
   uint32_t size1;
   uint32_t interset_size;
   uint32_t offline;
+  uint32_t cache;
   uint128_t seed;
 
   bool operator==(const ArgPack& other) const {
     return (size0 == other.size0) && (size1 == other.size1) &&
-           (interset_size == other.interset_size) && (offline == other.offline);
+           (interset_size == other.interset_size) &&
+           (offline == other.offline) && (cache == other.cache);
   }
 
   bool operator!=(const ArgPack& other) const { return !(*this == other); }
@@ -84,9 +103,9 @@ struct ArgPack {
 
 bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
               uint32_t size1, uint32_t interset_size, uint32_t offline,
-              uint128_t& seed) {
+              uint32_t cache, uint128_t& seed) {
   uint128_t tmp_seed = yacl::crypto::SecureRandU128();
-  ArgPack tmp = {size0, size1, interset_size, offline, tmp_seed};
+  ArgPack tmp = {size0, size1, interset_size, offline, cache, tmp_seed};
   auto bv = yacl::ByteContainerView(&tmp, sizeof(tmp));
 
   ArgPack remote;
@@ -128,6 +147,7 @@ int main(int argc, char** argv) {
 
   bool mem_mode = cl_mode.getValue() == 0;
   bool offline = cl_offline.getValue();
+  bool cache = cl_cache.getValue();
 
   size_t size0 = cl_size0.getValue();
   size_t size1 = cl_size1.getValue();
@@ -162,11 +182,11 @@ int main(int argc, char** argv) {
     auto lctxs = SetupWorld(2);
     auto task0 = std::async([&] {
       return mc_psi(lctxs[0], absl::MakeSpan(key0), absl::MakeSpan(key1),
-                    absl::MakeSpan(data), offline == 0);
+                    absl::MakeSpan(data), offline == 0, cache);
     });
     auto task1 = std::async([&] {
       return mc_psi(lctxs[1], absl::MakeSpan(key0), absl::MakeSpan(key1),
-                    absl::MakeSpan(data), offline == 0);
+                    absl::MakeSpan(data), offline == 0, cache);
     });
     auto result0 = task0.get();
     auto result1 = task1.get();
@@ -175,7 +195,8 @@ int main(int argc, char** argv) {
   } else {
     auto lctx = MakeLink(cl_parties.getValue(), cl_rank.getValue());
     uint128_t seed = 0;
-    YACL_ENFORCE(SyncTask(lctx, size0, size1, interset_size, offline, seed));
+    YACL_ENFORCE(
+        SyncTask(lctx, size0, size1, interset_size, offline, cache, seed));
     auto interset = OP::Rand(seed, interset_size);
     auto key0 = OP::Rand(size0);
     auto key1 = OP::Rand(size1);

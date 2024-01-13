@@ -7,28 +7,40 @@ namespace mcpsi {
 // register string
 const std::string Protocol::id = std::string("Protocol");
 
-#define RegPP(name)                                            \
-  std::vector<PTy> Protocol::name(absl::Span<const PTy> lhs,   \
-                                  absl::Span<const PTy> rhs) { \
-    return internal::name##PP(ctx_, lhs, rhs);                 \
+#define RegPP(name)                                                        \
+  std::vector<PTy> Protocol::name(absl::Span<const PTy> lhs,               \
+                                  absl::Span<const PTy> rhs, bool cache) { \
+    if (cache) {                                                           \
+      return internal::name##PP_cache(ctx_, lhs, rhs);                     \
+    }                                                                      \
+    return internal::name##PP(ctx_, lhs, rhs);                             \
   }
 
-#define RegAP(name)                                            \
-  std::vector<ATy> Protocol::name(absl::Span<const ATy> lhs,   \
-                                  absl::Span<const PTy> rhs) { \
-    return internal::name##AP(ctx_, lhs, rhs);                 \
+#define RegAP(name)                                                        \
+  std::vector<ATy> Protocol::name(absl::Span<const ATy> lhs,               \
+                                  absl::Span<const PTy> rhs, bool cache) { \
+    if (cache) {                                                           \
+      return internal::name##AP_cache(ctx_, lhs, rhs);                     \
+    }                                                                      \
+    return internal::name##AP(ctx_, lhs, rhs);                             \
   }
 
-#define RegPA(name)                                            \
-  std::vector<ATy> Protocol::name(absl::Span<const PTy> lhs,   \
-                                  absl::Span<const ATy> rhs) { \
-    return internal::name##PA(ctx_, lhs, rhs);                 \
+#define RegPA(name)                                                        \
+  std::vector<ATy> Protocol::name(absl::Span<const PTy> lhs,               \
+                                  absl::Span<const ATy> rhs, bool cache) { \
+    if (cache) {                                                           \
+      return internal::name##PA_cache(ctx_, lhs, rhs);                     \
+    }                                                                      \
+    return internal::name##PA(ctx_, lhs, rhs);                             \
   }
 
-#define RegAA(name)                                            \
-  std::vector<ATy> Protocol::name(absl::Span<const ATy> lhs,   \
-                                  absl::Span<const ATy> rhs) { \
-    return internal::name##AA(ctx_, lhs, rhs);                 \
+#define RegAA(name)                                                        \
+  std::vector<ATy> Protocol::name(absl::Span<const ATy> lhs,               \
+                                  absl::Span<const ATy> rhs, bool cache) { \
+    if (cache) {                                                           \
+      return internal::name##AA_cache(ctx_, lhs, rhs);                     \
+    }                                                                      \
+    return internal::name##AA(ctx_, lhs, rhs);                             \
   }
 
 #define RegBi(name) \
@@ -42,14 +54,20 @@ RegBi(Sub);
 RegBi(Mul);
 RegBi(Div);
 
-#define RegP(name)                                            \
-  std::vector<PTy> Protocol::name(absl::Span<const PTy> in) { \
-    return internal::name##P(ctx_, in);                       \
+#define RegP(name)                                                        \
+  std::vector<PTy> Protocol::name(absl::Span<const PTy> in, bool cache) { \
+    if (cache) {                                                          \
+      return internal::name##P_cache(ctx_, in);                           \
+    }                                                                     \
+    return internal::name##P(ctx_, in);                                   \
   }
 
-#define RegA(name)                                            \
-  std::vector<ATy> Protocol::name(absl::Span<const ATy> in) { \
-    return internal::name##A(ctx_, in);                       \
+#define RegA(name)                                                        \
+  std::vector<ATy> Protocol::name(absl::Span<const ATy> in, bool cache) { \
+    if (cache) {                                                          \
+      return internal::name##A_cache(ctx_, in);                           \
+    }                                                                     \
+    return internal::name##A(ctx_, in);                                   \
   }
 
 #define RegSi(name) \
@@ -59,9 +77,13 @@ RegBi(Div);
 RegSi(Neg);
 RegSi(Inv);
 
-#define RegConvert(FROM, TO)                                                 \
-  std::vector<TO##Ty> Protocol::FROM##2##TO(absl::Span<const FROM##Ty> in) { \
-    return internal::FROM##2##TO(ctx_, in);                                  \
+#define RegConvert(FROM, TO)                                               \
+  std::vector<TO##Ty> Protocol::FROM##2##TO(absl::Span<const FROM##Ty> in, \
+                                            bool cache) {                  \
+    if (cache) {                                                           \
+      return internal::FROM##2##TO##_cache(ctx_, in);                      \
+    }                                                                      \
+    return internal::FROM##2##TO(ctx_, in);                                \
   }
 
 RegConvert(A, P);
@@ -70,69 +92,118 @@ RegConvert(A, M);
 RegConvert(M, G);
 RegConvert(A, G);
 
-std::vector<PTy> Protocol::ZerosP(size_t num) {
+std::vector<PTy> Protocol::ZerosP(size_t num, bool cache) {
+  if (cache) {
+    return internal::ZerosP_cache(ctx_, num);
+  }
   return internal::ZerosP(ctx_, num);
 }
 
-std::vector<PTy> Protocol::RandP(size_t num) {
+std::vector<PTy> Protocol::RandP(size_t num, bool cache) {
+  if (cache) {
+    return internal::RandP_cache(ctx_, num);
+  }
   return internal::RandP(ctx_, num);
 }
 
-std::vector<ATy> Protocol::ZerosA(size_t num) {
+std::vector<ATy> Protocol::ZerosA(size_t num, bool cache) {
+  if (cache) {
+    return internal::ZerosA_cache(ctx_, num);
+  }
   return internal::ZerosA(ctx_, num);
 }
 
-std::vector<ATy> Protocol::RandA(size_t num) {
+std::vector<ATy> Protocol::RandA(size_t num, bool cache) {
+  if (cache) {
+    return internal::RandA_cache(ctx_, num);
+  }
   return internal::RandA(ctx_, num);
 }
 
-std::vector<ATy> Protocol::SetA(absl::Span<const PTy> in) {
+std::vector<ATy> Protocol::SetA(absl::Span<const PTy> in, bool cache) {
+  if (cache) {
+    return internal::SetA_cache(ctx_, in);
+  }
   return internal::SetA(ctx_, in);
 }
 
-std::vector<ATy> Protocol::GetA(size_t num) {
+std::vector<ATy> Protocol::GetA(size_t num, bool cache) {
+  if (cache) {
+    return internal::GetA_cache(ctx_, num);
+  }
   return internal::GetA(ctx_, num);
 }
 
-std::vector<ATy> Protocol::SumA(absl::Span<const ATy> in) {
+std::vector<ATy> Protocol::SumA(absl::Span<const ATy> in, bool cache) {
+  if (cache) {
+    return internal::SumA_cache(ctx_, in);
+  }
   return internal::SumA(ctx_, in);
 }
 
 std::vector<ATy> Protocol::FilterA(absl::Span<const ATy> in,
-                                   absl::Span<const size_t> indexes) {
+                                   absl::Span<const size_t> indexes,
+                                   bool cache) {
+  if (cache) {
+    internal::FilterA_cache(ctx_, in, indexes);
+  }
   return internal::FilterA(ctx_, in, indexes);
 }
 
 // shuffle
-std::vector<ATy> Protocol::ShuffleA(absl::Span<const ATy> in) {
+std::vector<ATy> Protocol::ShuffleA(absl::Span<const ATy> in, bool cache) {
+  if (cache) {
+    return internal::ShuffleA_cache(ctx_, in);
+  }
   return internal::ShuffleA(ctx_, in);
 }
 
-std::vector<ATy> Protocol::ShuffleASet(absl::Span<const ATy> in) {
+std::vector<ATy> Protocol::ShuffleASet(absl::Span<const ATy> in, bool cache) {
+  if (cache) {
+    return internal::ShuffleASet_cache(ctx_, in);
+  }
   return internal::ShuffleASet(ctx_, in);
 }
-std::vector<ATy> Protocol::ShuffleAGet(absl::Span<const ATy> in) {
+std::vector<ATy> Protocol::ShuffleAGet(absl::Span<const ATy> in, bool cache) {
+  if (cache) {
+    return internal::ShuffleAGet_cache(ctx_, in);
+  }
   return internal::ShuffleAGet(ctx_, in);
 }
 
 std::array<std::vector<ATy>, 2> Protocol::ShuffleA(absl::Span<const ATy> in0,
-                                                   absl::Span<const ATy> in1) {
+                                                   absl::Span<const ATy> in1,
+                                                   bool cache) {
+  if (cache) {
+    return internal::ShuffleA_cache(ctx_, in0, in1);
+  }
   return internal::ShuffleA(ctx_, in0, in1);
 }
 
-std::array<std::vector<ATy>, 2> Protocol::ShuffleASet(
-    absl::Span<const ATy> in0, absl::Span<const ATy> in1) {
+std::array<std::vector<ATy>, 2> Protocol::ShuffleASet(absl::Span<const ATy> in0,
+                                                      absl::Span<const ATy> in1,
+                                                      bool cache) {
+  if (cache) {
+    return internal::ShuffleASet_cache(ctx_, in0, in1);
+  }
   return internal::ShuffleASet(ctx_, in0, in1);
 }
 
-std::array<std::vector<ATy>, 2> Protocol::ShuffleAGet(
-    absl::Span<const ATy> in0, absl::Span<const ATy> in1) {
+std::array<std::vector<ATy>, 2> Protocol::ShuffleAGet(absl::Span<const ATy> in0,
+                                                      absl::Span<const ATy> in1,
+                                                      bool cache) {
+  if (cache) {
+    return internal::ShuffleAGet_cache(ctx_, in0, in1);
+  }
   return internal::ShuffleAGet(ctx_, in0, in1);
 }
 
 std::vector<ATy> Protocol::CPSI(absl::Span<const ATy> set0,
                                 absl::Span<const ATy> set1,
-                                absl::Span<const ATy> data) {
+                                absl::Span<const ATy> data, bool cache) {
+  if (cache) {
+    return internal::CPSI_cache(ctx_, set0, set1, data);
+  }
   return internal::CPSI(ctx_, set0, set1, data);
 }
 
