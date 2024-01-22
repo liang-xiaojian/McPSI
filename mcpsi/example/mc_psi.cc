@@ -1,3 +1,4 @@
+#include <chrono>
 #include <future>
 
 #include "llvm/Support/CommandLine.h"
@@ -8,6 +9,20 @@
 #include "yacl/link/link.h"
 
 using namespace mcpsi;
+
+#define TIMER_START(name) \
+  auto name##_begin = std::chrono::high_resolution_clock::now();
+
+#define TIMER_END(name) \
+  auto name##_end = std::chrono::high_resolution_clock::now();
+
+#define TIMER_PRINT(name)                                                  \
+  auto name##_elapse = name##_end - name##_begin;                          \
+  double name##_ms =                                                       \
+      std::chrono::duration_cast<std::chrono::milliseconds>(name##_elapse) \
+          .count();                                                        \
+  SPDLOG_INFO("[P{}](TIMER) {} need {} ms (or {} s)", rank,                \
+              std::string(#name), name##_ms, name##_ms / 1000);
 
 llvm::cl::opt<std::string> cl_parties(
     "parties", llvm::cl::init("127.0.0.1:39530,127.0.0.1:39531"),
@@ -51,6 +66,11 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   SetupContext(context, offline);
   auto prot = context->GetState<Protocol>();
 
+  // TIMER_START(timer_name);
+  // // the code ... such as, prot->Add(x,y);
+  // TIMER_END(timer_name);
+  // TIMER_PRINT(timer_name);
+
   if (cache) {
     std::vector<PTy> empty_set0(set0.size());
     std::vector<PTy> empty_set1(set1.size());
@@ -61,7 +81,16 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
                              : prot->GetA(empty_set1.size(), true));
     auto secret = (rank == 1 ? prot->SetA(empty_val1, true)
                              : prot->GetA(empty_val1.size(), true));
-    auto result_s = prot->CPSI(share0, share1, secret, true);
+    // auto result_s = prot->CPSI(share0, share1, secret, true);
+    // same as CPSI with cache
+    auto shuffle0 = prot->ShuffleA(share0, true);
+    auto [shuffle1, shuffle_data] = prot->ShuffleA(share1, secret, true);
+    // reveal G-share
+    auto reveal0 = prot->A2G(shuffle0, true);
+    auto reveal1 = prot->A2G(shuffle1, true);
+    auto indexes = std::vector<size_t>(secret.size());
+    auto result_s = prot->FilterA(absl::MakeConstSpan(shuffle_data),
+                                  absl::MakeConstSpan(indexes), true);
     auto sum_s = prot->SumA(result_s, true);
     [[maybe_unused]] auto result_p = prot->A2P(sum_s, true);
     SPDLOG_INFO("[P{}] start cache all correlation", rank);
@@ -75,7 +104,39 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   auto secret = (rank == 1 ? prot->SetA(val1) : prot->GetA(val1.size()));
   SPDLOG_INFO("[P{}] Then, executing Circuit-PSI, set0 {} && set1 {}", rank,
               share0.size(), share1.size());
-  auto result_s = prot->CPSI(share0, share1, secret);
+
+  // auto result_s = prot->CPSI(share0, share1, secret);
+  // same as CPSI
+  auto shuffle0 = prot->ShuffleA(share0);
+  auto [shuffle1, shuffle_data] = prot->ShuffleA(share1, secret);
+  // reveal G-share
+  TIMER_START(a2g);  // start a2g_timer
+  auto reveal0 = prot->A2G(shuffle0);
+  auto reveal1 = prot->A2G(shuffle1);
+  TIMER_END(a2g);    // stop a2g_timer
+  TIMER_PRINT(a2g);  // print info
+  // G-group
+  auto Ggroup = prot->GetGroup();
+  // Hash functor
+  auto group_hash = [&Ggroup](const GTy& val) {
+    return Ggroup->HashPoint(val);
+  };
+  // Equal functor
+  auto group_equal = [&Ggroup](const GTy& lhs, const GTy& rhs) {
+    return Ggroup->PointEqual(lhs, rhs);
+  };
+  std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> lhs(
+      reveal0.begin(), reveal0.end(), 2, group_hash, group_equal);
+
+  std::vector<size_t> indexes;
+  for (size_t i = 0; i < reveal1.size(); ++i) {
+    if (lhs.count(reveal1[i])) {
+      indexes.emplace_back(i);
+    }
+  }
+  auto result_s = prot->FilterA(absl::MakeConstSpan(shuffle_data),
+                                absl::MakeConstSpan(indexes));
+
   SPDLOG_INFO("[P{}] interset size {}", rank, result_s.size());
   auto sum_s = prot->SumA(result_s);
   auto result_p = prot->A2P(sum_s);
