@@ -748,4 +748,67 @@ std::vector<ATy> FilterA_cache([[maybe_unused]] std::shared_ptr<Context>& ctx,
   return std::vector<ATy>(ret_num);
 }
 
+// negative one or positive one
+std::vector<ATy> ZeroOneA(std::shared_ptr<Context>& ctx, size_t num) {
+  auto r = RandA(ctx, num);
+  // s = r * r
+  auto s = MulAA(ctx, r, r);
+  // reveal s
+  auto p = A2P(ctx, s);
+  auto root = op::Sqrt(absl::MakeSpan(p));
+
+  auto tmp = DivAP(ctx, r, root);
+  auto one = OnesP(ctx, num);
+  auto res = AddAP(ctx, tmp, one);
+
+  auto inv_two = PTy::Inv(PTy(2));
+  return ScalarMulPA(ctx, inv_two, res);
+}
+
+std::vector<ATy> ZeroOneA_cache(std::shared_ptr<Context>& ctx, size_t num) {
+  auto r = RandA_cache(ctx, num);
+  // s = r * r
+  auto s = MulAA_cache(ctx, r, r);
+  // reveal s
+  auto p = A2P_cache(ctx, s);
+  auto root = op::Sqrt(absl::MakeSpan(p));
+
+  auto tmp = DivAP_cache(ctx, r, root);
+  auto one = OnesP_cache(ctx, num);
+  auto res = AddAP_cache(ctx, tmp, one);
+
+  auto inv_two = PTy::Inv(PTy(2));
+  return ScalarMulPA_cache(ctx, inv_two, res);
+}
+
+std::vector<ATy> ScalarMulPA([[maybe_unused]] std::shared_ptr<Context>& ctx,
+                             const PTy& scalar, absl::Span<const ATy> in) {
+  const size_t num = in.size();
+  std::vector<ATy> ret(in.begin(), in.end());
+  op::ScalarMulInplace(
+      scalar, absl::MakeSpan(reinterpret_cast<PTy*>(ret.data()), 2 * num));
+  return ret;
+}
+
+std::vector<ATy> ScalarMulPA_cache(
+    [[maybe_unused]] std::shared_ptr<Context>& ctx,
+    [[maybe_unused]] const PTy& scalar, absl::Span<const ATy> in) {
+  const size_t num = in.size();
+  return std::vector<ATy>(num);
+}
+
+std::vector<ATy> ScalarMulAP([[maybe_unused]] std::shared_ptr<Context>& ctx,
+                             const ATy& scalar, absl::Span<const PTy> in) {
+  auto val = op::ScalarMul(scalar.val, in);
+  auto mac = op::ScalarMul(scalar.mac, in);
+  return Pack(val, mac);
+}
+
+std::vector<ATy> ScalarMulAP_cache(
+    [[maybe_unused]] std::shared_ptr<Context>& ctx,
+    [[maybe_unused]] const ATy& scalar, absl::Span<const PTy> in) {
+  const size_t num = in.size();
+  return std::vector<ATy>(num);
+}
+
 }  // namespace mcpsi::internal

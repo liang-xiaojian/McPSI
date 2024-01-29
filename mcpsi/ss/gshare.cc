@@ -40,6 +40,62 @@ std::vector<MTy> A2M_cache(std::shared_ptr<Context>& ctx,
   return std::vector<MTy>(num);
 }
 
+std::vector<MTy> ScalarA2M(std::shared_ptr<Context>& ctx, const ATy& scalar,
+                           absl::Span<const ATy> in) {
+  const size_t num = in.size();
+
+  auto prot = ctx->GetState<Protocol>();
+  // auto prf_g = prot->GetPrfG();  // generator for PRF
+  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
+  auto Ggroup = prot->GetGroup();
+  auto ext_k = std::vector<ATy>(num, prf_k);
+  // in + k
+  auto add = AddAA(ctx, in, ext_k);
+  // scalar / (in + k)
+
+  auto r = RandA(ctx, num);
+  // r * in
+  auto mul = MulAA(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(add));
+  // reveal r * in
+  auto pub = A2P(ctx, absl::MakeConstSpan(mul));
+  // inv = (r * in)^{-1}
+  auto inv_pub = InvP(ctx, absl::MakeConstSpan(pub));
+  auto scalar_inv_pub = ScalarMulAP(ctx, scalar, inv_pub);
+  auto scalar_inv =
+      MulAA(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(scalar_inv_pub));
+
+  auto ret = std::vector<MTy>(num);
+  // Unpack by hand
+  for (size_t i = 0; i < num; ++i) {
+    ret[i].val = Ggroup->MulBase(ym::MPInt(scalar_inv[i].val.GetVal()));
+    ret[i].mac = Ggroup->MulBase(ym::MPInt(scalar_inv[i].mac.GetVal()));
+  }
+  return ret;
+}
+
+std::vector<MTy> ScalarA2M_cache(std::shared_ptr<Context>& ctx,
+                                 const ATy& scalar, absl::Span<const ATy> in) {
+  const size_t num = in.size();
+
+  auto ext_k = std::vector<ATy>(num);
+  // in + k
+  auto add = AddAA_cache(ctx, in, ext_k);
+  // scalar / (in + k)
+
+  auto r = RandA_cache(ctx, num);
+  // r * in
+  auto mul = MulAA_cache(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(in));
+  // reveal r * in
+  auto pub = A2P_cache(ctx, absl::MakeConstSpan(mul));
+  // inv = (r * in)^{-1}
+  auto inv_pub = InvP_cache(ctx, absl::MakeConstSpan(pub));
+  auto scalar_inv_pub = ScalarMulAP_cache(ctx, scalar, inv_pub);
+  [[maybe_unused]] auto scalar_inv = MulAA_cache(
+      ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(scalar_inv_pub));
+
+  return std::vector<MTy>(num);
+}
+
 std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
   const size_t num = in.size();
   auto spdz_key = ctx->GetState<Protocol>()->GetKey();
@@ -131,6 +187,18 @@ std::vector<GTy> A2G(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
 std::vector<GTy> A2G_cache(std::shared_ptr<Context>& ctx,
                            absl::Span<const ATy> in) {
   auto in_m = A2M_cache(ctx, in);
+  return M2G_cache(ctx, in_m);
+}
+
+std::vector<GTy> ScalarA2G(std::shared_ptr<Context>& ctx, const ATy& scalar,
+                           absl::Span<const ATy> in) {
+  auto in_m = ScalarA2M(ctx, scalar, in);
+  return M2G(ctx, in_m);
+}
+
+std::vector<GTy> ScalarA2G_cache(std::shared_ptr<Context>& ctx,
+                                 const ATy& scalar, absl::Span<const ATy> in) {
+  auto in_m = ScalarA2M_cache(ctx, scalar, in);
   return M2G_cache(ctx, in_m);
 }
 

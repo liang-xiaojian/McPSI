@@ -198,6 +198,46 @@ std::array<std::vector<ATy>, 2> Protocol::ShuffleAGet(absl::Span<const ATy> in0,
   return internal::ShuffleAGet(ctx_, in0, in1);
 }
 
+std::vector<ATy> Protocol::ZeroOneA(size_t num, bool cache) {
+  if (cache) {
+    return internal::ZeroOneA_cache(ctx_, num);
+  } else {
+    return internal::ZeroOneA(ctx_, num);
+  }
+}
+
+std::vector<ATy> Protocol::ScalarMulPA(const PTy& scalar,
+                                       absl::Span<const ATy> in, bool cache) {
+  if (cache) {
+    return internal::ScalarMulPA_cache(ctx_, scalar, in);
+  }
+  return internal::ScalarMulPA(ctx_, scalar, in);
+}
+
+std::vector<ATy> Protocol::ScalarMulAP(const ATy& scalar,
+                                       absl::Span<const PTy> in, bool cache) {
+  if (cache) {
+    return internal::ScalarMulAP_cache(ctx_, scalar, in);
+  }
+  return internal::ScalarMulAP(ctx_, scalar, in);
+}
+
+std::vector<MTy> Protocol::ScalarA2M(const ATy& scalar,
+                                     absl::Span<const ATy> in, bool cache) {
+  if (cache) {
+    return internal::ScalarA2M_cache(ctx_, scalar, in);
+  }
+  return internal::ScalarA2M(ctx_, scalar, in);
+}
+
+std::vector<GTy> Protocol::ScalarA2G(const ATy& scalar,
+                                     absl::Span<const ATy> in, bool cache) {
+  if (cache) {
+    return internal::ScalarA2G_cache(ctx_, scalar, in);
+  }
+  return internal::ScalarA2G(ctx_, scalar, in);
+}
+
 std::vector<ATy> Protocol::CPSI(absl::Span<const ATy> set0,
                                 absl::Span<const ATy> set1,
                                 absl::Span<const ATy> data, bool cache) {

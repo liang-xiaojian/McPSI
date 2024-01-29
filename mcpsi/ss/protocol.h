@@ -144,6 +144,20 @@ class Protocol : public State {
                                               absl::Span<const ATy> in1,
                                               bool cache = false);
 
+  std::vector<ATy> ZeroOneA(size_t num, bool cache = false);
+
+  std::vector<ATy> ScalarMulPA(const PTy& scalar, absl::Span<const ATy> in,
+                               bool cache = false);
+
+  std::vector<ATy> ScalarMulAP(const ATy& scalar, absl::Span<const PTy> in,
+                               bool cache = false);
+
+  std::vector<MTy> ScalarA2M(const ATy& scalar, absl::Span<const ATy> in,
+                             bool cache = false);
+
+  std::vector<GTy> ScalarA2G(const ATy& scalar, absl::Span<const ATy> in,
+                             bool cache = false);
+
   // circuit PSI entry
   std::vector<ATy> CPSI(absl::Span<const ATy> set0, absl::Span<const ATy> set1,
                         absl::Span<const ATy> data, bool cache = false);

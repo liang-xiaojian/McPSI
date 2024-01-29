@@ -303,4 +303,68 @@ TEST(ProtocolTest, SetATest) {
   }
 }
 
+TEST(ProtocolTest, ZeroOneATest) {
+  auto context = TestParam::GetContext();
+  size_t num = 128;
+  auto rank0 = std::async([&] {
+    auto prot = context[0]->GetState<Protocol>();
+    auto ret_a = prot->ZeroOneA(num);
+    auto ret_p = prot->A2P(ret_a);
+    return ret_p;
+  });
+  auto rank1 = std::async([&] {
+    auto prot = context[1]->GetState<Protocol>();
+    auto ret_a = prot->ZeroOneA(num);
+    auto ret_p = prot->A2P(ret_a);
+    return ret_p;
+  });
+  auto r_b = rank0.get();
+  auto r_a = rank1.get();
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(r_a[i], r_b[i]);
+    if (r_a[i] != PTy::Zero()) {
+      EXPECT_EQ(r_a[i], PTy::One());
+    }
+  }
+}
+
+TEST(ProtocolTest, ScalarMulTest) {
+  auto context = TestParam::GetContext();
+  size_t num = 10000;
+  auto rank0 = std::async([&] {
+    auto prot = context[0]->GetState<Protocol>();
+    auto rand_p = prot->RandP(num + 1);
+    auto rand_a = prot->P2A(rand_p);
+
+    auto ret0 =
+        prot->ScalarMulAP(rand_a[num], absl::MakeSpan(rand_p).subspan(0, num));
+    auto ret1 =
+        prot->ScalarMulPA(rand_p[num], absl::MakeSpan(rand_a).subspan(0, num));
+    auto p0 = prot->A2P(ret0);
+    auto p1 = prot->A2P(ret1);
+
+    for (size_t i = 0; i < num; ++i) {
+      EXPECT_EQ(p0[i], p1[i]);
+    }
+  });
+  auto rank1 = std::async([&] {
+    auto prot = context[1]->GetState<Protocol>();
+    auto rand_p = prot->RandP(num + 1);
+    auto rand_a = prot->P2A(rand_p);
+
+    auto ret0 =
+        prot->ScalarMulAP(rand_a[num], absl::MakeSpan(rand_p).subspan(0, num));
+    auto ret1 =
+        prot->ScalarMulPA(rand_p[num], absl::MakeSpan(rand_a).subspan(0, num));
+    auto p0 = prot->A2P(ret0);
+    auto p1 = prot->A2P(ret1);
+
+    for (size_t i = 0; i < num; ++i) {
+      EXPECT_EQ(p0[i], p1[i]);
+    }
+  });
+  rank0.get();
+  rank1.get();
+}
+
 };  // namespace mcpsi

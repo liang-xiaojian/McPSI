@@ -183,6 +183,8 @@ class op128 {
 
   static void Neg(absl::Span<const kFp128> in, absl::Span<kFp128> out);
 
+  static void Sqrt(absl::Span<const kFp128> in, absl::Span<kFp128> out);
+
   static void inline AddInplace(absl::Span<kFp128> lhs,
                                 absl::Span<const kFp128> rhs) {
     YACL_ENFORCE(lhs.size() == rhs.size());
@@ -211,6 +213,10 @@ class op128 {
     YACL_ENFORCE(lhs.size() == rhs.size());
     auto inv = Inv(rhs);
     MulInplace(lhs, absl::MakeConstSpan(inv));
+  }
+
+  static void inline SqrtInplace(absl::Span<kFp128> inout) {
+    Sqrt(inout, inout);
   }
 
   // fast batch inv
@@ -263,6 +269,13 @@ class op128 {
     const size_t size = in.size();
     std::vector<kFp128> ret(size);
     Neg(in, absl::MakeSpan(ret));
+    return ret;
+  }
+
+  static std::vector<kFp128> inline Sqrt(absl::Span<const kFp128> in) {
+    const size_t size = in.size();
+    std::vector<kFp128> ret(size);
+    Sqrt(in, absl::MakeSpan(ret));
     return ret;
   }
 

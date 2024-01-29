@@ -171,4 +171,20 @@ std::vector<ATy> FilterA_cache(std::shared_ptr<Context>& ctx,
                                absl::Span<const ATy> in,
                                absl::Span<const size_t> indexes);
 
+std::vector<ATy> ZeroOneA(std::shared_ptr<Context>& ctx, size_t num);
+
+std::vector<ATy> ZeroOneA_cache(std::shared_ptr<Context>& ctx, size_t num);
+
+std::vector<ATy> ScalarMulPA(std::shared_ptr<Context>& ctx, const PTy& scalar,
+                             absl::Span<const ATy> in);
+
+std::vector<ATy> ScalarMulPA_cache(std::shared_ptr<Context>& ctx,
+                                   const PTy& scalar, absl::Span<const ATy> in);
+
+std::vector<ATy> ScalarMulAP(std::shared_ptr<Context>& ctx, const ATy& scalar,
+                             absl::Span<const PTy> in);
+
+std::vector<ATy> ScalarMulAP_cache(std::shared_ptr<Context>& ctx,
+                                   const ATy& scalar, absl::Span<const PTy> in);
+
 }  // namespace mcpsi::internal
