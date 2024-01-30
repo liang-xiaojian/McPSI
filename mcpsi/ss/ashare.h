@@ -170,10 +170,23 @@ std::vector<ATy> FilterA(std::shared_ptr<Context>& ctx,
 std::vector<ATy> FilterA_cache(std::shared_ptr<Context>& ctx,
                                absl::Span<const ATy> in,
                                absl::Span<const size_t> indexes);
-
+// one or zero
 std::vector<ATy> ZeroOneA(std::shared_ptr<Context>& ctx, size_t num);
 
 std::vector<ATy> ZeroOneA_cache(std::shared_ptr<Context>& ctx, size_t num);
+
+std::pair<std::vector<ATy>, std::vector<ATy>> RandFairA(
+    std::shared_ptr<Context>& ctx, size_t num);
+
+std::pair<std::vector<ATy>, std::vector<ATy>> RandFairA_cache(
+    std::shared_ptr<Context>& ctx, size_t num);
+
+std::vector<PTy> FairA2P(std::shared_ptr<Context>& ctx,
+                         absl::Span<const ATy> in, absl::Span<const ATy> bits);
+
+std::vector<PTy> FairA2P_cache(std::shared_ptr<Context>& ctx,
+                               absl::Span<const ATy> in,
+                               absl::Span<const ATy> bits);
 
 std::vector<ATy> ScalarMulPA(std::shared_ptr<Context>& ctx, const PTy& scalar,
                              absl::Span<const ATy> in);

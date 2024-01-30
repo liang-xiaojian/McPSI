@@ -222,6 +222,22 @@ std::vector<ATy> Protocol::ScalarMulAP(const ATy& scalar,
   return internal::ScalarMulAP(ctx_, scalar, in);
 }
 
+std::pair<std::vector<ATy>, std::vector<ATy>> Protocol::RandFairA(size_t num,
+                                                                  bool cache) {
+  if (cache) {
+    return internal::RandFairA_cache(ctx_, num);
+  }
+  return internal::RandFairA(ctx_, num);
+}
+
+std::vector<PTy> Protocol::FairA2P(absl::Span<const ATy> in,
+                                   absl::Span<const ATy> bits, bool cache) {
+  if (cache) {
+    return internal::FairA2P_cache(ctx_, in, bits);
+  }
+  return internal::FairA2P(ctx_, in, bits);
+}
+
 std::vector<MTy> Protocol::ScalarA2M(const ATy& scalar,
                                      absl::Span<const ATy> in, bool cache) {
   if (cache) {
@@ -245,6 +261,15 @@ std::vector<ATy> Protocol::CPSI(absl::Span<const ATy> set0,
     return internal::CPSI_cache(ctx_, set0, set1, data);
   }
   return internal::CPSI(ctx_, set0, set1, data);
+}
+
+std::vector<ATy> Protocol::FairCPSI(absl::Span<const ATy> set0,
+                                    absl::Span<const ATy> set1,
+                                    absl::Span<const ATy> data, bool cache) {
+  if (cache) {
+    return internal::FairCPSI_cache(ctx_, set0, set1, data);
+  }
+  return internal::FairCPSI(ctx_, set0, set1, data);
 }
 
 }  // namespace mcpsi

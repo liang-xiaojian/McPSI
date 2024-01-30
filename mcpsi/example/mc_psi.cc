@@ -34,6 +34,9 @@ llvm::cl::opt<uint32_t> cl_offline(
     llvm::cl::desc("0 for real offline, 1 for fake offline"));
 llvm::cl::opt<uint32_t> cl_cache("cache", llvm::cl::init(0),
                                  llvm::cl::desc("0 for no cache, 1 for cache"));
+llvm::cl::opt<uint32_t> cl_fairness(
+    "fairness", llvm::cl::init(0),
+    llvm::cl::desc("0 for no fairness, 1 for fairness"));
 llvm::cl::opt<uint32_t> cl_mode(
     "mode", llvm::cl::init(0),
     llvm::cl::desc("0 for memory mode, 1 for socket mode"));
@@ -47,24 +50,41 @@ llvm::cl::opt<uint32_t> cl_interset_size(
 
 auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
             absl::Span<PTy> set0, absl::Span<PTy> set1, absl::Span<PTy> val1,
-            bool offline = true, bool cache = true) {
+            bool offline = true, bool cache = true, bool fairness = false) {
   auto rank = lctx->Rank();
 
   if (rank == 0) {
-    SPDLOG_INFO("[P{}] having set0 (with size {}), working mode: {}", rank,
-                set0.size(),
-                (offline ? std::string("Real Correlation")
-                         : std::string("Fake Correlation")));
+    SPDLOG_INFO(
+        "[P{}] having set0 (with size {}), working mode: {} && {} && {}", rank,
+        set0.size(),
+        (offline ? std::string("Real Correlation")
+                 : std::string("Fake Correlation")),
+        (cache ? std::string("Cache") : std::string("No Cache")),
+        (fairness ? std::string("Fairness") : std::string("No Fairness")));
   } else {
-    SPDLOG_INFO("[P{}] having set1 && data (with size {}), working mode: {}",
-                rank, set1.size(),
-                (offline ? std::string("Real Correlation")
-                         : std::string("Fake Correlation")));
+    SPDLOG_INFO(
+        "[P{}] having set1 && data (with size {}), working mode: {} & {} & {}",
+        rank, set1.size(),
+        (offline ? std::string("Real Correlation")
+                 : std::string("Fake Correlation")),
+        (cache ? std::string("Cache") : std::string("No Cache")),
+        (fairness ? std::string("Fairness") : std::string("No Fairness")));
   }
   SPDLOG_INFO("[P{}] Initializing Context", rank);
   auto context = std::make_shared<Context>(lctx);
   SetupContext(context, offline);
   auto prot = context->GetState<Protocol>();
+
+  // G-group
+  auto Ggroup = prot->GetGroup();
+  // Hash functor
+  auto group_hash = [&Ggroup](const GTy& val) {
+    return Ggroup->HashPoint(val);
+  };
+  // Equal functor
+  auto group_equal = [&Ggroup](const GTy& lhs, const GTy& rhs) {
+    return Ggroup->PointEqual(lhs, rhs);
+  };
 
   // TIMER_START(timer_name);
   // // the code ... such as, prot->Add(x,y);
@@ -86,8 +106,16 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
     auto shuffle0 = prot->ShuffleA(share0, true);
     auto [shuffle1, shuffle_data] = prot->ShuffleA(share1, secret, true);
     // reveal G-share
-    auto reveal0 = prot->A2G(shuffle0, true);
-    auto reveal1 = prot->A2G(shuffle1, true);
+    if (fairness) {
+      auto [scalar_a, bits] = prot->RandFairA(1, true);
+      auto reveal0 = prot->ScalarA2G(scalar_a[0], shuffle0, true);
+      auto reveal1 = prot->A2G(shuffle1, true);
+      auto scalar_p = prot->FairA2P(scalar_a, bits, true);
+    } else {
+      auto reveal0 = prot->A2G(shuffle0, true);
+      auto reveal1 = prot->A2G(shuffle1, true);
+    }
+
     auto indexes = std::vector<size_t>(secret.size());
     auto result_s = prot->FilterA(absl::MakeConstSpan(shuffle_data),
                                   absl::MakeConstSpan(indexes), true);
@@ -109,29 +137,45 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   // same as CPSI
   auto shuffle0 = prot->ShuffleA(share0);
   auto [shuffle1, shuffle_data] = prot->ShuffleA(share1, secret);
-  // reveal G-share
-  TIMER_START(a2g);  // start a2g_timer
-  auto reveal0 = prot->A2G(shuffle0);
-  auto reveal1 = prot->A2G(shuffle1);
-  TIMER_END(a2g);    // stop a2g_timer
-  TIMER_PRINT(a2g);  // print info
-  // G-group
-  auto Ggroup = prot->GetGroup();
-  // Hash functor
-  auto group_hash = [&Ggroup](const GTy& val) {
-    return Ggroup->HashPoint(val);
-  };
-  // Equal functor
-  auto group_equal = [&Ggroup](const GTy& lhs, const GTy& rhs) {
-    return Ggroup->PointEqual(lhs, rhs);
-  };
-  std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> lhs(
-      reveal0.begin(), reveal0.end(), 2, group_hash, group_equal);
 
   std::vector<size_t> indexes;
-  for (size_t i = 0; i < reveal1.size(); ++i) {
-    if (lhs.count(reveal1[i])) {
-      indexes.emplace_back(i);
+
+  if (fairness) {
+    TIMER_START(a2g);  // start a2g_timer
+    auto [scalar_a, bits] = prot->RandFairA(1);
+    auto reveal0 = prot->ScalarA2G(scalar_a[0], shuffle0);
+    auto reveal1 = prot->A2G(shuffle1);
+    auto scalar_p = prot->FairA2P(scalar_a, bits);
+    auto scalar_mp = ym::MPInt(scalar_p[0].GetVal());
+    for (size_t i = 0; i < reveal1.size(); ++i) {
+      Ggroup->MulInplace(&reveal1[i], scalar_mp);
+    }
+    TIMER_END(a2g);    // stop a2g_timer
+    TIMER_PRINT(a2g);  // print info
+
+    std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> lhs(
+        reveal0.begin(), reveal0.end(), 2, group_hash, group_equal);
+
+    for (size_t i = 0; i < reveal1.size(); ++i) {
+      if (lhs.count(reveal1[i])) {
+        indexes.emplace_back(i);
+      }
+    }
+  } else {
+    // reveal G-share
+    TIMER_START(a2g);  // start a2g_timer
+    auto reveal0 = prot->A2G(shuffle0);
+    auto reveal1 = prot->A2G(shuffle1);
+    TIMER_END(a2g);    // stop a2g_timer
+    TIMER_PRINT(a2g);  // print info
+
+    std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> lhs(
+        reveal0.begin(), reveal0.end(), 2, group_hash, group_equal);
+
+    for (size_t i = 0; i < reveal1.size(); ++i) {
+      if (lhs.count(reveal1[i])) {
+        indexes.emplace_back(i);
+      }
     }
   }
   auto result_s = prot->FilterA(absl::MakeConstSpan(shuffle_data),
@@ -154,6 +198,7 @@ struct ArgPack {
   uint32_t interset_size;
   uint32_t offline;
   uint32_t cache;
+  uint32_t fairness;
   uint128_t seed;
 
   bool operator==(const ArgPack& other) const {
@@ -167,9 +212,10 @@ struct ArgPack {
 
 bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
               uint32_t size1, uint32_t interset_size, uint32_t offline,
-              uint32_t cache, uint128_t& seed) {
+              uint32_t cache, uint32_t fairness, uint128_t& seed) {
   uint128_t tmp_seed = yacl::crypto::SecureRandU128();
-  ArgPack tmp = {size0, size1, interset_size, offline, cache, tmp_seed};
+  ArgPack tmp = {size0, size1,    interset_size, offline,
+                 cache, fairness, tmp_seed};
   auto bv = yacl::ByteContainerView(&tmp, sizeof(tmp));
 
   ArgPack remote;
@@ -212,6 +258,7 @@ int main(int argc, char** argv) {
   bool mem_mode = cl_mode.getValue() == 0;
   bool offline = cl_offline.getValue();
   bool cache = cl_cache.getValue();
+  bool fairness = cl_fairness.getValue();
 
   size_t size0 = cl_size0.getValue();
   size_t size1 = cl_size1.getValue();
@@ -246,11 +293,11 @@ int main(int argc, char** argv) {
     auto lctxs = SetupWorld(2);
     auto task0 = std::async([&] {
       return mc_psi(lctxs[0], absl::MakeSpan(key0), absl::MakeSpan(key1),
-                    absl::MakeSpan(data), offline == 0, cache);
+                    absl::MakeSpan(data), offline == 0, cache, fairness);
     });
     auto task1 = std::async([&] {
       return mc_psi(lctxs[1], absl::MakeSpan(key0), absl::MakeSpan(key1),
-                    absl::MakeSpan(data), offline == 0, cache);
+                    absl::MakeSpan(data), offline == 0, cache, fairness);
     });
     auto result0 = task0.get();
     auto result1 = task1.get();
@@ -259,8 +306,8 @@ int main(int argc, char** argv) {
   } else {
     auto lctx = MakeLink(cl_parties.getValue(), cl_rank.getValue());
     uint128_t seed = 0;
-    YACL_ENFORCE(
-        SyncTask(lctx, size0, size1, interset_size, offline, cache, seed));
+    YACL_ENFORCE(SyncTask(lctx, size0, size1, interset_size, offline, cache,
+                          fairness, seed));
     auto interset = OP::Rand(seed, interset_size);
     auto key0 = OP::Rand(size0);
     auto key1 = OP::Rand(size1);
@@ -270,7 +317,7 @@ int main(int argc, char** argv) {
     memcpy(key1.data(), interset.data(), interset.size() * sizeof(PTy));
 
     auto res = mc_psi(lctx, absl::MakeSpan(key0), absl::MakeSpan(key1),
-                      absl::MakeSpan(data), offline == 0);
+                      absl::MakeSpan(data), offline == 0, cache, fairness);
     std::cout << "P" << cl_rank.getValue() << " result (sum): " << res[0]
               << std::endl;
   }

@@ -748,7 +748,7 @@ std::vector<ATy> FilterA_cache([[maybe_unused]] std::shared_ptr<Context>& ctx,
   return std::vector<ATy>(ret_num);
 }
 
-// negative one or positive one
+// one or zero
 std::vector<ATy> ZeroOneA(std::shared_ptr<Context>& ctx, size_t num) {
   auto r = RandA(ctx, num);
   // s = r * r
@@ -809,6 +809,88 @@ std::vector<ATy> ScalarMulAP_cache(
     [[maybe_unused]] const ATy& scalar, absl::Span<const PTy> in) {
   const size_t num = in.size();
   return std::vector<ATy>(num);
+}
+
+std::pair<std::vector<ATy>, std::vector<ATy>> RandFairA(
+    std::shared_ptr<Context>& ctx, size_t num) {
+  typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
+
+  const size_t bits_num = num * sizeof(INTEGER) * 8;
+  auto bits = ZeroOneA(ctx, bits_num);
+  auto bits_span = absl::MakeSpan(bits);
+  std::vector<ATy> ret(num, {PTy::Zero(), PTy::Zero()});
+
+  auto scalar = PTy::One();
+  for (size_t i = 0; i < sizeof(INTEGER) * 8; ++i) {
+    auto cur_bits = bits_span.subspan(i * num, num);
+    auto tmp = ScalarMulPA(ctx, scalar, cur_bits);
+    op::AddInplace(
+        absl::MakeSpan(reinterpret_cast<PTy*>(ret.data()), 2 * num),
+        absl::MakeConstSpan(reinterpret_cast<const PTy*>(tmp.data()), 2 * num));
+    scalar = scalar * PTy(2);
+  }
+  return {ret, bits};
+}
+
+std::pair<std::vector<ATy>, std::vector<ATy>> RandFairA_cache(
+    std::shared_ptr<Context>& ctx, size_t num) {
+  typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
+
+  const size_t bits_num = num * sizeof(INTEGER) * 8;
+  auto bits = ZeroOneA_cache(ctx, bits_num);
+  auto bits_span = absl::MakeSpan(bits);
+  std::vector<ATy> ret(num, {PTy::Zero(), PTy::Zero()});
+
+  auto scalar = PTy::One();
+  for (size_t i = 0; i < sizeof(INTEGER) * 8; ++i) {
+    auto cur_bits = bits_span.subspan(i * num, num);
+    [[maybe_unused]] auto tmp = ScalarMulPA_cache(ctx, scalar, cur_bits);
+  }
+  return {ret, bits};
+}
+
+std::vector<PTy> FairA2P(std::shared_ptr<Context>& ctx,
+                         absl::Span<const ATy> in, absl::Span<const ATy> bits) {
+  typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
+  const size_t num = in.size();
+  YACL_ENFORCE(num * sizeof(INTEGER) * 8 == bits.size());
+
+  std::vector<PTy> ret(num, PTy::Zero());
+  auto scalar = PTy::One();
+  for (size_t i = 0; i < sizeof(INTEGER) * 8; ++i) {
+    auto bits_p = A2P(ctx, bits.subspan(num * i, num));
+    for (const auto& bit_p : bits_p) {
+      YACL_ENFORCE(bit_p == PTy::One() || bit_p == PTy::Zero());
+    }
+    auto tmp = op::ScalarMul(scalar, bits_p);
+    scalar = scalar * PTy(2);
+    op::AddInplace(absl::MakeSpan(ret), absl::MakeConstSpan(tmp));
+  }
+
+  auto check = SubAP(ctx, in, ret);
+  auto zeros = A2P(ctx, check);
+  for (const auto& zero : zeros) {
+    YACL_ENFORCE(zero == PTy::Zero());
+  }
+
+  return ret;
+}
+
+std::vector<PTy> FairA2P_cache(std::shared_ptr<Context>& ctx,
+                               absl::Span<const ATy> in,
+                               absl::Span<const ATy> bits) {
+  typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
+  const size_t num = in.size();
+  YACL_ENFORCE(num * sizeof(INTEGER) * 8 == bits.size());
+
+  std::vector<PTy> ret(num, PTy::Zero());
+  for (size_t i = 0; i < sizeof(INTEGER) * 8; ++i) {
+    [[maybe_unused]] auto bits_p = A2P_cache(ctx, bits.subspan(num * i, num));
+  }
+
+  auto check = SubAP_cache(ctx, in, ret);
+  [[maybe_unused]] auto zeros = A2P_cache(ctx, check);
+  return ret;
 }
 
 }  // namespace mcpsi::internal

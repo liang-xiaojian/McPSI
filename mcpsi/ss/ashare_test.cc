@@ -367,4 +367,27 @@ TEST(ProtocolTest, ScalarMulTest) {
   rank1.get();
 }
 
+TEST(ProtocolTest, FairnessTest) {
+  auto context = TestParam::GetContext();
+  size_t num = 100;
+  auto rank0 = std::async([&] {
+    auto prot = context[0]->GetState<Protocol>();
+    auto [rand_a, bits] = prot->RandFairA(num);
+    auto rand_p = prot->FairA2P(rand_a, bits);
+    return rand_p;
+  });
+  auto rank1 = std::async([&] {
+    auto prot = context[1]->GetState<Protocol>();
+    auto [rand_a, bits] = prot->RandFairA(num);
+    auto rand_p = prot->FairA2P(rand_a, bits);
+    return rand_p;
+  });
+  auto r0 = rank0.get();
+  auto r1 = rank1.get();
+
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(r0[i], r1[i]);
+  }
+}
+
 };  // namespace mcpsi

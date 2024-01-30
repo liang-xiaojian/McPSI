@@ -143,8 +143,14 @@ class Protocol : public State {
   std::array<std::vector<ATy>, 2> ShuffleAGet(absl::Span<const ATy> in0,
                                               absl::Span<const ATy> in1,
                                               bool cache = false);
-
+  // ------ for fairness ------
   std::vector<ATy> ZeroOneA(size_t num, bool cache = false);
+
+  std::pair<std::vector<ATy>, std::vector<ATy>> RandFairA(size_t num,
+                                                          bool cache = false);
+
+  std::vector<PTy> FairA2P(absl::Span<const ATy> in, absl::Span<const ATy> bits,
+                           bool cache = false);
 
   std::vector<ATy> ScalarMulPA(const PTy& scalar, absl::Span<const ATy> in,
                                bool cache = false);
@@ -161,6 +167,10 @@ class Protocol : public State {
   // circuit PSI entry
   std::vector<ATy> CPSI(absl::Span<const ATy> set0, absl::Span<const ATy> set1,
                         absl::Span<const ATy> data, bool cache = false);
+
+  std::vector<ATy> FairCPSI(absl::Span<const ATy> set0,
+                            absl::Span<const ATy> set1,
+                            absl::Span<const ATy> data, bool cache = false);
 };
 
 }  // namespace mcpsi

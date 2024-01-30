@@ -46,4 +46,12 @@ std::vector<ATy> CPSI_cache(std::shared_ptr<Context>& ctx,
                             absl::Span<const ATy> set1,
                             absl::Span<const ATy> data);
 
+std::vector<ATy> FairCPSI(std::shared_ptr<Context>& ctx,
+                          absl::Span<const ATy> set0,
+                          absl::Span<const ATy> set1,
+                          absl::Span<const ATy> data);
+std::vector<ATy> FairCPSI_cache(std::shared_ptr<Context>& ctx,
+                                absl::Span<const ATy> set0,
+                                absl::Span<const ATy> set1,
+                                absl::Span<const ATy> data);
 }  // namespace mcpsi::internal

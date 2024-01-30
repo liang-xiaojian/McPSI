@@ -213,13 +213,13 @@ std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
   auto prot = ctx->GetState<Protocol>();
   auto Ggroup = prot->GetGroup();
 
-  auto shuffle0 = prot->ShuffleA(set0);
-  auto _shuffle_tmp = prot->ShuffleA(set1, data);
+  auto shuffle0 = ShuffleA(ctx, set0);
+  auto _shuffle_tmp = ShuffleA(ctx, set1, data);
   auto& shuffle1 = _shuffle_tmp[0];
   auto& shuffle_data = _shuffle_tmp[1];
 
-  auto reveal0 = prot->A2G(shuffle0);
-  auto reveal1 = prot->A2G(shuffle1);
+  auto reveal0 = A2G(ctx, shuffle0);
+  auto reveal1 = A2G(ctx, shuffle1);
 
   auto group_hash = [&Ggroup](const GTy& val) {
     return Ggroup->HashPoint(val);
@@ -238,8 +238,8 @@ std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
     }
   }
 
-  auto selected_data = prot->FilterA(absl::MakeConstSpan(shuffle_data),
-                                     absl::MakeConstSpan(indexes));
+  auto selected_data = FilterA(ctx, absl::MakeConstSpan(shuffle_data),
+                               absl::MakeConstSpan(indexes));
   return selected_data;
 }
 
@@ -263,4 +263,73 @@ std::vector<ATy> CPSI_cache(std::shared_ptr<Context>& ctx,
                                      absl::MakeConstSpan(indexes));
   return selected_data;
 }
+
+std::vector<ATy> FairCPSI(std::shared_ptr<Context>& ctx,
+                          absl::Span<const ATy> set0,
+                          absl::Span<const ATy> set1,
+                          absl::Span<const ATy> data) {
+  YACL_ENFORCE(set1.size() == data.size());
+  auto prot = ctx->GetState<Protocol>();
+  auto Ggroup = prot->GetGroup();
+
+  auto shuffle0 = ShuffleA(ctx, set0);
+  auto _shuffle_tmp = ShuffleA(ctx, set1, data);
+  auto& shuffle1 = _shuffle_tmp[0];
+  auto& shuffle_data = _shuffle_tmp[1];
+
+  auto [scalar_a, bits] = RandFairA(ctx, 1);
+  auto reveal0 = ScalarA2G(ctx, scalar_a[0], shuffle0);
+  auto reveal1 = A2G(ctx, shuffle1);
+
+  auto scalar_p = FairA2P(ctx, scalar_a, bits);
+  auto scalar_mp = ym::MPInt(scalar_p[0].GetVal());
+  for (size_t i = 0; i < reveal1.size(); ++i) {
+    Ggroup->MulInplace(&reveal1[i], scalar_mp);
+  }
+
+  auto group_hash = [&Ggroup](const GTy& val) {
+    return Ggroup->HashPoint(val);
+  };
+  auto group_equal = [&Ggroup](const GTy& lhs, const GTy& rhs) {
+    return Ggroup->PointEqual(lhs, rhs);
+  };
+
+  std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> lhs(
+      reveal0.begin(), reveal0.end(), 2, group_hash, group_equal);
+
+  std::vector<size_t> indexes;
+  for (size_t i = 0; i < reveal1.size(); ++i) {
+    if (lhs.count(reveal1[i])) {
+      indexes.emplace_back(i);
+    }
+  }
+
+  auto selected_data = FilterA(ctx, absl::MakeConstSpan(shuffle_data),
+                               absl::MakeConstSpan(indexes));
+  return selected_data;
+}
+
+std::vector<ATy> FairCPSI_cache(std::shared_ptr<Context>& ctx,
+                                absl::Span<const ATy> set0,
+                                absl::Span<const ATy> set1,
+                                absl::Span<const ATy> data) {
+  YACL_ENFORCE(set1.size() == data.size());
+
+  auto shuffle0 = ShuffleA_cache(ctx, set0);
+  auto _shuffle_tmp = ShuffleA_cache(ctx, set1, data);
+  auto& shuffle1 = _shuffle_tmp[0];
+  auto& shuffle_data = _shuffle_tmp[1];
+
+  auto [scalar_a, bits] = RandFairA_cache(ctx, 1);
+  [[maybe_unused]] auto reveal0 = ScalarA2G_cache(ctx, scalar_a[0], shuffle0);
+  [[maybe_unused]] auto reveal1 = A2G_cache(ctx, shuffle1);
+  [[maybe_unused]] auto scalar_p = FairA2P_cache(ctx, scalar_a, bits);
+
+  std::vector<size_t> indexes(data.size());
+
+  auto selected_data = FilterA_cache(ctx, absl::MakeConstSpan(shuffle_data),
+                                     absl::MakeConstSpan(indexes));
+  return selected_data;
+}
+
 }  // namespace mcpsi::internal
