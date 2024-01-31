@@ -10,6 +10,8 @@
 
 using namespace mcpsi;
 
+// -------- MACRO ---------
+
 #define TIMER_START(name) \
   auto name##_begin = std::chrono::high_resolution_clock::now();
 
@@ -23,6 +25,29 @@ using namespace mcpsi;
           .count();                                                        \
   SPDLOG_INFO("[P{}](TIMER) {} need {} ms (or {} s)", rank,                \
               std::string(#name), name##_ms, name##_ms / 1000);
+
+#define COMM_START(name)                                      \
+  auto name##_st_start = lctx->GetStats();                    \
+  int64_t name##_send_bytes = name##_st_start->sent_bytes;    \
+  int64_t name##_send_action = name##_st_start->sent_actions; \
+  int64_t name##_recv_bytes = name##_st_start->recv_bytes;    \
+  int64_t name##_recv_action = name##_st_start->recv_actions;
+
+#define COMM_END(name)                                                   \
+  auto name##_st_end = lctx->GetStats();                                 \
+  name##_send_bytes = name##_st_end->sent_bytes - name##_send_bytes;     \
+  name##_send_action = name##_st_end->sent_actions - name##_send_action; \
+  name##_recv_bytes = name##_st_end->recv_bytes - name##_recv_bytes;     \
+  name##_recv_action = name##_st_end->recv_actions - name##_recv_action;
+
+#define COMM_PRINT(name)                                                     \
+  SPDLOG_INFO(                                                               \
+      "[P{}](COMM) send bytes: {} && send actions: {} && recv bytes: {} && " \
+      "recv actions: {}",                                                    \
+      rank, name##_send_bytes, name##_send_action, name##_recv_bytes,        \
+      name##_recv_action);
+
+// ---------- CL -----------
 
 llvm::cl::opt<std::string> cl_parties(
     "parties", llvm::cl::init("127.0.0.1:39530,127.0.0.1:39531"),
@@ -135,8 +160,11 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
 
   // auto result_s = prot->CPSI(share0, share1, secret);
   // same as CPSI
+  COMM_START(shuffle);
   auto shuffle0 = prot->ShuffleA(share0);
   auto [shuffle1, shuffle_data] = prot->ShuffleA(share1, secret);
+  COMM_END(shuffle);
+  COMM_PRINT(shuffle);
 
   std::vector<size_t> indexes;
 
