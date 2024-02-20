@@ -202,6 +202,20 @@ TEST(kFp128Test, PrgWork) {
   }
 }
 
+TEST(kFp128Test, SqrtWork) {
+  size_t num = 10000;
+  auto in = op128::Rand(num);
+  // square
+  auto res = op128::Mul(absl::MakeSpan(in), absl::MakeSpan(in));
+  // find root
+  auto root = op128::Sqrt(absl::MakeSpan(res));
+  auto ret = op128::Mul(absl::MakeSpan(root), absl::MakeSpan(root));
+
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(ret[i], res[i]);
+  }
+}
+
 TEST(kFp128Test, OneZeroWork) {
   size_t num = 10000;
 

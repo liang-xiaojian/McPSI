@@ -7,48 +7,72 @@
 
 namespace mcpsi::internal {
 
-std::vector<PTy> AddPP([[maybe_unused]] std::shared_ptr<Context>& ctx,
-                       absl::Span<const PTy> lhs, absl::Span<const PTy> rhs) {
-  return op::Add(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-}
+#define Reg_Bi(name)                                                        \
+  std::vector<PTy> name##PP([[maybe_unused]] std::shared_ptr<Context>& ctx, \
+                            absl::Span<const PTy> lhs,                      \
+                            absl::Span<const PTy> rhs) {                    \
+    return op::name(absl::MakeSpan(lhs), absl::MakeSpan(rhs));              \
+  }
 
-std::vector<PTy> SubPP([[maybe_unused]] std::shared_ptr<Context>& ctx,
-                       absl::Span<const PTy> lhs, absl::Span<const PTy> rhs) {
-  return op::Sub(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-}
+Reg_Bi(Add);
+Reg_Bi(Sub);
+Reg_Bi(Mul);
+Reg_Bi(Div);
 
-std::vector<PTy> MulPP([[maybe_unused]] std::shared_ptr<Context>& ctx,
-                       absl::Span<const PTy> lhs, absl::Span<const PTy> rhs) {
-  return op::Mul(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-}
+#define REG_Si(name)                                                       \
+  std::vector<PTy> name##P([[maybe_unused]] std::shared_ptr<Context>& ctx, \
+                           absl::Span<const PTy> in) {                     \
+    return op::name(absl::MakeSpan(in));                                   \
+  }
 
-std::vector<PTy> DivPP([[maybe_unused]] std::shared_ptr<Context>& ctx,
-                       absl::Span<const PTy> lhs, absl::Span<const PTy> rhs) {
-  return op::Div(absl::MakeSpan(lhs), absl::MakeSpan(rhs));
-}
+REG_Si(Neg);
+REG_Si(Inv);
 
-std::vector<PTy> NegP([[maybe_unused]] std::shared_ptr<Context>& ctx,
-                      absl::Span<const PTy> in) {
-  return op::Neg(absl::MakeSpan(in));
-}
+#define REG_Num(name)                                                      \
+  std::vector<PTy> name##P([[maybe_unused]] std::shared_ptr<Context>& ctx, \
+                           size_t num) {                                   \
+    return op::name(num);                                                  \
+  }
 
-std::vector<PTy> InvP([[maybe_unused]] std::shared_ptr<Context>& ctx,
-                      absl::Span<const PTy> in) {
-  return op::Inv(absl::MakeSpan(in));
-}
-
-std::vector<PTy> OnesP([[maybe_unused]] std::shared_ptr<Context>& ctx,
-                       size_t num) {
-  return op::Ones(num);
-}
-
-std::vector<PTy> ZerosP([[maybe_unused]] std::shared_ptr<Context>& ctx,
-                        size_t num) {
-  return op::Zeros(num);
-}
+REG_Num(Ones);
+REG_Num(Zeros);
 
 std::vector<PTy> RandP(std::shared_ptr<Context>& ctx, size_t num) {
   return op::Rand(*ctx->GetState<Prg>(), num);
 }
 
+#define REG_Bi_Cache(name)                                    \
+  std::vector<PTy> name##PP_cache(                            \
+      [[maybe_unused]] std::shared_ptr<Context>& ctx,         \
+      absl::Span<const PTy> lhs, absl::Span<const PTy> rhs) { \
+    const auto num = lhs.size();                              \
+    YACL_ENFORCE(num == rhs.size());                          \
+    return op::Zeros(num);                                    \
+  }
+
+REG_Bi_Cache(Add);
+REG_Bi_Cache(Sub);
+REG_Bi_Cache(Mul);
+REG_Bi_Cache(Div);
+
+#define REG_Si_Cache(name)                            \
+  std::vector<PTy> name##P_cache(                     \
+      [[maybe_unused]] std::shared_ptr<Context>& ctx, \
+      absl::Span<const PTy> in) {                     \
+    const auto num = in.size();                       \
+    return op::Zeros(num);                            \
+  }
+
+REG_Si_Cache(Neg);
+REG_Si_Cache(Inv);
+
+#define REG_Num_Cache(name)                                         \
+  std::vector<PTy> name##P_cache(                                   \
+      [[maybe_unused]] std::shared_ptr<Context>& ctx, size_t num) { \
+    return op::Zeros(num);                                          \
+  }
+
+REG_Num_Cache(Ones);
+REG_Num_Cache(Zeros);
+REG_Num_Cache(Rand);
 }  // namespace mcpsi::internal

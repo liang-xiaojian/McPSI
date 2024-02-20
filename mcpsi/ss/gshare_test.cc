@@ -58,13 +58,44 @@ TEST(ProtocolTest, A2GTest) {
     auto ret1 = prot->A2G(rhs);
     return context[1]->GetRank() == 0 ? ret0 : ret1;
   });
-  auto r_b = rank0.get();
-  auto r_a = rank1.get();
+  auto r_a = rank0.get();
+  auto r_b = rank1.get();
 
   auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
                                                      yacl::ArgLib = "openssl");
   for (size_t i = 0; i < num; ++i) {
     EXPECT_TRUE(group->PointEqual(r_a[i], r_b[i]));
+  }
+};
+
+TEST(ProtocolTest, ScalarA2GTest) {
+  auto context = TestParam::GetContext();
+  size_t num = 10000;
+  auto r_p = internal::op::Rand(num + 1);
+  auto rank0 = std::async([&] {
+    auto prot = context[0]->GetState<Protocol>();
+    auto r_a = prot->P2A(r_p);
+
+    auto ret0 = prot->A2G(absl::MakeSpan(r_a).subspan(0, num));
+    auto ret1 = prot->ScalarA2G(r_a[num], absl::MakeSpan(r_a).subspan(0, num));
+    return context[0]->GetRank() == 0 ? ret0 : ret1;
+  });
+  auto rank1 = std::async([&] {
+    auto prot = context[1]->GetState<Protocol>();
+    auto r_a = prot->P2A(r_p);
+
+    auto ret0 = prot->A2G(absl::MakeSpan(r_a).subspan(0, num));
+    auto ret1 = prot->ScalarA2G(r_a[num], absl::MakeSpan(r_a).subspan(0, num));
+    return context[1]->GetRank() == 0 ? ret0 : ret1;
+  });
+  auto ret0 = rank0.get();
+  auto ret1 = rank1.get();
+
+  auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
+                                                     yacl::ArgLib = "openssl");
+  auto scalar = ym::MPInt(r_p[num].GetVal());
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_TRUE(group->PointEqual(group->Mul(ret0[i], scalar), ret1[i]));
   }
 };
 

@@ -62,71 +62,115 @@ class Protocol : public State {
   void RefreshPrfK() { k_ = RandA(1)[0]; }
 
   // PP evaluation
-  std::vector<PTy> Add(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs);
-  std::vector<PTy> Sub(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs);
-  std::vector<PTy> Mul(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs);
-  std::vector<PTy> Div(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs);
+  std::vector<PTy> Add(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs,
+                       bool cache = false);
+  std::vector<PTy> Sub(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs,
+                       bool cache = false);
+  std::vector<PTy> Mul(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs,
+                       bool cache = false);
+  std::vector<PTy> Div(absl::Span<const PTy> lhs, absl::Span<const PTy> rhs,
+                       bool cache = false);
 
   // AA evalutaion
-  std::vector<ATy> Add(absl::Span<const ATy> lhs, absl::Span<const ATy> rhs);
-  std::vector<ATy> Sub(absl::Span<const ATy> lhs, absl::Span<const ATy> rhs);
-  std::vector<ATy> Mul(absl::Span<const ATy> lhs, absl::Span<const ATy> rhs);
-  std::vector<ATy> Div(absl::Span<const ATy> lhs, absl::Span<const ATy> rhs);
+  std::vector<ATy> Add(absl::Span<const ATy> lhs, absl::Span<const ATy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Sub(absl::Span<const ATy> lhs, absl::Span<const ATy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Mul(absl::Span<const ATy> lhs, absl::Span<const ATy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Div(absl::Span<const ATy> lhs, absl::Span<const ATy> rhs,
+                       bool cache = false);
 
   // AP evalutaion
-  std::vector<ATy> Add(absl::Span<const ATy> lhs, absl::Span<const PTy> rhs);
-  std::vector<ATy> Sub(absl::Span<const ATy> lhs, absl::Span<const PTy> rhs);
-  std::vector<ATy> Mul(absl::Span<const ATy> lhs, absl::Span<const PTy> rhs);
-  std::vector<ATy> Div(absl::Span<const ATy> lhs, absl::Span<const PTy> rhs);
+  std::vector<ATy> Add(absl::Span<const ATy> lhs, absl::Span<const PTy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Sub(absl::Span<const ATy> lhs, absl::Span<const PTy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Mul(absl::Span<const ATy> lhs, absl::Span<const PTy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Div(absl::Span<const ATy> lhs, absl::Span<const PTy> rhs,
+                       bool cache = false);
 
   // PA evalutaion
-  std::vector<ATy> Add(absl::Span<const PTy> lhs, absl::Span<const ATy> rhs);
-  std::vector<ATy> Sub(absl::Span<const PTy> lhs, absl::Span<const ATy> rhs);
-  std::vector<ATy> Mul(absl::Span<const PTy> lhs, absl::Span<const ATy> rhs);
-  std::vector<ATy> Div(absl::Span<const PTy> lhs, absl::Span<const ATy> rhs);
+  std::vector<ATy> Add(absl::Span<const PTy> lhs, absl::Span<const ATy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Sub(absl::Span<const PTy> lhs, absl::Span<const ATy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Mul(absl::Span<const PTy> lhs, absl::Span<const ATy> rhs,
+                       bool cache = false);
+  std::vector<ATy> Div(absl::Span<const PTy> lhs, absl::Span<const ATy> rhs,
+                       bool cache = false);
 
   // convert
-  std::vector<PTy> A2P(absl::Span<const ATy> in);
-  std::vector<ATy> P2A(absl::Span<const PTy> in);
-  std::vector<MTy> A2M(absl::Span<const ATy> in);
-  std::vector<GTy> M2G(absl::Span<const MTy> in);
-  std::vector<GTy> A2G(absl::Span<const ATy> in);
+  std::vector<PTy> A2P(absl::Span<const ATy> in, bool cache = false);
+  std::vector<ATy> P2A(absl::Span<const PTy> in, bool cache = false);
+  std::vector<MTy> A2M(absl::Span<const ATy> in, bool cache = false);
+  std::vector<GTy> M2G(absl::Span<const MTy> in, bool cache = false);
+  std::vector<GTy> A2G(absl::Span<const ATy> in, bool cache = false);
 
   // others
-  std::vector<PTy> Inv(absl::Span<const PTy> in);
-  std::vector<PTy> Neg(absl::Span<const PTy> in);
-  std::vector<ATy> Inv(absl::Span<const ATy> in);
-  std::vector<ATy> Neg(absl::Span<const ATy> in);
+  std::vector<PTy> Inv(absl::Span<const PTy> in, bool cache = false);
+  std::vector<PTy> Neg(absl::Span<const PTy> in, bool cache = false);
+  std::vector<ATy> Inv(absl::Span<const ATy> in, bool cache = false);
+  std::vector<ATy> Neg(absl::Span<const ATy> in, bool cache = false);
 
   // special
-  std::vector<PTy> ZerosP(size_t num);
-  std::vector<PTy> RandP(size_t num);
-  std::vector<ATy> ZerosA(size_t num);
-  std::vector<ATy> RandA(size_t num);
-  std::vector<ATy> SetA(absl::Span<const PTy> in);
-  std::vector<ATy> GetA(size_t num);
+  std::vector<PTy> ZerosP(size_t num, bool cache = false);
+  std::vector<PTy> RandP(size_t num, bool cache = false);
+  std::vector<ATy> ZerosA(size_t num, bool cache = false);
+  std::vector<ATy> RandA(size_t num, bool cache = false);
+  std::vector<ATy> SetA(absl::Span<const PTy> in, bool cache = false);
+  std::vector<ATy> GetA(size_t num, bool cache = false);
   // Circuit Operation
-  std::vector<ATy> SumA(absl::Span<const ATy> in);
+  std::vector<ATy> SumA(absl::Span<const ATy> in, bool cache = false);
   // Filter
   std::vector<ATy> FilterA(absl::Span<const ATy> in,
-                           absl::Span<const size_t> indexes);
+                           absl::Span<const size_t> indexes,
+                           bool cache = false);
 
   // shuffle entry
-  std::vector<ATy> ShuffleA(absl::Span<const ATy> in);
-  std::vector<ATy> ShuffleASet(absl::Span<const ATy> in);
-  std::vector<ATy> ShuffleAGet(absl::Span<const ATy> in);
+  std::vector<ATy> ShuffleA(absl::Span<const ATy> in, bool cache = false);
+  std::vector<ATy> ShuffleASet(absl::Span<const ATy> in, bool cache = false);
+  std::vector<ATy> ShuffleAGet(absl::Span<const ATy> in, bool cache = false);
 
   // shuffle entry
   std::array<std::vector<ATy>, 2> ShuffleA(absl::Span<const ATy> in0,
-                                           absl::Span<const ATy> in1);
+                                           absl::Span<const ATy> in1,
+                                           bool cache = false);
   std::array<std::vector<ATy>, 2> ShuffleASet(absl::Span<const ATy> in0,
-                                              absl::Span<const ATy> in1);
+                                              absl::Span<const ATy> in1,
+                                              bool cache = false);
   std::array<std::vector<ATy>, 2> ShuffleAGet(absl::Span<const ATy> in0,
-                                              absl::Span<const ATy> in1);
+                                              absl::Span<const ATy> in1,
+                                              bool cache = false);
+  // ------ for fairness ------
+  std::vector<ATy> ZeroOneA(size_t num, bool cache = false);
+
+  std::pair<std::vector<ATy>, std::vector<ATy>> RandFairA(size_t num,
+                                                          bool cache = false);
+
+  std::vector<PTy> FairA2P(absl::Span<const ATy> in, absl::Span<const ATy> bits,
+                           bool cache = false);
+
+  std::vector<ATy> ScalarMulPA(const PTy& scalar, absl::Span<const ATy> in,
+                               bool cache = false);
+
+  std::vector<ATy> ScalarMulAP(const ATy& scalar, absl::Span<const PTy> in,
+                               bool cache = false);
+
+  std::vector<MTy> ScalarA2M(const ATy& scalar, absl::Span<const ATy> in,
+                             bool cache = false);
+
+  std::vector<GTy> ScalarA2G(const ATy& scalar, absl::Span<const ATy> in,
+                             bool cache = false);
 
   // circuit PSI entry
   std::vector<ATy> CPSI(absl::Span<const ATy> set0, absl::Span<const ATy> set1,
-                        absl::Span<const ATy> data);
+                        absl::Span<const ATy> data, bool cache = false);
+
+  std::vector<ATy> FairCPSI(absl::Span<const ATy> set0,
+                            absl::Span<const ATy> set1,
+                            absl::Span<const ATy> data, bool cache = false);
 };
 
 }  // namespace mcpsi

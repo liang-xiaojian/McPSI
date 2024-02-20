@@ -313,6 +313,7 @@ void OtHelper::BeaverTripleExtend(std::shared_ptr<Connection> conn,
 // ----------------
 //  Base Vole
 // ----------------
+
 void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
                             internal::PTy delta, absl::Span<internal::PTy> c) {
   const size_t num = c.size();

@@ -68,7 +68,7 @@ simple example (toy psi)
 ```sh
 bazel run -c opt //mcpsi/example:toy_psi # run toy psi // PoC
 bazel run -c opt //mcpsi/example:toy_mc_psi # run toy circuit psi (sum) // PoC
-bazel run -c opt //mcpsi/example:mc_psi -- --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --offline 0/1 # run malicious circuit psi (offline=0 for real cr and offline=1 for fake cr)
+bazel run -c opt //mcpsi/example:mc_psi -- --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --offline 0/1 --cache 0/1 # run malicious circuit psi (offline=0 for real cr and offline=1 for fake cr)(cache=0 for none correlation cache and cache=1 for correlation cache)
 ```
 
 mcpsi under socket network

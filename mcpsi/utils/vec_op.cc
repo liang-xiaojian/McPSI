@@ -1,6 +1,7 @@
 #include "mcpsi/utils/vec_op.h"
 
 #include "field.h"
+#include "yacl/math/mpint/mp_int.h"
 
 namespace mcpsi {
 
@@ -200,6 +201,19 @@ void op128::Div(absl::Span<const kFp128> lhs, absl::Span<const kFp128> rhs,
 void op128::Neg(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
   YACL_ENFORCE(in.size() == out.size());
   std::transform(in.begin(), in.end(), out.begin(), kFp128::Neg);
+}
+
+void op128::Sqrt(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
+  YACL_ENFORCE(in.size() == out.size());
+  auto mod = yacl::math::MPInt(Prime128);
+  auto power = yacl::math::MPInt((Prime128 + 1) >> 2);
+
+  std::transform(in.cbegin(), in.cend(), out.begin(), [&](const kFp128& val) {
+    auto tmp = yacl::math::MPInt(0);
+    yacl::math::MPInt::PowMod(yacl::math::MPInt(val.GetVal()), power, mod,
+                              &tmp);
+    return kFp128(tmp.Get<uint128_t>());
+  });
 }
 
 template <size_t N>

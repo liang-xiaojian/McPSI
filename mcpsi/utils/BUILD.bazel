@@ -25,6 +25,7 @@ mcpsi_cc_library(
     deps = [
         ":field",
         "@yacl//yacl/crypto/tools:prg",
+        "@yacl//yacl/math/mpint",
         "@yacl//yacl/crypto/utils:rand",
     ],
 )
