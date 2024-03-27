@@ -4,7 +4,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 SECRETFLOW_GIT = "https://github.com/secretflow"
 
-YACL_COMMIT_ID = "5feaa30e6a2ab3be5a01a7a4ee3c1613d11386d9"
+YACL_COMMIT_ID = "c33e02d10739d42a5f71ce7c78ae4bcbc97b11df"
 
 RULES_BOOST_COMMIT_ID = "1b6711875be9d90140e3c8e558667723bd4bed93"
 
@@ -15,7 +15,7 @@ def _yacl():
         git_repository,
         name = "yacl",
         commit = YACL_COMMIT_ID,
-        remote = "https://github.com/secretflow/yacl.git",
+        remote = "https://github.com/liang-xiaojian/yacl.git",
     )
 
 def _gmp():
@@ -37,9 +37,7 @@ def _boost():
         shallow_since = "1580416893 -0800",
     )
 
-def mcpsi_deps():
-    _yacl()
-   
+def _bazel_skylib():
     maybe(
         http_archive,
         name = "bazel_skylib",
@@ -50,8 +48,31 @@ def mcpsi_deps():
         ],
     )
 
-    _gmp()
+def _rules_python():
+    maybe(
+        http_archive,
+        name = "rules_python",
+        sha256 = "c68bdc4fbec25de5b5493b8819cfc877c4ea299c0dcb15c244c5a00208cde311",
+        strip_prefix = "rules_python-0.31.0",
+        url = "https://github.com/bazelbuild/rules_python/releases/download/0.31.0/rules_python-0.31.0.tar.gz",
+    )
 
+def _rules_pkg():
+    maybe(
+        http_archive,
+        name = "rules_pkg",
+        urls = [
+            "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.9.1/rules_pkg-0.9.1.tar.gz",
+            "https://github.com/bazelbuild/rules_pkg/releases/download/0.9.1/rules_pkg-0.9.1.tar.gz",
+        ],
+        sha256 = "8f9ee2dc10c1ae514ee599a8b42ed99fa262b757058f65ad3c384289ff70c4b8",
+    )
+
+def mcpsi_deps():
+    _yacl()
+    _bazel_skylib()
+    _rules_python()
+    _rules_pkg()
+    _gmp()
     _boost()
 
-    

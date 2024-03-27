@@ -12,6 +12,12 @@ load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
 
 boost_deps()
 
+load("@rules_python//python:repositories.bzl", "py_repositories")
+py_repositories()
+
+load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
+rules_pkg_dependencies()
+
 load(
     "@rules_foreign_cc//foreign_cc:repositories.bzl",
     "rules_foreign_cc_dependencies",
