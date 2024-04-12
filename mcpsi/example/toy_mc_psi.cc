@@ -7,6 +7,8 @@
 
 using namespace mcpsi;
 
+// Proof of Work (Malicious Circuit-PSI)
+
 auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
   auto context = MockContext(2);
   MockSetupContext(context);

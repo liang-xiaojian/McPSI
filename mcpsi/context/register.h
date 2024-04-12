@@ -9,7 +9,7 @@
 
 namespace mcpsi {
 
-void inline SetupContext(std::shared_ptr<Context> ctx, bool offline = true) {
+void inline SetupContext(std::shared_ptr<Context> ctx, bool CR_mode = false) {
   // Generate a same seed
   uint128_t seed = ctx->GetState<Connection>()->SyncSeed();
   // Shared Prg, all parities own a same Prg (with same seed)
@@ -20,7 +20,7 @@ void inline SetupContext(std::shared_ptr<Context> ctx, bool offline = true) {
   auto key = ctx->GetState<Protocol>()->GetKey();
   // Create Correlated Randomness Generator
   std::shared_ptr<Correlation> cr = nullptr;
-  if (offline) {
+  if (CR_mode) {
     auto true_cr = std::make_shared<TrueCorrelation>(ctx);
     cr = std::static_pointer_cast<Correlation>(true_cr);
   } else {

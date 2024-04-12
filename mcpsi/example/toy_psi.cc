@@ -7,6 +7,8 @@
 
 using namespace mcpsi;
 
+// Proof of Work (Malicious PSI)
+
 // return the set such that all elements "e"
 // satisyfing "e in set0" && "e in set1"
 std::vector<size_t> intersection(const std::shared_ptr<yc::EcGroup>& Ggroup,

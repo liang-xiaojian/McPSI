@@ -1,5 +1,6 @@
 #include <chrono>
 #include <future>
+#include <random>
 
 #include "llvm/Support/CommandLine.h"
 #include "mcpsi/context/register.h"
@@ -54,14 +55,17 @@ llvm::cl::opt<std::string> cl_parties(
     llvm::cl::desc("server list, format: host1:port1[,host2:port2, ...]"));
 llvm::cl::opt<uint32_t> cl_rank("rank", llvm::cl::init(0),
                                 llvm::cl::desc("self rank"));
-llvm::cl::opt<uint32_t> cl_offline(
-    "offline", llvm::cl::init(0),
-    llvm::cl::desc("0 for real offline, 1 for fake offline"));
-llvm::cl::opt<uint32_t> cl_cache("cache", llvm::cl::init(0),
-                                 llvm::cl::desc("0 for no cache, 1 for cache"));
+llvm::cl::opt<uint32_t> cl_CR(
+    "CR", llvm::cl::init(0),
+    llvm::cl::desc("0 for prg-based correlated randomness, 1 for real "
+                   "correlated randomness"));
+llvm::cl::opt<uint32_t> cl_cache(
+    "cache", llvm::cl::init(0),
+    llvm::cl::desc(
+        "0 for no cache, 1 for cache (pre-compute offline randomness)"));
 llvm::cl::opt<uint32_t> cl_fairness(
     "fairness", llvm::cl::init(0),
-    llvm::cl::desc("0 for no fairness, 1 for fairness"));
+    llvm::cl::desc("0 for no fairness, 1 for fairness (DY-PRF)"));
 llvm::cl::opt<uint32_t> cl_mode(
     "mode", llvm::cl::init(0),
     llvm::cl::desc("0 for memory mode, 1 for socket mode"));
@@ -73,31 +77,39 @@ llvm::cl::opt<uint32_t> cl_interset_size(
     "interset", llvm::cl::init(1000),
     llvm::cl::desc("the size of intersection"));
 
+// Malicious Circuit PSI
+// set0     --> Party0's set
+// set1     --> Party1's set
+// val1     --> Party1's value
+// offline  --> true for Real Correlated Randomness
+// cache    --> pre-compute correlated randomness or not
+// fairness --> true for fair DY-PRF, false for DY-PRF
 auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
             absl::Span<PTy> set0, absl::Span<PTy> set1, absl::Span<PTy> val1,
-            bool offline = true, bool cache = true, bool fairness = false) {
+            bool CR_mode = false, bool cache = true, bool fairness = false) {
   auto rank = lctx->Rank();
 
   if (rank == 0) {
     SPDLOG_INFO(
         "[P{}] having set0 (with size {}), working mode: {} && {} && {}", rank,
         set0.size(),
-        (offline ? std::string("Real Correlation")
-                 : std::string("Fake Correlation")),
+        (CR_mode ? std::string("Real Correlated Randomness")
+                 : std::string("Fake Correlated Randomness")),
         (cache ? std::string("Cache") : std::string("No Cache")),
         (fairness ? std::string("Fairness") : std::string("No Fairness")));
   } else {
     SPDLOG_INFO(
         "[P{}] having set1 && data (with size {}), working mode: {} & {} & {}",
         rank, set1.size(),
-        (offline ? std::string("Real Correlation")
-                 : std::string("Fake Correlation")),
+        (CR_mode ? std::string("Real Correlated Randomness")
+                 : std::string("Fake Correlated Randomness")),
         (cache ? std::string("Cache") : std::string("No Cache")),
         (fairness ? std::string("Fairness") : std::string("No Fairness")));
   }
   SPDLOG_INFO("[P{}] Initializing Context", rank);
+
   auto context = std::make_shared<Context>(lctx);
-  SetupContext(context, offline);
+  SetupContext(context, CR_mode);
   auto prot = context->GetState<Protocol>();
 
   // G-group
@@ -116,6 +128,9 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   // TIMER_END(timer_name);
   // TIMER_PRINT(timer_name);
 
+  // For your information, "cache mode" would try to pre-compute the correlated
+  // randomness for Circuit-PSI
+  // --- BEGIN CACHE ---
   if (cache) {
     std::vector<PTy> empty_set0(set0.size());
     std::vector<PTy> empty_set1(set1.size());
@@ -150,6 +165,7 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
     context->GetState<Correlation>()->force_cache();
     SPDLOG_INFO("[P{}] cache all finished!", rank);
   }
+  // --- END CACHE ---
 
   SPDLOG_INFO("[P{}] uploading data", rank);
   auto share0 = (rank == 0 ? prot->SetA(set0) : prot->GetA(set0.size()));
@@ -224,7 +240,7 @@ struct ArgPack {
   uint32_t size0;
   uint32_t size1;
   uint32_t interset_size;
-  uint32_t offline;
+  uint32_t CR_mode;
   uint32_t cache;
   uint32_t fairness;
   uint128_t seed;
@@ -232,17 +248,17 @@ struct ArgPack {
   bool operator==(const ArgPack& other) const {
     return (size0 == other.size0) && (size1 == other.size1) &&
            (interset_size == other.interset_size) &&
-           (offline == other.offline) && (cache == other.cache);
+           (CR_mode == other.CR_mode) && (cache == other.cache);
   }
 
   bool operator!=(const ArgPack& other) const { return !(*this == other); }
 };
 
 bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
-              uint32_t size1, uint32_t interset_size, uint32_t offline,
+              uint32_t size1, uint32_t interset_size, uint32_t CR_mode,
               uint32_t cache, uint32_t fairness, uint128_t& seed) {
   uint128_t tmp_seed = yacl::crypto::SecureRandU128();
-  ArgPack tmp = {size0, size1,    interset_size, offline,
+  ArgPack tmp = {size0, size1,    interset_size, CR_mode,
                  cache, fairness, tmp_seed};
   auto bv = yacl::ByteContainerView(&tmp, sizeof(tmp));
 
@@ -284,7 +300,7 @@ int main(int argc, char** argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
   bool mem_mode = cl_mode.getValue() == 0;
-  bool offline = cl_offline.getValue();
+  bool CR_mode = cl_CR.getValue();
   bool cache = cl_cache.getValue();
   bool fairness = cl_fairness.getValue();
 
@@ -321,11 +337,11 @@ int main(int argc, char** argv) {
     auto lctxs = SetupWorld(2);
     auto task0 = std::async([&] {
       return mc_psi(lctxs[0], absl::MakeSpan(key0), absl::MakeSpan(key1),
-                    absl::MakeSpan(data), offline == 0, cache, fairness);
+                    absl::MakeSpan(data), CR_mode, cache, fairness);
     });
     auto task1 = std::async([&] {
       return mc_psi(lctxs[1], absl::MakeSpan(key0), absl::MakeSpan(key1),
-                    absl::MakeSpan(data), offline == 0, cache, fairness);
+                    absl::MakeSpan(data), CR_mode, cache, fairness);
     });
     auto result0 = task0.get();
     auto result1 = task1.get();
@@ -334,18 +350,25 @@ int main(int argc, char** argv) {
   } else {
     auto lctx = MakeLink(cl_parties.getValue(), cl_rank.getValue());
     uint128_t seed = 0;
-    YACL_ENFORCE(SyncTask(lctx, size0, size1, interset_size, offline, cache,
+    YACL_ENFORCE(SyncTask(lctx, size0, size1, interset_size, CR_mode, cache,
                           fairness, seed));
     auto interset = OP::Rand(seed, interset_size);
     auto key0 = OP::Rand(size0);
     auto key1 = OP::Rand(size1);
     auto data = OP::Ones(size1);
 
-    memcpy(key0.data(), interset.data(), interset.size() * sizeof(PTy));
-    memcpy(key1.data(), interset.data(), interset.size() * sizeof(PTy));
+    std::random_device rd;
+    std::mt19937 g(rd());
+    if (lctx->Rank() == 0) {
+      memcpy(key0.data(), interset.data(), interset.size() * sizeof(PTy));
+      std::shuffle(key0.begin(), key0.end(), g);
+    } else {
+      memcpy(key1.data(), interset.data(), interset.size() * sizeof(PTy));
+      std::shuffle(key1.begin(), key1.end(), g);
+    }
 
     auto res = mc_psi(lctx, absl::MakeSpan(key0), absl::MakeSpan(key1),
-                      absl::MakeSpan(data), offline == 0, cache, fairness);
+                      absl::MakeSpan(data), CR_mode, cache, fairness);
     std::cout << "P" << cl_rank.getValue() << " result (sum): " << res[0]
               << std::endl;
   }
