@@ -15,7 +15,7 @@ namespace {
 // https://eprint.iacr.org/2016/505.pdf
 // MASCOT
 constexpr size_t kExtFactor = 3;
-}  // namespace
+} // namespace
 
 // ---------------------
 //  Basic Beaver Triple
@@ -33,7 +33,7 @@ void OtHelper::MulPPSend(std::shared_ptr<Connection> conn,
   internal::op::Rand(absl::MakeSpan(b));
 
   std::vector<std::array<uint128_t, 2>> ot_send_msgs(ot_num);
-  ot_sender_->send_rot(absl::MakeSpan(ot_send_msgs));  // rot
+  ot_sender_->send_rot(absl::MakeSpan(ot_send_msgs)); // rot
 
   // Convert ROT to additive-COT
   auto send_msgs = std::vector<internal::PTy>(ot_num);
@@ -75,7 +75,7 @@ void OtHelper::MulPPRecv(std::shared_ptr<Connection> conn,
   // ot num = num * bits of Public Type
   const size_t ot_num = num * PTy_bits;
 
-  internal::op::Rand(a);  // rand a
+  internal::op::Rand(a); // rand a
   auto choices = yacl::dynamic_bitset<uint128_t>(ot_num);
   memcpy(choices.data(), a.data(), num * sizeof(internal::PTy));
 
@@ -143,7 +143,7 @@ void OtHelper::MulPPExtendSend(std::shared_ptr<Connection> conn,
   internal::op::Rand(absl::MakeSpan(b));
 
   std::vector<std::array<uint128_t, 2>> ot_send_msgs(ot_num);
-  ot_sender_->send_rot(absl::MakeSpan(ot_send_msgs));  // rot
+  ot_sender_->send_rot(absl::MakeSpan(ot_send_msgs)); // rot
 
   // Convert ROT to additive-COT
   auto send_msgs = std::vector<internal::PTy>(ot_num);
@@ -375,6 +375,8 @@ void OtHelper::BaseVoleSend(std::shared_ptr<Connection> conn,
   auto buf = conn->Recv(conn->NextRank(), "MalBaseVole");
   auto extra_ab =
       absl::MakeSpan(reinterpret_cast<internal::PTy *>(buf.data()), 2);
+  SPDLOG_INFO("{} v.s. {}", (extra_ab[0] * delta + extra_ab[1]).GetVal(),
+              extra_c.GetVal());
   YACL_ENFORCE(extra_ab[0] * delta + extra_ab[1] == extra_c);
   // ---- consistency check ----
 }
@@ -390,7 +392,7 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
   // ot num = ext_num * bits of Public Type
   const size_t ot_num = ext_num * PTy_bits;
 
-  auto ext_a = internal::op::Rand(ext_num);  // rand a
+  auto ext_a = internal::op::Rand(ext_num); // rand a
   auto choices = yacl::dynamic_bitset<uint128_t>(ot_num);
   memcpy(a.data(), ext_a.data(), num * sizeof(internal::PTy));
   memcpy(choices.data(), ext_a.data(), ext_num * sizeof(internal::PTy));
@@ -414,7 +416,7 @@ void OtHelper::BaseVoleRecv(std::shared_ptr<Connection> conn,
   }
 
   // ---- consistency check ----
-  std::array<internal::PTy, 2> extra_ab;  // extra_a && extra_b
+  std::array<internal::PTy, 2> extra_ab; // extra_a && extra_b
   extra_ab[0] = ext_a[num];
   extra_ab[1] = internal::PTy::Zero();
   {
@@ -455,4 +457,4 @@ void OtHelper::ShuffleRecv(std::shared_ptr<Connection> conn,
   shuffle::ShuffleRecv(conn, ot_sender_, a, b, repeat);
 }
 
-}  // namespace mcpsi::ot
+} // namespace mcpsi::ot

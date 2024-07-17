@@ -40,6 +40,7 @@ mcpsi_cc_binary(
         "@yacl//yacl/base:int128",
         "@yacl//yacl/link",
         "@yacl//yacl/utils:serialize",
+        "@yacl//yacl/utils:parallel",
         "@llvm-project//llvm:Support",
         "@com_google_absl//absl/strings",
     ],

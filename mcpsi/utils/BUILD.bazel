@@ -27,6 +27,7 @@ mcpsi_cc_library(
         "@yacl//yacl/crypto/tools:prg",
         "@yacl//yacl/math/mpint",
         "@yacl//yacl/crypto/utils:rand",
+        "@yacl//yacl/utils:parallel",
     ],
 )
 
