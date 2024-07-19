@@ -14,7 +14,7 @@ std::vector<MTy> A2M(std::shared_ptr<Context> &ctx, absl::Span<const ATy> in) {
 
   auto prot = ctx->GetState<Protocol>();
   // auto prf_g = prot->GetPrfG();  // generator for PRF
-  auto prf_k = prot->GetPrfK(); // distributed key for PRF (A-share)
+  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
   auto Ggroup = prot->GetGroup();
   auto ext_k = std::vector<ATy>(num, prf_k);
   // in + k
@@ -55,7 +55,7 @@ std::vector<MTy> ScalarA2M(std::shared_ptr<Context> &ctx, const ATy &scalar,
 
   auto prot = ctx->GetState<Protocol>();
   // auto prf_g = prot->GetPrfG();  // generator for PRF
-  auto prf_k = prot->GetPrfK(); // distributed key for PRF (A-share)
+  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
   auto Ggroup = prot->GetGroup();
   auto ext_k = std::vector<ATy>(num, prf_k);
   // in + k
@@ -173,8 +173,8 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   auto sync_seed = conn->SyncSeed();
   auto coef = op::Rand(sync_seed, num);
 
-  GTy real_val_affine = Ggroup->CopyPoint(prf_zero); // zero
-  GTy mac_affine = Ggroup->CopyPoint(prf_zero);      // zero
+  GTy real_val_affine = Ggroup->CopyPoint(prf_zero);  // zero
+  GTy mac_affine = Ggroup->CopyPoint(prf_zero);       // zero
 
   // compute the linear combination by hand
   // for (size_t i = 0; i < num; ++i) {
@@ -184,6 +184,35 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   //   auto tmp_mac = Ggroup->Mul(in[i].mac, ym::MPInt(coef[i].GetVal()));
   //   mac_affine = Ggroup->Add(mac_affine, tmp_mac);
   // }
+
+  // [Warning] Low Efficency??? Why
+  //
+  // auto [real_val_affine, mac_affine] = yacl::parallel_reduce<
+  //     std::pair<GTy, GTy>,
+  //     std::function<std::pair<GTy, GTy>(uint64_t, uint64_t)>,
+  //     std::function<std::pair<GTy, GTy>(const std::pair<GTy, GTy> &,
+  //                                       const std::pair<GTy, GTy> &)>>(
+  //     0, num, 256,
+  //     [&](uint64_t bg, uint64_t ed) {
+  //       auto real_val_affine = Ggroup->CopyPoint(prf_zero);
+  //       auto mac_affine = Ggroup->CopyPoint(prf_zero);
+
+  //       for (auto i = bg; i < ed; ++i) {
+  //         auto mp_ceof_i = ym::MPInt(coef[i].GetVal());
+  //         auto tmp_val = Ggroup->Mul(ret[i], mp_ceof_i);
+  //         auto tmp_mac = Ggroup->Mul(in[i].mac, mp_ceof_i);
+
+  //         Ggroup->AddInplace(&real_val_affine, tmp_val);
+  //         Ggroup->AddInplace(&mac_affine, tmp_mac);
+  //       }
+  //       return std::make_pair(real_val_affine, mac_affine);
+  //     },
+  //     [&Ggroup](const std::pair<GTy, GTy> &lhs,
+  //               const std::pair<GTy, GTy> &rhs) {
+  //       auto first = Ggroup->Add(lhs.first, rhs.first);
+  //       auto second = Ggroup->Add(lhs.second, rhs.second);
+  //       return std::make_pair(first, second);
+  //     });
 
   size_t num_threads = yacl::get_num_threads();
   std::vector<GTy> real_val_affine_vec(2 * num_threads);
@@ -397,4 +426,4 @@ std::vector<ATy> FairCPSI_cache(std::shared_ptr<Context> &ctx,
   return selected_data;
 }
 
-} // namespace mcpsi::internal
+}  // namespace mcpsi::internal

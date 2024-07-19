@@ -7,6 +7,7 @@
 #include "mcpsi/utils/field.h"
 #include "yacl/crypto/tools/prg.h"
 #include "yacl/crypto/utils/rand.h"
+#include "yacl/utils/parallel.h"
 
 namespace mcpsi {
 
@@ -321,11 +322,19 @@ class op128 {
                              absl::Span<const kFp128> rhs) {
     YACL_ENFORCE(lhs.size() == rhs.size());
     const size_t size = lhs.size();
-    kFp128 ret = kFp128::Zero();
-    for (uint32_t i = 0; i < size; ++i) {
-      ret = ret + (lhs[i] * rhs[i]);
-    }
-    return ret;
+
+    return yacl::parallel_reduce<
+        kFp128, std::function<kFp128(uint64_t, uint64_t)>,
+        std::function<kFp128(const kFp128&, const kFp128&)>>(
+        0, size, 4096,
+        [&](uint64_t bg, uint64_t ed) {
+          kFp128 ret = kFp128::Zero();
+          for (auto i = bg; i < ed; ++i) {
+            ret = ret + (lhs[i] * rhs[i]);
+          }
+          return ret;
+        },
+        kFp128::Add);
   }
 
 };  // namespace vec128
