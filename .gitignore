@@ -17,6 +17,11 @@ compile_commands.json
 .clangd
 Pipfile
 
+# benchmark cache
+2024*/
+bench* 
+*.sh
+
 # python-package
 /dist
 *.egg-info

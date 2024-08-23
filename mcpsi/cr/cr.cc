@@ -86,12 +86,14 @@ void Correlation::force_cache(size_t beaver_num, size_t rand_set_num,
                               const std::vector<uint64_t>& shuffle_get_shape) {
   cache_ = std::make_unique<CorrelationCache>();
   // beaver
-  {
+  if (beaver_num != 0) {
     cache_->beaver_cache = BeaverTy(beaver_num);
     auto& a = cache_->beaver_cache.a;
     auto& b = cache_->beaver_cache.b;
     auto& c = cache_->beaver_cache.c;
     BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
+  } else {
+    SPDLOG_DEBUG("BEAVER NUM is zero, skip it");
   }
   // random
   {

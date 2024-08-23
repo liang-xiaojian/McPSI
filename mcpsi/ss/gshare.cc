@@ -5,10 +5,11 @@
 #include "mcpsi/ss/protocol.h"
 #include "yacl/base/byte_container_view.h"
 #include "yacl/math/mpint/mp_int.h"
+#include "yacl/utils/parallel.h"
 
 namespace mcpsi::internal {
 
-std::vector<MTy> A2M(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
+std::vector<MTy> A2M(std::shared_ptr<Context> &ctx, absl::Span<const ATy> in) {
   const size_t num = in.size();
 
   auto prot = ctx->GetState<Protocol>();
@@ -23,14 +24,22 @@ std::vector<MTy> A2M(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
 
   auto ret = std::vector<MTy>(num);
   // Unpack by hand
-  for (size_t i = 0; i < num; ++i) {
-    ret[i].val = Ggroup->MulBase(ym::MPInt(inv[i].val.GetVal()));
-    ret[i].mac = Ggroup->MulBase(ym::MPInt(inv[i].mac.GetVal()));
-  }
+
+  yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
+    for (auto i = bg; i < ed; ++i) {
+      ret[i].val = Ggroup->MulBase(ym::MPInt(inv[i].val.GetVal()));
+      ret[i].mac = Ggroup->MulBase(ym::MPInt(inv[i].mac.GetVal()));
+    }
+  });
+
+  // for (size_t i = 0; i < num; ++i) {
+  //   ret[i].val = Ggroup->MulBase(ym::MPInt(inv[i].val.GetVal()));
+  //   ret[i].mac = Ggroup->MulBase(ym::MPInt(inv[i].mac.GetVal()));
+  // }
   return ret;
 }
 
-std::vector<MTy> A2M_cache(std::shared_ptr<Context>& ctx,
+std::vector<MTy> A2M_cache(std::shared_ptr<Context> &ctx,
                            absl::Span<const ATy> in) {
   const size_t num = in.size();
 
@@ -40,7 +49,7 @@ std::vector<MTy> A2M_cache(std::shared_ptr<Context>& ctx,
   return std::vector<MTy>(num);
 }
 
-std::vector<MTy> ScalarA2M(std::shared_ptr<Context>& ctx, const ATy& scalar,
+std::vector<MTy> ScalarA2M(std::shared_ptr<Context> &ctx, const ATy &scalar,
                            absl::Span<const ATy> in) {
   const size_t num = in.size();
 
@@ -66,15 +75,23 @@ std::vector<MTy> ScalarA2M(std::shared_ptr<Context>& ctx, const ATy& scalar,
 
   auto ret = std::vector<MTy>(num);
   // Unpack by hand
-  for (size_t i = 0; i < num; ++i) {
-    ret[i].val = Ggroup->MulBase(ym::MPInt(scalar_inv[i].val.GetVal()));
-    ret[i].mac = Ggroup->MulBase(ym::MPInt(scalar_inv[i].mac.GetVal()));
-  }
+
+  yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
+    for (auto i = bg; i < ed; ++i) {
+      ret[i].val = Ggroup->MulBase(ym::MPInt(scalar_inv[i].val.GetVal()));
+      ret[i].mac = Ggroup->MulBase(ym::MPInt(scalar_inv[i].mac.GetVal()));
+    }
+  });
+
+  // for (size_t i = 0; i < num; ++i) {
+  //   ret[i].val = Ggroup->MulBase(ym::MPInt(scalar_inv[i].val.GetVal()));
+  //   ret[i].mac = Ggroup->MulBase(ym::MPInt(scalar_inv[i].mac.GetVal()));
+  // }
   return ret;
 }
 
-std::vector<MTy> ScalarA2M_cache(std::shared_ptr<Context>& ctx,
-                                 const ATy& scalar, absl::Span<const ATy> in) {
+std::vector<MTy> ScalarA2M_cache(std::shared_ptr<Context> &ctx,
+                                 const ATy &scalar, absl::Span<const ATy> in) {
   const size_t num = in.size();
 
   auto ext_k = std::vector<ATy>(num);
@@ -96,7 +113,7 @@ std::vector<MTy> ScalarA2M_cache(std::shared_ptr<Context>& ctx,
   return std::vector<MTy>(num);
 }
 
-std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
+std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   const size_t num = in.size();
   auto spdz_key = ctx->GetState<Protocol>()->GetKey();
 
@@ -110,33 +127,49 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
   auto GTy_size =
       Ggroup->GetSerializeLength(yc::PointOctetFormat::X962Compressed);
   yacl::Buffer send_buf = yacl::Buffer(GTy_size * num);
-  for (size_t i = 0; i < num; ++i) {
-    Ggroup->SerializePoint(in[i].val, yc::PointOctetFormat::X962Compressed,
-                           send_buf.data<uint8_t>() + i * GTy_size, GTy_size);
-  }
+
+  yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
+    for (auto i = bg; i < ed; ++i) {
+      Ggroup->SerializePoint(in[i].val, yc::PointOctetFormat::X962Compressed,
+                             send_buf.data<uint8_t>() + i * GTy_size, GTy_size);
+    }
+  });
+  // for (size_t i = 0; i < num; ++i) {
+  //   Ggroup->SerializePoint(in[i].val, yc::PointOctetFormat::X962Compressed,
+  //                          send_buf.data<uint8_t>() + i * GTy_size,
+  //                          GTy_size);
+  // }
 
   auto conn = ctx->GetConnection();
+  yacl::Buffer buf;
+
   if (ctx->GetRank() == 0) {
     conn->SendAsync(ctx->NextRank(), send_buf, "M2G:0");
-    auto buf = conn->Recv(ctx->NextRank(), "M2G:1");
+    buf = conn->Recv(ctx->NextRank(), "M2G:1");
     YACL_ENFORCE(buf.size() == send_buf.size());
-    for (size_t i = 0; i < num; ++i) {
-      ret[i] = Ggroup->Add(in[i].val,
-                           Ggroup->DeserializePoint(
-                               {buf.data<uint8_t>() + i * GTy_size, GTy_size},
-                               yc::PointOctetFormat::X962Compressed));
-    }
   } else {
-    auto buf = conn->Recv(ctx->NextRank(), "M2G:0");
+    buf = conn->Recv(ctx->NextRank(), "M2G:0");
     conn->SendAsync(ctx->NextRank(), send_buf, "M2G:1");
     YACL_ENFORCE(buf.size() == send_buf.size());
-    for (size_t i = 0; i < num; ++i) {
-      ret[i] = Ggroup->Add(in[i].val,
-                           Ggroup->DeserializePoint(
-                               {buf.data<uint8_t>() + i * GTy_size, GTy_size},
-                               yc::PointOctetFormat::X962Compressed));
-    }
   }
+
+  yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
+    for (auto i = bg; i < ed; ++i) {
+      ret[i] = Ggroup->DeserializePoint(
+          {buf.data<uint8_t>() + i * GTy_size, GTy_size},
+          yc::PointOctetFormat::X962Compressed);
+      Ggroup->AddInplace(&ret[i], in[i].val);
+    }
+  });
+
+  // for (size_t i = 0; i < num; ++i) {
+  //   ret[i] =
+  //       Ggroup->DeserializePoint({buf.data<uint8_t>() + i * GTy_size,
+  //       GTy_size},
+  //                                yc::PointOctetFormat::X962Compressed);
+  //   Ggroup->AddInplace(&ret[i], in[i].val);
+  // }
+
   auto sync_seed = conn->SyncSeed();
   auto coef = op::Rand(sync_seed, num);
 
@@ -144,12 +177,73 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
   GTy mac_affine = Ggroup->CopyPoint(prf_zero);       // zero
 
   // compute the linear combination by hand
-  for (size_t i = 0; i < num; ++i) {
-    auto tmp_val = Ggroup->Mul(ret[i], ym::MPInt(coef[i].GetVal()));
-    real_val_affine = Ggroup->Add(real_val_affine, tmp_val);
+  // for (size_t i = 0; i < num; ++i) {
+  //   auto tmp_val = Ggroup->Mul(ret[i], ym::MPInt(coef[i].GetVal()));
+  //   real_val_affine = Ggroup->Add(real_val_affine, tmp_val);
 
-    auto tmp_mac = Ggroup->Mul(in[i].mac, ym::MPInt(coef[i].GetVal()));
-    mac_affine = Ggroup->Add(mac_affine, tmp_mac);
+  //   auto tmp_mac = Ggroup->Mul(in[i].mac, ym::MPInt(coef[i].GetVal()));
+  //   mac_affine = Ggroup->Add(mac_affine, tmp_mac);
+  // }
+
+  // [Warning] Low Efficency??? Why
+  //
+  // auto [real_val_affine, mac_affine] = yacl::parallel_reduce<
+  //     std::pair<GTy, GTy>,
+  //     std::function<std::pair<GTy, GTy>(uint64_t, uint64_t)>,
+  //     std::function<std::pair<GTy, GTy>(const std::pair<GTy, GTy> &,
+  //                                       const std::pair<GTy, GTy> &)>>(
+  //     0, num, 256,
+  //     [&](uint64_t bg, uint64_t ed) {
+  //       auto real_val_affine = Ggroup->CopyPoint(prf_zero);
+  //       auto mac_affine = Ggroup->CopyPoint(prf_zero);
+
+  //       for (auto i = bg; i < ed; ++i) {
+  //         auto mp_ceof_i = ym::MPInt(coef[i].GetVal());
+  //         auto tmp_val = Ggroup->Mul(ret[i], mp_ceof_i);
+  //         auto tmp_mac = Ggroup->Mul(in[i].mac, mp_ceof_i);
+
+  //         Ggroup->AddInplace(&real_val_affine, tmp_val);
+  //         Ggroup->AddInplace(&mac_affine, tmp_mac);
+  //       }
+  //       return std::make_pair(real_val_affine, mac_affine);
+  //     },
+  //     [&Ggroup](const std::pair<GTy, GTy> &lhs,
+  //               const std::pair<GTy, GTy> &rhs) {
+  //       auto first = Ggroup->Add(lhs.first, rhs.first);
+  //       auto second = Ggroup->Add(lhs.second, rhs.second);
+  //       return std::make_pair(first, second);
+  //     });
+
+  size_t num_threads = yacl::get_num_threads();
+  std::vector<GTy> real_val_affine_vec(2 * num_threads);
+  std::vector<GTy> mac_affine_vec(2 * num_threads);
+  // init
+  for (size_t i = 0; i < 2 * num_threads; ++i) {
+    real_val_affine_vec[i] = Ggroup->CopyPoint(prf_zero);
+    mac_affine_vec[i] = Ggroup->CopyPoint(prf_zero);
+  }
+
+  yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
+    auto size = ed - bg;
+    auto offset = bg / size;
+
+    auto val_affine_addr = &real_val_affine_vec[offset];
+    auto mac_affine_addr = &mac_affine_vec[offset];
+    for (auto i = bg; i < ed; ++i) {
+      auto mp_ceof_i = ym::MPInt(coef[i].GetVal());
+      auto tmp_val = Ggroup->Mul(ret[i], mp_ceof_i);
+      auto tmp_mac = Ggroup->Mul(in[i].mac, mp_ceof_i);
+
+      Ggroup->AddInplace(val_affine_addr, tmp_val);
+      Ggroup->AddInplace(mac_affine_addr, tmp_mac);
+    }
+  });
+
+  for (size_t i = 0; i < 2 * num_threads; ++i) {
+    if (!Ggroup->PointEqual(prf_zero, real_val_affine_vec[i])) {
+      Ggroup->AddInplace(&real_val_affine, real_val_affine_vec[i]);
+      Ggroup->AddInplace(&mac_affine, mac_affine_vec[i]);
+    }
   }
 
   auto local_mac_GTy =
@@ -172,32 +266,32 @@ std::vector<GTy> M2G(std::shared_ptr<Context>& ctx, absl::Span<const MTy> in) {
   return ret;
 }
 
-std::vector<GTy> M2G_cache([[maybe_unused]] std::shared_ptr<Context>& ctx,
+std::vector<GTy> M2G_cache([[maybe_unused]] std::shared_ptr<Context> &ctx,
                            absl::Span<const MTy> in) {
   const size_t num = in.size();
   return std::vector<GTy>(num);
 }
 
 // trival, since A2G = M2G( A2M )
-std::vector<GTy> A2G(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
+std::vector<GTy> A2G(std::shared_ptr<Context> &ctx, absl::Span<const ATy> in) {
   auto in_m = A2M(ctx, in);
   return M2G(ctx, in_m);
 }
 
-std::vector<GTy> A2G_cache(std::shared_ptr<Context>& ctx,
+std::vector<GTy> A2G_cache(std::shared_ptr<Context> &ctx,
                            absl::Span<const ATy> in) {
   auto in_m = A2M_cache(ctx, in);
   return M2G_cache(ctx, in_m);
 }
 
-std::vector<GTy> ScalarA2G(std::shared_ptr<Context>& ctx, const ATy& scalar,
+std::vector<GTy> ScalarA2G(std::shared_ptr<Context> &ctx, const ATy &scalar,
                            absl::Span<const ATy> in) {
   auto in_m = ScalarA2M(ctx, scalar, in);
   return M2G(ctx, in_m);
 }
 
-std::vector<GTy> ScalarA2G_cache(std::shared_ptr<Context>& ctx,
-                                 const ATy& scalar, absl::Span<const ATy> in) {
+std::vector<GTy> ScalarA2G_cache(std::shared_ptr<Context> &ctx,
+                                 const ATy &scalar, absl::Span<const ATy> in) {
   auto in_m = ScalarA2M_cache(ctx, scalar, in);
   return M2G_cache(ctx, in_m);
 }
@@ -207,7 +301,7 @@ std::vector<GTy> ScalarA2G_cache(std::shared_ptr<Context>& ctx,
 //   return std::vector<GTy>(in.size());
 // }
 
-std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
+std::vector<ATy> CPSI(std::shared_ptr<Context> &ctx, absl::Span<const ATy> set0,
                       absl::Span<const ATy> set1, absl::Span<const ATy> data) {
   YACL_ENFORCE(set1.size() == data.size());
   auto prot = ctx->GetState<Protocol>();
@@ -215,16 +309,16 @@ std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
 
   auto shuffle0 = ShuffleA(ctx, set0);
   auto _shuffle_tmp = ShuffleA(ctx, set1, data);
-  auto& shuffle1 = _shuffle_tmp[0];
-  auto& shuffle_data = _shuffle_tmp[1];
+  auto &shuffle1 = _shuffle_tmp[0];
+  auto &shuffle_data = _shuffle_tmp[1];
 
   auto reveal0 = A2G(ctx, shuffle0);
   auto reveal1 = A2G(ctx, shuffle1);
 
-  auto group_hash = [&Ggroup](const GTy& val) {
+  auto group_hash = [&Ggroup](const GTy &val) {
     return Ggroup->HashPoint(val);
   };
-  auto group_equal = [&Ggroup](const GTy& lhs, const GTy& rhs) {
+  auto group_equal = [&Ggroup](const GTy &lhs, const GTy &rhs) {
     return Ggroup->PointEqual(lhs, rhs);
   };
 
@@ -243,7 +337,7 @@ std::vector<ATy> CPSI(std::shared_ptr<Context>& ctx, absl::Span<const ATy> set0,
   return selected_data;
 }
 
-std::vector<ATy> CPSI_cache(std::shared_ptr<Context>& ctx,
+std::vector<ATy> CPSI_cache(std::shared_ptr<Context> &ctx,
                             absl::Span<const ATy> set0,
                             absl::Span<const ATy> set1,
                             absl::Span<const ATy> data) {
@@ -251,8 +345,8 @@ std::vector<ATy> CPSI_cache(std::shared_ptr<Context>& ctx,
 
   auto shuffle0 = ShuffleA_cache(ctx, set0);
   auto _shuffle_tmp = ShuffleA_cache(ctx, set1, data);
-  auto& shuffle1 = _shuffle_tmp[0];
-  auto& shuffle_data = _shuffle_tmp[1];
+  auto &shuffle1 = _shuffle_tmp[0];
+  auto &shuffle_data = _shuffle_tmp[1];
 
   [[maybe_unused]] auto reveal0 = A2G_cache(ctx, shuffle0);
   [[maybe_unused]] auto reveal1 = A2G_cache(ctx, shuffle1);
@@ -264,7 +358,7 @@ std::vector<ATy> CPSI_cache(std::shared_ptr<Context>& ctx,
   return selected_data;
 }
 
-std::vector<ATy> FairCPSI(std::shared_ptr<Context>& ctx,
+std::vector<ATy> FairCPSI(std::shared_ptr<Context> &ctx,
                           absl::Span<const ATy> set0,
                           absl::Span<const ATy> set1,
                           absl::Span<const ATy> data) {
@@ -274,8 +368,8 @@ std::vector<ATy> FairCPSI(std::shared_ptr<Context>& ctx,
 
   auto shuffle0 = ShuffleA(ctx, set0);
   auto _shuffle_tmp = ShuffleA(ctx, set1, data);
-  auto& shuffle1 = _shuffle_tmp[0];
-  auto& shuffle_data = _shuffle_tmp[1];
+  auto &shuffle1 = _shuffle_tmp[0];
+  auto &shuffle_data = _shuffle_tmp[1];
 
   auto [scalar_a, bits] = RandFairA(ctx, 1);
   auto reveal0 = ScalarA2G(ctx, scalar_a[0], shuffle0);
@@ -287,10 +381,10 @@ std::vector<ATy> FairCPSI(std::shared_ptr<Context>& ctx,
     Ggroup->MulInplace(&reveal1[i], scalar_mp);
   }
 
-  auto group_hash = [&Ggroup](const GTy& val) {
+  auto group_hash = [&Ggroup](const GTy &val) {
     return Ggroup->HashPoint(val);
   };
-  auto group_equal = [&Ggroup](const GTy& lhs, const GTy& rhs) {
+  auto group_equal = [&Ggroup](const GTy &lhs, const GTy &rhs) {
     return Ggroup->PointEqual(lhs, rhs);
   };
 
@@ -309,7 +403,7 @@ std::vector<ATy> FairCPSI(std::shared_ptr<Context>& ctx,
   return selected_data;
 }
 
-std::vector<ATy> FairCPSI_cache(std::shared_ptr<Context>& ctx,
+std::vector<ATy> FairCPSI_cache(std::shared_ptr<Context> &ctx,
                                 absl::Span<const ATy> set0,
                                 absl::Span<const ATy> set1,
                                 absl::Span<const ATy> data) {
@@ -317,8 +411,8 @@ std::vector<ATy> FairCPSI_cache(std::shared_ptr<Context>& ctx,
 
   auto shuffle0 = ShuffleA_cache(ctx, set0);
   auto _shuffle_tmp = ShuffleA_cache(ctx, set1, data);
-  auto& shuffle1 = _shuffle_tmp[0];
-  auto& shuffle_data = _shuffle_tmp[1];
+  auto &shuffle1 = _shuffle_tmp[0];
+  auto &shuffle_data = _shuffle_tmp[1];
 
   auto [scalar_a, bits] = RandFairA_cache(ctx, 1);
   [[maybe_unused]] auto reveal0 = ScalarA2G_cache(ctx, scalar_a[0], shuffle0);

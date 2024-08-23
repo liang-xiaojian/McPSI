@@ -37,6 +37,7 @@ mcpsi_cc_library(
         "//mcpsi/utils:field",
         "//mcpsi/utils:vec_op",
         "@yacl//yacl/crypto/utils:rand",
+        "@yacl//yacl/utils:parallel",
     ],
 )
 

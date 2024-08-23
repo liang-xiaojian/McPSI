@@ -107,4 +107,4 @@ TEST(kFp128Test, InvWork) {
   EXPECT_EQ(ret3, kFp128(1));
 }
 
-}  // namespace mcpsi
+} // namespace mcpsi

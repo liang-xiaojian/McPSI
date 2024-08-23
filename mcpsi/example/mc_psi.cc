@@ -8,6 +8,7 @@
 #include "mcpsi/utils/test_util.h"
 #include "mcpsi/utils/vec_op.h"
 #include "yacl/link/link.h"
+#include "yacl/utils/parallel.h"
 
 using namespace mcpsi;
 
@@ -43,10 +44,11 @@ using namespace mcpsi;
 
 #define COMM_PRINT(name)                                                     \
   SPDLOG_INFO(                                                               \
-      "[P{}](COMM) send bytes: {} && send actions: {} && recv bytes: {} && " \
+      "[P{}](COMM) {} send bytes: {} && send actions: {} && recv bytes: {} " \
+      "&& "                                                                  \
       "recv actions: {}",                                                    \
-      rank, name##_send_bytes, name##_send_action, name##_recv_bytes,        \
-      name##_recv_action);
+      rank, std::string(#name), name##_send_bytes, name##_send_action,       \
+      name##_recv_bytes, name##_recv_action);
 
 // ---------- CL -----------
 
@@ -77,6 +79,9 @@ llvm::cl::opt<uint32_t> cl_interset_size(
     "interset", llvm::cl::init(1000),
     llvm::cl::desc("the size of intersection"));
 
+llvm::cl::opt<uint32_t> cl_thread("thread", llvm::cl::init(1),
+                                  llvm::cl::desc("the number of threads"));
+
 // Malicious Circuit PSI
 // set0     --> Party0's set
 // set1     --> Party1's set
@@ -84,11 +89,12 @@ llvm::cl::opt<uint32_t> cl_interset_size(
 // offline  --> true for Real Correlated Randomness
 // cache    --> pre-compute correlated randomness or not
 // fairness --> true for fair DY-PRF, false for DY-PRF
-auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
+auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
             absl::Span<PTy> set0, absl::Span<PTy> set1, absl::Span<PTy> val1,
             bool CR_mode = false, bool cache = true, bool fairness = false) {
   auto rank = lctx->Rank();
 
+  SPDLOG_INFO("[P{}] works with {} threads", rank, yacl::get_num_threads());
   if (rank == 0) {
     SPDLOG_INFO(
         "[P{}] having set0 (with size {}), working mode: {} && {} && {}", rank,
@@ -108,18 +114,25 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
   }
   SPDLOG_INFO("[P{}] Initializing Context", rank);
 
+  // ---- MARK ----
+  COMM_START(setup);
+  TIMER_START(setup);
   auto context = std::make_shared<Context>(lctx);
   SetupContext(context, CR_mode);
   auto prot = context->GetState<Protocol>();
+  TIMER_END(setup);
+  TIMER_PRINT(setup);
+  COMM_END(setup);
+  COMM_PRINT(setup);
 
   // G-group
   auto Ggroup = prot->GetGroup();
   // Hash functor
-  auto group_hash = [&Ggroup](const GTy& val) {
+  auto group_hash = [&Ggroup](const GTy &val) {
     return Ggroup->HashPoint(val);
   };
   // Equal functor
-  auto group_equal = [&Ggroup](const GTy& lhs, const GTy& rhs) {
+  auto group_equal = [&Ggroup](const GTy &lhs, const GTy &rhs) {
     return Ggroup->PointEqual(lhs, rhs);
   };
 
@@ -161,12 +174,28 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
                                   absl::MakeConstSpan(indexes), true);
     auto sum_s = prot->SumA(result_s, true);
     [[maybe_unused]] auto result_p = prot->A2P(sum_s, true);
+
+    auto square_result = prot->Mul(absl::MakeConstSpan(result_s),
+                                   absl::MakeConstSpan(result_s), true);
+    auto sum_square_s = prot->SumA(square_result, true);
+    [[maybe_unused]] auto sum_square_p = prot->A2P(sum_square_s, true);
     SPDLOG_INFO("[P{}] start cache all correlation", rank);
+
+    // ---- MARK ----
+    COMM_START(offline);
+    TIMER_START(offline);
     context->GetState<Correlation>()->force_cache();
     SPDLOG_INFO("[P{}] cache all finished!", rank);
+    TIMER_END(offline);
+    TIMER_PRINT(offline);
+    COMM_END(offline);
+    COMM_PRINT(offline);
   }
   // --- END CACHE ---
 
+  // --- MARK
+  COMM_START(online);
+  TIMER_START(online);
   SPDLOG_INFO("[P{}] uploading data", rank);
   auto share0 = (rank == 0 ? prot->SetA(set0) : prot->GetA(set0.size()));
   auto share1 = (rank == 1 ? prot->SetA(set1) : prot->GetA(set1.size()));
@@ -176,15 +205,23 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
 
   // auto result_s = prot->CPSI(share0, share1, secret);
   // same as CPSI
+
+  // ----- MARK -----
+  // Shuffle times and communication
   COMM_START(shuffle);
+  TIMER_START(shuffle);
   auto shuffle0 = prot->ShuffleA(share0);
   auto [shuffle1, shuffle_data] = prot->ShuffleA(share1, secret);
+  TIMER_END(shuffle);
+  TIMER_PRINT(shuffle);
   COMM_END(shuffle);
   COMM_PRINT(shuffle);
 
   std::vector<size_t> indexes;
 
   if (fairness) {
+    // ---- MARK ----
+    COMM_START(a2g);   // start
     TIMER_START(a2g);  // start a2g_timer
     auto [scalar_a, bits] = prot->RandFairA(1);
     auto reveal0 = prot->ScalarA2G(scalar_a[0], shuffle0);
@@ -195,7 +232,9 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
       Ggroup->MulInplace(&reveal1[i], scalar_mp);
     }
     TIMER_END(a2g);    // stop a2g_timer
+    COMM_END(a2g);     // stop
     TIMER_PRINT(a2g);  // print info
+    COMM_PRINT(a2g);   // print info
 
     std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> lhs(
         reveal0.begin(), reveal0.end(), 2, group_hash, group_equal);
@@ -207,11 +246,15 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
     }
   } else {
     // reveal G-share
+    // ---- MARK ----
+    COMM_START(a2g);   // start
     TIMER_START(a2g);  // start a2g_timer
     auto reveal0 = prot->A2G(shuffle0);
     auto reveal1 = prot->A2G(shuffle1);
     TIMER_END(a2g);    // stop a2g_timer
+    COMM_END(a2g);     // stop
     TIMER_PRINT(a2g);  // print info
+    COMM_PRINT(a2g);   // print info
 
     std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> lhs(
         reveal0.begin(), reveal0.end(), 2, group_hash, group_equal);
@@ -226,13 +269,36 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context>& lctx,
                                 absl::MakeConstSpan(indexes));
 
   SPDLOG_INFO("[P{}] interset size {}", rank, result_s.size());
+  COMM_START(result_sum);   // start
+  TIMER_START(result_sum);  // start result_sum_timer
   auto sum_s = prot->SumA(result_s);
   auto result_p = prot->A2P(sum_s);
+  TIMER_END(result_sum);    // stop result_sum_timer
+  COMM_END(result_sum);     // stop
+  TIMER_PRINT(result_sum);  // print info
+  COMM_PRINT(result_sum);   // print info
+
+  COMM_START(result_sum_square);   // start
+  TIMER_START(result_sum_square);  // start result_sum_square timer
+  auto square_result =
+      prot->Mul(absl::MakeConstSpan(result_s), absl::MakeConstSpan(result_s));
+  auto sum_square_s = prot->SumA(square_result);
+  auto sum_square_p = prot->A2P(sum_square_s);
+  TIMER_END(result_sum_square);    // stop result_sum_square timer
+  COMM_END(result_sum_square);     // stop
+  TIMER_PRINT(result_sum_square);  // print info
+  COMM_PRINT(result_sum_square);   // print info
 
   typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
-  auto ret = std::vector<INTEGER>(1);
+  auto ret = std::vector<INTEGER>(2);
   ret[0] = result_p[0].GetVal();
+  ret[1] = sum_square_p[0].GetVal();
   SPDLOG_INFO("[P{}] sum is {}", rank, ret[0]);
+  SPDLOG_INFO("[P{}] square sum is {}", rank, ret[1]);
+  TIMER_END(online);
+  TIMER_PRINT(online);
+  COMM_END(online);
+  COMM_PRINT(online);
   return ret;
 }
 
@@ -245,18 +311,18 @@ struct ArgPack {
   uint32_t fairness;
   uint128_t seed;
 
-  bool operator==(const ArgPack& other) const {
+  bool operator==(const ArgPack &other) const {
     return (size0 == other.size0) && (size1 == other.size1) &&
            (interset_size == other.interset_size) &&
            (CR_mode == other.CR_mode) && (cache == other.cache);
   }
 
-  bool operator!=(const ArgPack& other) const { return !(*this == other); }
+  bool operator!=(const ArgPack &other) const { return !(*this == other); }
 };
 
-bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
+bool SyncTask(const std::shared_ptr<yacl::link::Context> &lctx, uint32_t size0,
               uint32_t size1, uint32_t interset_size, uint32_t CR_mode,
-              uint32_t cache, uint32_t fairness, uint128_t& seed) {
+              uint32_t cache, uint32_t fairness, uint128_t &seed) {
   uint128_t tmp_seed = yacl::crypto::SecureRandU128();
   ArgPack tmp = {size0, size1,    interset_size, CR_mode,
                  cache, fairness, tmp_seed};
@@ -282,7 +348,7 @@ bool SyncTask(const std::shared_ptr<yacl::link::Context>& lctx, uint32_t size0,
   return true;
 }
 
-std::shared_ptr<yacl::link::Context> MakeLink(const std::string& parties,
+std::shared_ptr<yacl::link::Context> MakeLink(const std::string &parties,
                                               size_t rank) {
   yacl::link::ContextDesc lctx_desc;
   std::vector<std::string> hosts = absl::StrSplit(parties, ',');
@@ -296,7 +362,7 @@ std::shared_ptr<yacl::link::Context> MakeLink(const std::string& parties,
   return lctx;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
   bool mem_mode = cl_mode.getValue() == 0;
@@ -307,6 +373,9 @@ int main(int argc, char** argv) {
   size_t size0 = cl_size0.getValue();
   size_t size1 = cl_size1.getValue();
   size_t interset_size = cl_interset_size.getValue();
+  size_t thread = cl_thread.getValue();
+
+  yacl::set_num_threads(thread);
 
   // auto re-correcting
   if (interset_size > std::min(size0, size1)) {

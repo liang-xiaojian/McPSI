@@ -69,13 +69,26 @@ simple example (toy psi)
 ```sh
 bazel run -c opt //mcpsi/example:toy_psi # run toy psi // PoC
 bazel run -c opt //mcpsi/example:toy_mc_psi # run toy circuit psi (sum) // PoC
-bazel run -c opt //mcpsi/example:mc_psi -- --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --CR 0/1 --cache 0/1 # run malicious circuit psi (CR=0 for real cr and CR=1 for fake cr)(cache=1 for pre-computing correlated-randomness and cache=0 for generating correlated-randomness when needed)
+bazel run -c opt //mcpsi/example:mc_psi -- --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --CR 0/1 --cache 0/1 --thread thread_num # run malicious circuit psi (CR=1 for real cr and CR=0 for fake cr)(cache=1 for pre-computing correlated-randomness and cache=0 for generating correlated-randomness when needed)
 ```
 
 mcpsi under socket network
 ```sh
-bazel run -c opt //mcpsi/example:mc_psi -- --mode 1 --rank 0 --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --CR 0/1  # run malicious circuit psi for party 0
-bazel run -c opt //mcpsi/example:mc_psi -- --mode 1 --rank 1 --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --CR 0/1  # run malicious circuit psi for party 1
+bazel run -c opt //mcpsi/example:mc_psi -- --mode 1 --rank 0 --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --CR 0/1 --thread thread_num # run malicious circuit psi for party 0
+bazel run -c opt //mcpsi/example:mc_psi -- --mode 1 --rank 1 --set0 size_of_set0 --set1 size_of_set1 --interset size_of_interset --CR 0/1  --thread thread_num # run malicious circuit psi for party 1
+```
+
+command line flags
+```sh
+--mode 0/1 (default is 0)   --> 0 for memory mode, while 1 for socket network 
+--rank 0/1                  --> 0 for party0, while 1 for party1 (memory mode would ignore this flag)
+--set0 size_of_set0         --> input size of party0 (default 10000)
+--set1 size_of_set1         --> input size of party1 (default 10000)
+--interset size_of_interset --> the size of intersect (default 100)
+--CR 0/1                    --> 0 for fake correlation randomness (use PRG to simulate offline randomness), while 1 for true correlation randomness (use OT and VOLE to generate offline randomness)
+--cache 0/1                 --> 0 for NO offline/online separating, generating CR when online is needed, while 1 for generating offline randomness before executing the online protocol.
+--fairness 0/1              --> 0 for normal OPRF, while 1 for fair OPRF
+--thread thread_num         --> number of threads for each party (default 1)
 ```
 
 ### Abort Dockerfile

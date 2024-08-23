@@ -244,4 +244,4 @@ TEST(Test, ShuffleWork) {
   }
 }
 
-}  // namespace mcpsi
+} // namespace mcpsi
