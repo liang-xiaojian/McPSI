@@ -174,6 +174,11 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
                                   absl::MakeConstSpan(indexes), true);
     auto sum_s = prot->SumA(result_s, true);
     [[maybe_unused]] auto result_p = prot->A2P(sum_s, true);
+
+    auto square_result = prot->Mul(absl::MakeConstSpan(result_s),
+                                   absl::MakeConstSpan(result_s), true);
+    auto sum_square_s = prot->SumA(square_result, true);
+    [[maybe_unused]] auto sum_square_p = prot->A2P(sum_square_s, true);
     SPDLOG_INFO("[P{}] start cache all correlation", rank);
 
     // ---- MARK ----
@@ -264,13 +269,32 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
                                 absl::MakeConstSpan(indexes));
 
   SPDLOG_INFO("[P{}] interset size {}", rank, result_s.size());
+  COMM_START(result_sum);   // start
+  TIMER_START(result_sum);  // start result_sum_timer
   auto sum_s = prot->SumA(result_s);
   auto result_p = prot->A2P(sum_s);
+  TIMER_END(result_sum);    // stop result_sum_timer
+  COMM_END(result_sum);     // stop
+  TIMER_PRINT(result_sum);  // print info
+  COMM_PRINT(result_sum);   // print info
+
+  COMM_START(result_sum_square);   // start
+  TIMER_START(result_sum_square);  // start result_sum_square timer
+  auto square_result =
+      prot->Mul(absl::MakeConstSpan(result_s), absl::MakeConstSpan(result_s));
+  auto sum_square_s = prot->SumA(square_result);
+  auto sum_square_p = prot->A2P(sum_square_s);
+  TIMER_END(result_sum_square);    // stop result_sum_square timer
+  COMM_END(result_sum_square);     // stop
+  TIMER_PRINT(result_sum_square);  // print info
+  COMM_PRINT(result_sum_square);   // print info
 
   typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
-  auto ret = std::vector<INTEGER>(1);
+  auto ret = std::vector<INTEGER>(2);
   ret[0] = result_p[0].GetVal();
+  ret[1] = sum_square_p[0].GetVal();
   SPDLOG_INFO("[P{}] sum is {}", rank, ret[0]);
+  SPDLOG_INFO("[P{}] square sum is {}", rank, ret[1]);
   TIMER_END(online);
   TIMER_PRINT(online);
   COMM_END(online);

@@ -20,6 +20,7 @@ Pipfile
 # benchmark cache
 2024*/
 bench* 
+*.sh
 
 # python-package
 /dist
