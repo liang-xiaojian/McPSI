@@ -45,3 +45,20 @@ mcpsi_cc_binary(
         "@com_google_absl//absl/strings",
     ],
 )
+
+mcpsi_cc_binary(
+    name = "mul",
+    srcs = ["mul.cc"],
+    deps = [
+        "//mcpsi/context:register",
+        "//mcpsi/ss:protocol",
+        "//mcpsi/utils:test_util",
+        "//mcpsi/utils:vec_op",
+        "@yacl//yacl/base:int128",
+        "@yacl//yacl/link",
+        "@yacl//yacl/utils:serialize",
+        "@yacl//yacl/utils:parallel",
+        "@llvm-project//llvm:Support",
+        "@com_google_absl//absl/strings",
+    ],
+)
