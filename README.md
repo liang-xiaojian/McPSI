@@ -1,8 +1,8 @@
 # McPSI
 
-reference: [FairSec: Fair and Maliciously Secure Circuit-PSI via SPDZ-Compatible Oblivious PRF](https://eprint.iacr.org/2024/789)
+reference: [Maliciously Secure Circuit Private Set Intersection via SPDZ-Compatible Oblivious PRF](https://eprint.iacr.org/2024/789)
 
-McPSI is short for Malicious Circuit Private Set Intersection. More exactly, our protocol could perform PSI with payload computation (under malicious setting).
+McPSI is short for Malicious Circuit Private Set Intersection. Our protocol could perform PSI with payload computation (under malicious setting).
 
 The project depends on [YACL](https://github.com/secretflow/yacl), which provides several cryptographic interfaces (e.g. prg, ot, network).
 
