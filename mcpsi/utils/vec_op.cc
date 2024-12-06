@@ -1,7 +1,6 @@
 #include "mcpsi/utils/vec_op.h"
 
 #include "field.h"
-#include "yacl/math/mpint/mp_int.h"
 #include "yacl/utils/parallel.h"
 
 namespace mcpsi {
@@ -87,9 +86,9 @@ void op64::Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
     BatchInv64<16>(in.subspan(i * 16, 16), out.subspan(i * 16, 16));
   }
   switch (remain) {
-#define KASE64(T)                                                              \
-  case T:                                                                      \
-    BatchInv64<T>(in.subspan(bound, T), out.subspan(bound, T));                \
+#define KASE64(T)                                               \
+  case T:                                                       \
+    BatchInv64<T>(in.subspan(bound, T), out.subspan(bound, T)); \
     break;
     KASE64(15);
     KASE64(14);
@@ -107,10 +106,10 @@ void op64::Inv(absl::Span<const kFp64> in, absl::Span<kFp64> out) {
     KASE64(2);
     KASE64(1);
 #undef KASE64
-  case 0:
-    break;
-  default:
-    YACL_ENFORCE(false, "Inv Error");
+    case 0:
+      break;
+    default:
+      YACL_ENFORCE(false, "Inv Error");
   }
 }
 
@@ -277,9 +276,9 @@ void InvImpl(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
     BatchInv128<16>(in.subspan(i * 16, 16), out.subspan(i * 16, 16));
   }
   switch (remain) {
-#define KASE128(T)                                                             \
-  case T:                                                                      \
-    BatchInv128<T>(in.subspan(bound, T), out.subspan(bound, T));               \
+#define KASE128(T)                                               \
+  case T:                                                        \
+    BatchInv128<T>(in.subspan(bound, T), out.subspan(bound, T)); \
     break;
     KASE128(15);
     KASE128(14);
@@ -297,10 +296,10 @@ void InvImpl(absl::Span<const kFp128> in, absl::Span<kFp128> out) {
     KASE128(2);
     KASE128(1);
 #undef KASE128
-  case 0:
-    break;
-  default:
-    YACL_ENFORCE(false, "Inv Error");
+    case 0:
+      break;
+    default:
+      YACL_ENFORCE(false, "Inv Error");
   }
 }
 
@@ -367,6 +366,231 @@ void op128::Rand(yacl::crypto::Prg<uint8_t> &prg, absl::Span<kFp128> out) {
   // }
 }
 
+// -------------------
+//     Fp 256-bit
+// -------------------
+
+void op256::Add(absl::Span<const kFp256> lhs, absl::Span<const kFp256> rhs,
+                absl::Span<kFp256> out) {
+  const uint32_t size = out.size();
+  YACL_ENFORCE(size == lhs.size());
+  YACL_ENFORCE(size == rhs.size());
+
+  yacl::parallel_for(0, size, [&](uint64_t bg, uint64_t ed) {
+    std::transform(lhs.begin() + bg, lhs.begin() + ed, rhs.begin() + bg,
+                   out.begin() + bg, std::plus());
+  });
+  // std::transform(lhs.begin(), lhs.end(), rhs.begin(), out.begin(),
+  // std::plus());
+}
+
+void op256::Sub(absl::Span<const kFp256> lhs, absl::Span<const kFp256> rhs,
+                absl::Span<kFp256> out) {
+  const uint32_t size = out.size();
+  YACL_ENFORCE(size == lhs.size());
+  YACL_ENFORCE(size == rhs.size());
+  yacl::parallel_for(0, size, [&](uint64_t bg, uint64_t ed) {
+    std::transform(lhs.begin() + bg, lhs.begin() + ed, rhs.begin() + bg,
+                   out.begin() + bg, std::minus());
+  });
+  // std::transform(lhs.begin(), lhs.end(), rhs.begin(), out.begin(),
+  //                std::minus());
+}
+
+void op256::Mul(absl::Span<const kFp256> lhs, absl::Span<const kFp256> rhs,
+                absl::Span<kFp256> out) {
+  const uint32_t size = out.size();
+  YACL_ENFORCE(size == lhs.size());
+  YACL_ENFORCE(size == rhs.size());
+  yacl::parallel_for(0, size, [&](uint64_t bg, uint64_t ed) {
+    std::transform(lhs.begin() + bg, lhs.begin() + ed, rhs.begin() + bg,
+                   out.begin() + bg, std::multiplies());
+  });
+
+  // std::transform(lhs.begin(), lhs.end(), rhs.begin(), out.begin(),
+  //                std::multiplies());
+}
+
+void op256::ScalarMul(const kFp256 scalar, absl::Span<const kFp256> in,
+                      absl::Span<kFp256> out) {
+  YACL_ENFORCE(out.size() == in.size());
+
+  yacl::parallel_for(0, in.size(), [&](uint64_t bg, uint64_t ed) {
+    std::transform(in.begin() + bg, in.begin() + ed, out.begin() + bg,
+                   [&scalar](kFp256 val) { return scalar * val; });
+  });
+  // std::transform(in.begin(), in.end(), out.begin(),
+  //                [&scalar](kFp256 val) { return scalar * val; });
+}
+
+void op256::Div(absl::Span<const kFp256> lhs, absl::Span<const kFp256> rhs,
+                absl::Span<kFp256> out) {
+  const uint32_t size = out.size();
+  YACL_ENFORCE(size == lhs.size());
+  YACL_ENFORCE(size == rhs.size());
+  Inv(rhs, out);
+  Mul(lhs, out, out);
+}
+
+void op256::Neg(absl::Span<const kFp256> in, absl::Span<kFp256> out) {
+  YACL_ENFORCE(in.size() == out.size());
+
+  yacl::parallel_for(0, in.size(), [&](uint64_t bg, uint64_t ed) {
+    std::transform(in.begin() + bg, in.begin() + ed, out.begin() + bg,
+                   kFp256::Neg);
+  });
+  // std::transform(in.begin(), in.end(), out.begin(), kFp256::Neg);
+}
+
+void op256::Sqrt(absl::Span<const kFp256> in, absl::Span<kFp256> out) {
+  YACL_ENFORCE(in.size() == out.size());
+  auto mp_mod = ToMPInt(Prime256);
+
+  yacl::parallel_for(0, in.size(), [&](uint64_t bg, uint64_t ed) {
+    std::transform(in.cbegin() + bg, in.cbegin() + ed, out.begin() + bg,
+                   [&](const kFp256 &val) {
+                     auto tmp = yacl::math::MPInt(0);
+                     auto mp_val = ToMPInt(val.GetVal());
+                     yacl::math::MPInt::SqrtModPrime(mp_val, mp_mod, &tmp);
+                     // uint256_t ret256 = uint256_t(tmp.Get<uint128_t>()) +
+                     //                    (uint256_t((tmp >>
+                     //                    128).Get<uint128_t>()) << 128);
+                     return kFp256(uint256((tmp >> 128).Get<uint128_t>(),
+                                           tmp.Get<uint128_t>()));
+                   });
+  });
+
+  // std::transform(in.cbegin(), in.cend(), out.begin(), [&](const kFp256 &val)
+  // {
+  //   auto tmp = yacl::math::MPInt(0);
+  //   yacl::math::MPInt::PowMod(yacl::math::MPInt(val.GetVal()), power, mod,
+  //                             &tmp);
+  //   return kFp256(tmp.Get<uint256_t>());
+  // });
+}
+
+template <size_t N>
+kFp256 BatchInv256(absl::Span<const kFp256> in, absl::Span<kFp256> out,
+                   kFp256 total = kFp256::One()) {
+  auto inv = BatchInv256<N - 1>(in, out, total * in[N - 1]);
+  out[N - 1] = inv * total;
+  return inv * in[N - 1];
+}
+
+template <>
+kFp256 BatchInv256<1>(absl::Span<const kFp256> in, absl::Span<kFp256> out,
+                      kFp256 total) {
+  auto inv = kFp256::Inv(total * in[0]);
+  out[0] = total * inv;
+  return inv * in[0];
+}
+
+// Batch Invert Optimize
+void InvImpl(absl::Span<const kFp256> in, absl::Span<kFp256> out) {
+  const size_t size = out.size();
+  YACL_ENFORCE(in.size() == size);
+  size_t batch = size / 16;
+  size_t bound = batch * 16;
+  size_t remain = size - bound;
+  for (size_t i = 0; i < batch; ++i) {
+    BatchInv256<16>(in.subspan(i * 16, 16), out.subspan(i * 16, 16));
+  }
+  switch (remain) {
+#define KASE256(T)                                               \
+  case T:                                                        \
+    BatchInv256<T>(in.subspan(bound, T), out.subspan(bound, T)); \
+    break;
+    KASE256(15);
+    KASE256(14);
+    KASE256(13);
+    KASE256(12);
+    KASE256(11);
+    KASE256(10);
+    KASE256(9);
+    KASE256(8);
+    KASE256(7);
+    KASE256(6);
+    KASE256(5);
+    KASE256(4);
+    KASE256(3);
+    KASE256(2);
+    KASE256(1);
+#undef KASE256
+    case 0:
+      break;
+    default:
+      YACL_ENFORCE(false, "Inv Error");
+  }
+}
+
+void op256::Inv(absl::Span<const kFp256> in, absl::Span<kFp256> out) {
+  const size_t size = out.size();
+  YACL_ENFORCE(in.size() == size);
+  yacl::parallel_for(0, size, 16, [&](uint64_t bg, uint64_t ed) {
+    InvImpl(in.subspan(bg, ed - bg), out.subspan(bg, ed - bg));
+  });
+}
+
+void op256::Ones(absl::Span<kFp256> out) {
+  const size_t size = out.size();
+  auto tmp = absl::Span(reinterpret_cast<uint256_t *>(out.data()), size);
+  yacl::parallel_for(0, size, 4096, [&](uint64_t bg, uint64_t ed) {
+    std::for_each(tmp.begin() + bg, tmp.begin() + ed,
+                  [](uint256_t &val) { val = 1; });
+  });
+  // std::for_each(tmp.begin(), tmp.end(), [](uint256_t &val) { val = 0; });
+}
+
+void op256::Zeros(absl::Span<kFp256> out) {
+  const size_t size = out.size();
+  auto tmp = absl::Span(reinterpret_cast<uint256_t *>(out.data()), size);
+  yacl::parallel_for(0, size, 4096, [&](uint64_t bg, uint64_t ed) {
+    std::for_each(tmp.begin() + bg, tmp.begin() + ed,
+                  [](uint256_t &val) { val = 0; });
+  });
+  // std::for_each(tmp.begin(), tmp.end(), [](uint256_t &val) { val = 0; });
+}
+
+void op256::Rand(absl::Span<kFp256> out) {
+  const uint256_t prime = kFp256::GetPrime();
+  const size_t size = out.size();
+
+  auto out128 =
+      absl::MakeSpan(reinterpret_cast<uint128_t *>(out.data()), size * 2);
+  auto prg = yacl::crypto::Prg<uint8_t>(yacl::crypto::SecureRandU128());
+  prg.Fill(out128);
+
+  auto out256 = absl::MakeSpan(reinterpret_cast<uint256_t *>(out.data()), size);
+  yacl::parallel_for(0, size, 4096, [&](uint64_t bg, uint64_t ed) {
+    std::for_each(out256.begin() + bg, out256.begin() + ed,
+                  [&prime](uint256_t &val) { val %= prime; });
+  });
+
+  // for (auto &e : out128) {
+  //   e %= prime;
+  // }
+}
+
+void op256::Rand(yacl::crypto::Prg<uint8_t> &prg, absl::Span<kFp256> out) {
+  const uint256_t prime = kFp256::GetPrime();
+  const size_t size = out.size();
+
+  auto out128 =
+      absl::MakeSpan(reinterpret_cast<uint128_t *>(out.data()), size * 2);
+  prg.Fill(out128);
+
+  auto out256 = absl::MakeSpan(reinterpret_cast<uint256_t *>(out.data()), size);
+
+  yacl::parallel_for(0, size, 4096, [&](uint64_t bg, uint64_t ed) {
+    std::for_each(out256.begin() + bg, out256.begin() + ed,
+                  [&prime](uint256_t &val) { val %= prime; });
+  });
+
+  // for (auto &e : out128) {
+  //   e %= prime;
+  // }
+}
+
 std::vector<size_t> GenPerm(uint32_t num) {
   std::vector<size_t> perm(num);
   for (size_t i = 0; i < num; ++i) {
@@ -378,4 +602,4 @@ std::vector<size_t> GenPerm(uint32_t num) {
   return perm;
 }
 
-} // namespace mcpsi
+}  // namespace mcpsi

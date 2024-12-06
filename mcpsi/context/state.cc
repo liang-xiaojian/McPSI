@@ -64,6 +64,7 @@ T Connection::_ExchangeWithCommit_T(T val) {
 #define ExchangeImpl(T) \
   T Connection::Exchange(T val) { return _Exchange_T(val); }
 
+ExchangeImpl(uint256_t);
 ExchangeImpl(uint128_t);
 ExchangeImpl(uint64_t);
 
@@ -71,6 +72,7 @@ yacl::Buffer Connection::Exchange(yacl::ByteContainerView bv) {
   return _Exchange_Buffer(bv);
 }
 
+ExchangeWithCommitImpl(uint256_t);
 ExchangeWithCommitImpl(uint128_t);
 ExchangeWithCommitImpl(uint64_t);
 

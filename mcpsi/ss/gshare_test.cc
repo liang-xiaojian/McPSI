@@ -61,8 +61,11 @@ TEST(ProtocolTest, A2GTest) {
   auto r_a = rank0.get();
   auto r_b = rank1.get();
 
-  auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
-                                                     yacl::ArgLib = "openssl");
+  // auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
+  //                                                    yacl::ArgLib =
+  //                                                    "openssl");
+  auto group = yc::EcGroupFactory::Instance().Create(
+      "ed25519", yacl::ArgLib = "libsodium");
   for (size_t i = 0; i < num; ++i) {
     EXPECT_TRUE(group->PointEqual(r_a[i], r_b[i]));
   }
@@ -91,8 +94,11 @@ TEST(ProtocolTest, ScalarA2GTest) {
   auto ret0 = rank0.get();
   auto ret1 = rank1.get();
 
-  auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
-                                                     yacl::ArgLib = "openssl");
+  // auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
+  //                                                    yacl::ArgLib =
+  //                                                    "openssl");
+  auto group = yc::EcGroupFactory::Instance().Create(
+      internal::kCurveName, yacl::ArgLib = internal::kCurveLib);
   auto scalar = ym::MPInt(r_p[num].GetVal());
   for (size_t i = 0; i < num; ++i) {
     EXPECT_TRUE(group->PointEqual(group->Mul(ret0[i], scalar), ret1[i]));

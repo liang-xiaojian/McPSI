@@ -1,0 +1,28 @@
+diff --git a/yacl/math/mpint/mp_int.cc b/yacl/math/mpint/mp_int.cc
+index 3910e03..2c394b7 100644
+--- a/yacl/math/mpint/mp_int.cc
++++ b/yacl/math/mpint/mp_int.cc
+@@ -532,6 +532,10 @@ MPInt MPInt::PowMod(const MPInt &b, const MPInt &mod) const {
+   return res;
+ }
+ 
++void MPInt::SqrtModPrime(const MPInt &in, const MPInt &mod, MPInt *d) {
++  MPINT_ENFORCE_OK(mp_sqrtmod_prime(&in.n_, &mod.n_, &d->n_));
++}
++
+ void MPInt::PowMod(const MPInt &a, const MPInt &b, const MPInt &mod, MPInt *d) {
+   MPINT_ENFORCE_OK(mp_exptmod(&a.n_, &b.n_, &mod.n_, &d->n_));
+ }
+diff --git a/yacl/math/mpint/mp_int.h b/yacl/math/mpint/mp_int.h
+index 60ac8bf..ebbb641 100644
+--- a/yacl/math/mpint/mp_int.h
++++ b/yacl/math/mpint/mp_int.h
+@@ -217,6 +217,8 @@ class MPInt {
+   MPInt Pow(uint32_t b) const;
+   void PowInplace(uint32_t b);
+ 
++  static void SqrtModPrime(const MPInt &in, const MPInt &mod, MPInt *d);
++
+   static void PowMod(const MPInt &a, const MPInt &b, const MPInt &mod,
+                      MPInt *d);
+   MPInt PowMod(const MPInt &b, const MPInt &mod) const;

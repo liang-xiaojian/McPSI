@@ -1,6 +1,7 @@
 #pragma once
 #include "mcpsi/utils/field.h"
 #include "mcpsi/utils/vec_op.h"
+#include "yacl/crypto/base/ecc/ec_point.h"
 #include "yacl/crypto/base/ecc/ecc_spi.h"
 #include "yacl/crypto/base/ecc/openssl/openssl_group.h"
 #include "yacl/math/mpint/mp_int.h"
@@ -16,14 +17,21 @@ namespace yc = yacl::crypto;
 // (DY-PRF) Group Type
 // using GTy = ym::MPInt;
 
-using PTy = kFp128;
-using op = op128;
+// using PTy = kFp128;
+// using op = op128;
+
+using PTy = kFp256;
+using op = op256;
 using GTy = yc::EcPoint;
 
 // static auto Ggroup = yc::EcGroupFactory::Instance().Create(
 //     "secp128r2", yacl::ArgLib = "openssl");
 // static auto Ggroup =
 //     yc::openssl::OpensslGroup::Create(yc::GetCurveMetaByName("secp128r2"));
+
+static auto kCurveName = std::string("ed25519");
+static auto kCurveLib = std::string("libsodium");
+static auto kOctetFormat = yc::PointOctetFormat::Autonomous;
 
 #pragma pack(8)
 // Distribute PTy with Mac (additive share)

@@ -16,6 +16,10 @@ def _yacl():
         name = "yacl",
         commit = YACL_COMMIT_ID,
         remote = "https://github.com/liang-xiaojian/yacl.git",
+        patch_args = ["-p1"],
+        patches = [
+            "@test//bazel:patches/yacl.patch",
+        ],
     )
 
 def _gmp():

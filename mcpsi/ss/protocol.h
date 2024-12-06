@@ -49,8 +49,10 @@ class Protocol : public State {
       return;
     }
     // avoid communication
-    group_ = yc::EcGroupFactory::Instance().Create("secp128r2",
-                                                   yacl::ArgLib = "openssl");
+    // group_ = yc::EcGroupFactory::Instance().Create("secp128r2",
+    //                                                yacl::ArgLib = "openssl");
+    group_ = yc::EcGroupFactory::Instance().Create("ed25519",
+                                                   yacl::ArgLib = "libsodium");
     g_ = group_->GetGenerator();
     k_ = RandA(1)[0];
     init_prf_ = true;

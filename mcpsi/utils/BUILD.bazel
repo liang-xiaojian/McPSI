@@ -3,8 +3,22 @@ load("//bazel:mcpsi.bzl", "mcpsi_cc_library", "mcpsi_cc_test")
 package(default_visibility = ["//visibility:public"])
 
 mcpsi_cc_library(
+    name = "uint256",
+    hdrs = ["uint256.h"],
+    srcs = ["uint256.cc"],
+    deps = [
+        "@yacl//yacl/base:exception",
+        "@yacl//yacl/base:int128",
+        "@com_google_absl//absl/numeric:int128",
+    ],
+)
+
+mcpsi_cc_library(
     name = "config",
     hdrs = ["config.h"],
+    deps = [
+        ":uint256",
+    ]
 )
 
 mcpsi_cc_library(

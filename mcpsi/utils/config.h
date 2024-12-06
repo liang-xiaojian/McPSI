@@ -1,17 +1,22 @@
 #pragma once
 
-#include "field.h"
 // #include "gmp.h"
-#include "mcpsi/utils/field.h"
+#include "mcpsi/utils/uint256.h"
 #include "yacl/base/int128.h"
 
 namespace mcpsi {
+
+using uint256_t = uint256;
 
 constexpr static uint64_t Prime64 = 2305843009213697249;  // safe prime
 
 // prime order for secp128r2
 constexpr static uint128_t Prime128 =
     yacl::MakeUint128(0x3FFFFFFF7FFFFFFF, 0xBE0024720613B5A3);  //
+
+constexpr static uint256_t Prime256 =
+    uint256_t(absl::MakeUint128(1152921504606846976, 0),
+              absl::MakeUint128(1503914060200516822, 6346243789798364141));  //
 
 // static mpz_t GMP_Prime64;
 

@@ -9,7 +9,7 @@ using namespace mcpsi;
 
 // Proof of Work (Malicious Circuit-PSI)
 
-auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
+auto toy_mc_psi() -> std::pair<std::vector<uint128_t>, std::vector<uint128_t>> {
   auto context = MockContext(2);
   MockSetupContext(context);
   auto rank0 = std::async([&] {
@@ -21,8 +21,8 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
 
     auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
-    auto ret = std::vector<uint64_t>(1);
-    ret[0] = result_p[0].GetVal();
+    auto ret = std::vector<uint128_t>(1);
+    ret[0] = uint128_t(result_p[0].GetVal());
     return ret;
   });
   auto rank1 = std::async([&] {
@@ -36,8 +36,8 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
 
     auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
-    auto ret = std::vector<uint64_t>(1);
-    ret[0] = result_p[0].GetVal();
+    auto ret = std::vector<uint128_t>(1);
+    ret[0] = uint128_t(result_p[0].GetVal());
     return ret;
   });
 

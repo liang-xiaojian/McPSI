@@ -124,18 +124,17 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
 
   std::vector<GTy> ret(num);
 
-  auto GTy_size =
-      Ggroup->GetSerializeLength(yc::PointOctetFormat::X962Compressed);
+  auto GTy_size = Ggroup->GetSerializeLength(kOctetFormat);
   yacl::Buffer send_buf = yacl::Buffer(GTy_size * num);
 
   yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
     for (auto i = bg; i < ed; ++i) {
-      Ggroup->SerializePoint(in[i].val, yc::PointOctetFormat::X962Compressed,
+      Ggroup->SerializePoint(in[i].val, kOctetFormat,
                              send_buf.data<uint8_t>() + i * GTy_size, GTy_size);
     }
   });
   // for (size_t i = 0; i < num; ++i) {
-  //   Ggroup->SerializePoint(in[i].val, yc::PointOctetFormat::X962Compressed,
+  //   Ggroup->SerializePoint(in[i].val, kOctetFormat,
   //                          send_buf.data<uint8_t>() + i * GTy_size,
   //                          GTy_size);
   // }
@@ -156,8 +155,7 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
     for (auto i = bg; i < ed; ++i) {
       ret[i] = Ggroup->DeserializePoint(
-          {buf.data<uint8_t>() + i * GTy_size, GTy_size},
-          yc::PointOctetFormat::X962Compressed);
+          {buf.data<uint8_t>() + i * GTy_size, GTy_size}, kOctetFormat);
       Ggroup->AddInplace(&ret[i], in[i].val);
     }
   });
@@ -166,7 +164,7 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   //   ret[i] =
   //       Ggroup->DeserializePoint({buf.data<uint8_t>() + i * GTy_size,
   //       GTy_size},
-  //                                yc::PointOctetFormat::X962Compressed);
+  //                                kOctetFormat);
   //   Ggroup->AddInplace(&ret[i], in[i].val);
   // }
 
@@ -252,13 +250,12 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   auto zero_mac_GTy = Ggroup->Sub(mac_affine, local_mac_GTy);
 
   yacl::Buffer zero_mac_buf(GTy_size);
-  Ggroup->SerializePoint(zero_mac_GTy, yc::PointOctetFormat::X962Compressed,
+  Ggroup->SerializePoint(zero_mac_GTy, kOctetFormat,
                          zero_mac_buf.data<uint8_t>(), GTy_size);
 
   auto remote_mac_buf = conn->ExchangeWithCommit(zero_mac_buf);
-  GTy remote_mac_GTy =
-      Ggroup->DeserializePoint({remote_mac_buf.data<uint8_t>(), GTy_size},
-                               yc::PointOctetFormat::X962Compressed);
+  GTy remote_mac_GTy = Ggroup->DeserializePoint(
+      {remote_mac_buf.data<uint8_t>(), GTy_size}, kOctetFormat);
 
   YACL_ENFORCE(
       Ggroup->PointEqual(Ggroup->Add(zero_mac_GTy, remote_mac_GTy), prf_zero));
