@@ -29,8 +29,8 @@ using GTy = yc::EcPoint;
 // static auto Ggroup =
 //     yc::openssl::OpensslGroup::Create(yc::GetCurveMetaByName("secp128r2"));
 
-static auto kCurveName = std::string("ed25519");
-static auto kCurveLib = std::string("libsodium");
+static auto kCurveName = std::string("fourq");
+static auto kCurveLib = std::string("FourQlib");
 static auto kOctetFormat = yc::PointOctetFormat::Autonomous;
 
 #pragma pack(8)

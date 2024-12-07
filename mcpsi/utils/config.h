@@ -15,8 +15,10 @@ constexpr static uint128_t Prime128 =
     yacl::MakeUint128(0x3FFFFFFF7FFFFFFF, 0xBE0024720613B5A3);  //
 
 constexpr static uint256_t Prime256 =
-    uint256_t(absl::MakeUint128(1152921504606846976, 0),
-              absl::MakeUint128(1503914060200516822, 6346243789798364141));  //
+    uint256_t(absl::MakeUint128(uint64_t(11764505149049458u),
+                                uint64_t(17317351579400803557u)),
+              absl::MakeUint128(uint64_t(16122042576031152537u),
+                                uint64_t(3436901888089820391u)));  //
 
 // static mpz_t GMP_Prime64;
 

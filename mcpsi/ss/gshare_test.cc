@@ -65,7 +65,7 @@ TEST(ProtocolTest, A2GTest) {
   //                                                    yacl::ArgLib =
   //                                                    "openssl");
   auto group = yc::EcGroupFactory::Instance().Create(
-      "ed25519", yacl::ArgLib = "libsodium");
+      internal::kCurveName, yacl::ArgLib = internal::kCurveLib);
   for (size_t i = 0; i < num; ++i) {
     EXPECT_TRUE(group->PointEqual(r_a[i], r_b[i]));
   }
