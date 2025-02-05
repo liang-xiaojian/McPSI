@@ -156,17 +156,20 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
                              : prot->GetA(empty_val1.size(), true));
     // auto result_s = prot->CPSI(share0, share1, secret, true);
     // same as CPSI with cache
-    auto shuffle0 = prot->ShuffleA(share0, true);
-    auto [shuffle1, shuffle_data] = prot->ShuffleA(share1, secret, true);
+    auto shuffle0 = (rank == 0 ? prot->ShuffleASet(share0, true)
+                               : prot->ShuffleAGet(share0, true));
+    auto [shuffle1, shuffle_data] =
+        (rank == 1 ? prot->ShuffleASet(share1, secret, true)
+                   : prot->ShuffleAGet(share1, secret, true));
     // reveal G-share
     if (fairness) {
       auto [scalar_a, bits] = prot->RandFairA(1, true);
-      auto reveal0 = prot->ScalarA2G(scalar_a[0], shuffle0, true);
-      auto reveal1 = prot->A2G(shuffle1, true);
+      auto reveal0 = prot->ScalarDyOprf(scalar_a[0], shuffle0, true);
+      auto reveal1 = prot->DyOprf(shuffle1, true);
       auto scalar_p = prot->FairA2P(scalar_a, bits, true);
     } else {
-      auto reveal0 = prot->A2G(shuffle0, true);
-      auto reveal1 = prot->A2G(shuffle1, true);
+      auto reveal0 = prot->DyOprf(shuffle0, true);
+      auto reveal1 = prot->DyOprf(shuffle1, true);
     }
 
     auto indexes = std::vector<size_t>(secret.size());
@@ -210,8 +213,11 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
   // Shuffle times and communication
   COMM_START(shuffle);
   TIMER_START(shuffle);
-  auto shuffle0 = prot->ShuffleA(share0);
-  auto [shuffle1, shuffle_data] = prot->ShuffleA(share1, secret);
+  auto shuffle0 =
+      (rank == 0 ? prot->ShuffleASet(share0) : prot->ShuffleAGet(share0));
+  auto [shuffle1, shuffle_data] =
+      (rank == 1 ? prot->ShuffleASet(share1, secret)
+                 : prot->ShuffleAGet(share1, secret));
   TIMER_END(shuffle);
   TIMER_PRINT(shuffle);
   COMM_END(shuffle);
@@ -224,8 +230,8 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
     COMM_START(a2g);   // start
     TIMER_START(a2g);  // start a2g_timer
     auto [scalar_a, bits] = prot->RandFairA(1);
-    auto reveal0 = prot->ScalarA2G(scalar_a[0], shuffle0);
-    auto reveal1 = prot->A2G(shuffle1);
+    auto reveal0 = prot->ScalarDyOprf(scalar_a[0], shuffle0);
+    auto reveal1 = prot->DyOprf(shuffle1);
     auto scalar_p = prot->FairA2P(scalar_a, bits);
     auto scalar_mp = ym::MPInt(scalar_p[0].GetVal());
     for (size_t i = 0; i < reveal1.size(); ++i) {
@@ -249,8 +255,8 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
     // ---- MARK ----
     COMM_START(a2g);   // start
     TIMER_START(a2g);  // start a2g_timer
-    auto reveal0 = prot->A2G(shuffle0);
-    auto reveal1 = prot->A2G(shuffle1);
+    auto reveal0 = prot->DyOprf(shuffle0);
+    auto reveal1 = prot->DyOprf(shuffle1);
     TIMER_END(a2g);    // stop a2g_timer
     COMM_END(a2g);     // stop
     TIMER_PRINT(a2g);  // print info

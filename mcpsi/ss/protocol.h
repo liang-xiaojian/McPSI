@@ -38,7 +38,7 @@ class Protocol : public State {
 
   Protocol(std::shared_ptr<Context> ctx) : ctx_(ctx) {
     // SPDZ key setup
-    key_ = PTy(yacl::crypto::SecureRandU64());
+    key_ = PTy(yacl::crypto::SecureRandU128());
   }
   // SPDZ key
   PTy GetKey() const { return key_; }
@@ -160,11 +160,28 @@ class Protocol : public State {
   std::vector<ATy> ScalarMulAP(const ATy& scalar, absl::Span<const PTy> in,
                                bool cache = false);
 
-  std::vector<MTy> ScalarA2M(const ATy& scalar, absl::Span<const ATy> in,
-                             bool cache = false);
+  // DY-PRF
+  std::vector<ATy> DyExp(absl::Span<const ATy> in, bool cache = false);
+  std::vector<ATy> DyExpSet(absl::Span<const PTy> in, bool cache = false);
+  std::vector<ATy> DyExpGet(size_t num, bool cache = false);
 
-  std::vector<GTy> ScalarA2G(const ATy& scalar, absl::Span<const ATy> in,
-                             bool cache = false);
+  std::vector<ATy> ScalarDyExp(const ATy& scalar, absl::Span<const ATy> in,
+                               bool cache = false);
+  std::vector<ATy> ScalarDyExpSet(const ATy& scalar, absl::Span<const PTy> in,
+                                  bool cache = false);
+  std::vector<ATy> ScalarDyExpGet(const ATy& scalar, size_t num,
+                                  bool cache = false);
+
+  std::vector<GTy> DyOprf(absl::Span<const ATy> in, bool cache = false);
+  std::vector<GTy> DyOprfSet(absl::Span<const PTy> in, bool cache = false);
+  std::vector<GTy> DyOprfGet(size_t num, bool cache = false);
+
+  std::vector<GTy> ScalarDyOprf(const ATy& scalar, absl::Span<const ATy> in,
+                                bool cache = false);
+  std::vector<GTy> ScalarDyOprfSet(const ATy& scalar, absl::Span<const PTy> in,
+                                   bool cache = false);
+  std::vector<GTy> ScalarDyOprfGet(const ATy& scalar, size_t num,
+                                   bool cache = false);
 
   // circuit PSI entry
   std::vector<ATy> CPSI(absl::Span<const ATy> set0, absl::Span<const ATy> set1,
