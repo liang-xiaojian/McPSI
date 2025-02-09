@@ -121,9 +121,9 @@ void TrueCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
 }
 
 // TODO: Current is the same as BeaverTriple
-void TrueCorrelation::BeaverTripleGet(absl::Span<internal::ATy> a,
-                                      absl::Span<internal::ATy> b,
-                                      absl::Span<internal::ATy> c) {
+void TrueCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
+                                        absl::Span<internal::ATy> b,
+                                        absl::Span<internal::ATy> c) {
   const size_t num = c.size();
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
@@ -236,9 +236,9 @@ void TrueCorrelation::BeaverTripleGet(absl::Span<internal::ATy> a,
 }
 
 // TODO: Current is the same as BeaverTriple
-void TrueCorrelation::BeaverTripleSet(absl::Span<internal::ATy> a,
-                                      absl::Span<internal::ATy> b,
-                                      absl::Span<internal::ATy> c) {
+void TrueCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
+                                        absl::Span<internal::ATy> b,
+                                        absl::Span<internal::ATy> c) {
   const size_t num = c.size();
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());

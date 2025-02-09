@@ -37,9 +37,9 @@ void FakeCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   }
 }
 
-void FakeCorrelation::BeaverTripleSet(absl::Span<internal::ATy> a,
-                                      absl::Span<internal::ATy> b,
-                                      absl::Span<internal::ATy> c) {
+void FakeCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
+                                        absl::Span<internal::ATy> b,
+                                        absl::Span<internal::ATy> c) {
   const size_t num = c.size();
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
@@ -62,9 +62,9 @@ void FakeCorrelation::BeaverTripleSet(absl::Span<internal::ATy> a,
   internal::Pack(absl::MakeConstSpan(c0), absl::MakeConstSpan(c_mac), c);
 }
 
-void FakeCorrelation::BeaverTripleGet(absl::Span<internal::ATy> a,
-                                      absl::Span<internal::ATy> b,
-                                      absl::Span<internal::ATy> c) {
+void FakeCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
+                                        absl::Span<internal::ATy> b,
+                                        absl::Span<internal::ATy> c) {
   const size_t num = c.size();
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
