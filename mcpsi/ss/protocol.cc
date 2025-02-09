@@ -92,178 +92,192 @@ RegConvert(A, M);
 RegConvert(M, G);
 RegConvert(A, G);
 
-#define RegWithParam1(name, param0)              \
-  if (cache) {                                   \
-    return internal::name##_cache(ctx_, param0); \
-  }                                              \
-  return internal::name(ctx_, param0)
-
-#define RegWithParam2(name, param0, param1)              \
-  if (cache) {                                           \
-    return internal::name##_cache(ctx_, param0, param1); \
-  }                                                      \
-  return internal::name(ctx_, param0, param1)
-
-#define RegWithParam3(name, param0, param1, param2)              \
-  if (cache) {                                                   \
-    return internal::name##_cache(ctx_, param0, param1, param2); \
-  }                                                              \
-  return internal::name(ctx_, param0, param1, param2)
+#define DispatchAll(name, ...)                        \
+  if (cache) {                                        \
+    return internal::name##_cache(ctx_, __VA_ARGS__); \
+  }                                                   \
+  return internal::name(ctx_, __VA_ARGS__)
 
 std::vector<PTy> Protocol::ZerosP(size_t num, bool cache) {
-  RegWithParam1(ZerosP, num);
+  DispatchAll(ZerosP, num);
 }
 
 std::vector<PTy> Protocol::RandP(size_t num, bool cache) {
-  RegWithParam1(RandP, num);
+  DispatchAll(RandP, num);
 }
 
 std::vector<ATy> Protocol::ZerosA(size_t num, bool cache) {
-  RegWithParam1(ZerosA, num);
+  DispatchAll(ZerosA, num);
 }
 
 std::vector<ATy> Protocol::RandA(size_t num, bool cache) {
-  RegWithParam1(RandA, num);
+  DispatchAll(RandA, num);
 }
 
 std::vector<ATy> Protocol::SetA(absl::Span<const PTy> in, bool cache) {
-  RegWithParam1(SetA, in);
+  DispatchAll(SetA, in);
 }
 
 std::vector<ATy> Protocol::GetA(size_t num, bool cache) {
-  RegWithParam1(GetA, num);
+  DispatchAll(GetA, num);
 }
 
 std::vector<ATy> Protocol::SumA(absl::Span<const ATy> in, bool cache) {
-  RegWithParam1(SumA, in);
+  DispatchAll(SumA, in);
 }
 
 std::vector<ATy> Protocol::FilterA(absl::Span<const ATy> in,
                                    absl::Span<const size_t> indexes,
                                    bool cache) {
-  RegWithParam2(FilterA, in, indexes);
+  DispatchAll(FilterA, in, indexes);
 }
 
 // shuffle
 std::vector<ATy> Protocol::ShuffleA(absl::Span<const ATy> in, bool cache) {
-  RegWithParam1(ShuffleA, in);
+  DispatchAll(ShuffleA, in);
 }
 
 std::vector<ATy> Protocol::ShuffleASet(absl::Span<const ATy> in, bool cache) {
-  RegWithParam1(ShuffleASet, in);
+  DispatchAll(ShuffleASet, in);
 }
 std::vector<ATy> Protocol::ShuffleAGet(absl::Span<const ATy> in, bool cache) {
-  RegWithParam1(ShuffleAGet, in);
+  DispatchAll(ShuffleAGet, in);
 }
 
 std::array<std::vector<ATy>, 2> Protocol::ShuffleA(absl::Span<const ATy> in0,
                                                    absl::Span<const ATy> in1,
                                                    bool cache) {
-  RegWithParam2(ShuffleA, in0, in1);
+  DispatchAll(ShuffleA, in0, in1);
 }
 
 std::array<std::vector<ATy>, 2> Protocol::ShuffleASet(absl::Span<const ATy> in0,
                                                       absl::Span<const ATy> in1,
                                                       bool cache) {
-  RegWithParam2(ShuffleASet, in0, in1);
+  DispatchAll(ShuffleASet, in0, in1);
 }
 
 std::array<std::vector<ATy>, 2> Protocol::ShuffleAGet(absl::Span<const ATy> in0,
                                                       absl::Span<const ATy> in1,
                                                       bool cache) {
-  RegWithParam2(ShuffleAGet, in0, in1);
+  DispatchAll(ShuffleAGet, in0, in1);
 }
 
 std::vector<ATy> Protocol::ZeroOneA(size_t num, bool cache) {
-  RegWithParam1(ZeroOneA, num);
+  DispatchAll(ZeroOneA, num);
 }
 
 std::vector<ATy> Protocol::ScalarMulPA(const PTy& scalar,
                                        absl::Span<const ATy> in, bool cache) {
-  RegWithParam2(ScalarMulPA, scalar, in);
+  DispatchAll(ScalarMulPA, scalar, in);
 }
 
 std::vector<ATy> Protocol::ScalarMulAP(const ATy& scalar,
                                        absl::Span<const PTy> in, bool cache) {
-  RegWithParam2(ScalarMulAP, scalar, in);
+  DispatchAll(ScalarMulAP, scalar, in);
 }
 
 std::pair<std::vector<ATy>, std::vector<ATy>> Protocol::RandFairA(size_t num,
                                                                   bool cache) {
-  RegWithParam1(RandFairA, num);
+  DispatchAll(RandFairA, num);
 }
 
 std::vector<PTy> Protocol::FairA2P(absl::Span<const ATy> in,
                                    absl::Span<const ATy> bits, bool cache) {
-  RegWithParam2(FairA2P, in, bits);
+  DispatchAll(FairA2P, in, bits);
 }
 
 std::vector<ATy> Protocol::DyExp(absl::Span<const ATy> in, bool cache) {
-  RegWithParam1(DyExp, in);
+  DispatchAll(DyExp, in);
 }
 
 std::vector<ATy> Protocol::DyExpSet(absl::Span<const PTy> in, bool cache) {
-  RegWithParam1(DyExpSet, in);
+  DispatchAll(DyExpSet, in);
 }
 
 std::vector<ATy> Protocol::DyExpGet(size_t num, bool cache) {
-  RegWithParam1(DyExpGet, num);
+  DispatchAll(DyExpGet, num);
 }
 
 std::vector<ATy> Protocol::ScalarDyExp(const ATy& scalar,
                                        absl::Span<const ATy> in, bool cache) {
-  RegWithParam2(ScalarDyExp, scalar, in);
+  DispatchAll(ScalarDyExp, scalar, in);
 }
 
 std::vector<ATy> Protocol::ScalarDyExpSet(const ATy& scalar,
                                           absl::Span<const PTy> in,
                                           bool cache) {
-  RegWithParam2(ScalarDyExpSet, scalar, in);
+  DispatchAll(ScalarDyExpSet, scalar, in);
 }
 
 std::vector<ATy> Protocol::ScalarDyExpGet(const ATy& scalar, size_t num,
                                           bool cache) {
-  RegWithParam2(ScalarDyExpGet, scalar, num);
+  DispatchAll(ScalarDyExpGet, scalar, num);
 }
 
 std::vector<GTy> Protocol::DyOprf(absl::Span<const ATy> in, bool cache) {
-  RegWithParam1(DyOprf, in);
+  DispatchAll(DyOprf, in);
 }
 
 std::vector<GTy> Protocol::DyOprfSet(absl::Span<const PTy> in, bool cache) {
-  RegWithParam1(DyOprfSet, in);
+  DispatchAll(DyOprfSet, in);
 }
 
 std::vector<GTy> Protocol::DyOprfGet(size_t num, bool cache) {
-  RegWithParam1(DyOprfGet, num);
+  DispatchAll(DyOprfGet, num);
 }
 
 std::vector<GTy> Protocol::ScalarDyOprf(const ATy& scalar,
                                         absl::Span<const ATy> in, bool cache) {
-  RegWithParam2(ScalarDyOprf, scalar, in);
+  DispatchAll(ScalarDyOprf, scalar, in);
 }
 
 std::vector<GTy> Protocol::ScalarDyOprfSet(const ATy& scalar,
                                            absl::Span<const PTy> in,
                                            bool cache) {
-  RegWithParam2(ScalarDyOprfSet, scalar, in);
+  DispatchAll(ScalarDyOprfSet, scalar, in);
 }
 
 std::vector<GTy> Protocol::ScalarDyOprfGet(const ATy& scalar, size_t num,
                                            bool cache) {
-  RegWithParam2(ScalarDyOprfGet, scalar, num);
+  DispatchAll(ScalarDyOprfGet, scalar, num);
 }
 
 std::vector<ATy> Protocol::CPSI(absl::Span<const ATy> set0,
                                 absl::Span<const ATy> set1,
                                 absl::Span<const ATy> data, bool cache) {
-  RegWithParam3(CPSI, set0, set1, data);
+  DispatchAll(CPSI, set0, set1, data);
 }
 
 std::vector<ATy> Protocol::FairCPSI(absl::Span<const ATy> set0,
                                     absl::Span<const ATy> set1,
                                     absl::Span<const ATy> data, bool cache) {
-  RegWithParam3(FairCPSI, set0, set1, data);
+  DispatchAll(FairCPSI, set0, set1, data);
+}
+
+void Protocol::CheckBufferAppend(absl::Span<const PTy> in) {
+  std::copy(in.begin(), in.end(), std::back_inserter(check_buff_));
+}
+
+void Protocol::CheckBufferAppend(const PTy& in) {
+  check_buff_.emplace_back(in);
+}
+
+bool Protocol::DelayCheck() {
+  if (check_buff_.size() == 0) {
+    return true;
+  }
+  auto conn = ctx_->GetConnection();
+
+  auto hash_val = yacl::crypto::Sm3(yacl::ByteContainerView(
+      check_buff_.data(), check_buff_.size() * sizeof(internal::PTy)));
+  check_buff_.clear();
+
+  auto remote_hash_val = conn->ExchangeWithCommit(
+      yacl::ByteContainerView(hash_val.data(), hash_val.size()));
+  auto flag = (yacl::ByteContainerView(hash_val.data(), hash_val.size()) ==
+               yacl::ByteContainerView(remote_hash_val));
+  SPDLOG_INFO("delay check result: {} ", flag);
+  return flag;
 }
 
 }  // namespace mcpsi

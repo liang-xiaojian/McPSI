@@ -200,4 +200,21 @@ std::vector<ATy> ScalarMulAP(std::shared_ptr<Context>& ctx, const ATy& scalar,
 std::vector<ATy> ScalarMulAP_cache(std::shared_ptr<Context>& ctx,
                                    const ATy& scalar, absl::Span<const PTy> in);
 
+std::vector<ATy> MulAASet(std::shared_ptr<Context>& ctx,
+                          absl::Span<const ATy> lhs, absl::Span<const ATy> rhs);
+std::vector<ATy> MulAASet_cache(std::shared_ptr<Context>& ctx,
+                                absl::Span<const ATy> lhs,
+                                absl::Span<const ATy> rhs);
+
+std::vector<ATy> MulAAGet(std::shared_ptr<Context>& ctx,
+                          absl::Span<const ATy> lhs, absl::Span<const ATy> rhs);
+std::vector<ATy> MulAAGet_cache(std::shared_ptr<Context>& ctx,
+                                absl::Span<const ATy> lhs,
+                                absl::Span<const ATy> rhs);
+
+std::vector<PTy> A2P_delay(std::shared_ptr<Context>& ctx,
+                           absl::Span<const ATy> in);
+std::vector<PTy> A2P_delay_cache(std::shared_ptr<Context>& ctx,
+                                 absl::Span<const ATy> in);
+
 }  // namespace mcpsi::internal

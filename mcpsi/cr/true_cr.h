@@ -96,6 +96,10 @@ class TrueCorrelation : public Correlation {
   // entry
   void BeaverTriple(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
                     absl::Span<internal::ATy> c) override;
+  void BeaverTripleSet(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
+                       absl::Span<internal::ATy> c) override;
+  void BeaverTripleGet(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
+                       absl::Span<internal::ATy> c) override;
 
   // entry
   void RandomSet(absl::Span<internal::ATy> out) override;

@@ -26,6 +26,42 @@ struct BeaverTy {
   }
 };
 
+struct BeaverSetTy {
+  std::vector<internal::ATy> a;
+  std::vector<internal::ATy> b;
+  std::vector<internal::ATy> c;
+  BeaverSetTy() { ; }
+  BeaverSetTy(std::vector<internal::ATy>&& aa, std::vector<internal::ATy>&& bb,
+              std::vector<internal::ATy>&& cc) {
+    a = std::move(aa);
+    b = std::move(bb);
+    c = std::move(cc);
+  }
+  BeaverSetTy(uint32_t n) {
+    a.resize(n);
+    b.resize(n);
+    c.resize(n);
+  }
+};
+
+struct BeaverGetTy {
+  std::vector<internal::ATy> a;
+  std::vector<internal::ATy> b;
+  std::vector<internal::ATy> c;
+  BeaverGetTy() { ; }
+  BeaverGetTy(std::vector<internal::ATy>&& aa, std::vector<internal::ATy>&& bb,
+              std::vector<internal::ATy>&& cc) {
+    a = std::move(aa);
+    b = std::move(bb);
+    c = std::move(cc);
+  }
+  BeaverGetTy(uint32_t n) {
+    a.resize(n);
+    b.resize(n);
+    c.resize(n);
+  }
+};
+
 struct AuthTy {
   std::vector<internal::ATy> data;
   AuthTy() { ; }
@@ -85,6 +121,12 @@ class Correlation : public State {
   virtual void BeaverTriple(absl::Span<internal::ATy> a,
                             absl::Span<internal::ATy> b,
                             absl::Span<internal::ATy> c) = 0;
+  virtual void BeaverTripleSet(absl::Span<internal::ATy> a,
+                               absl::Span<internal::ATy> b,
+                               absl::Span<internal::ATy> c) = 0;
+  virtual void BeaverTripleGet(absl::Span<internal::ATy> a,
+                               absl::Span<internal::ATy> b,
+                               absl::Span<internal::ATy> c) = 0;
   virtual void RandomSet(absl::Span<internal::ATy> out) = 0;
   virtual void RandomGet(absl::Span<internal::ATy> out) = 0;
   virtual void RandomAuth(absl::Span<internal::ATy> out) = 0;
@@ -96,6 +138,8 @@ class Correlation : public State {
 
   // interface
   BeaverTy BeaverTriple(size_t num);
+  BeaverSetTy BeaverTripleSet(size_t num);
+  BeaverGetTy BeaverTripleGet(size_t num);
   AuthTy RandomSet(size_t num);
   AuthTy RandomGet(size_t num);
   AuthTy RandomAuth(size_t num);
@@ -105,6 +149,8 @@ class Correlation : public State {
   // ------------ cache -------------
  private:
   size_t b_num_{0};
+  size_t b_s_num_{0};
+  size_t b_g_num_{0};
   size_t r_s_num_{0};
   size_t r_g_num_{0};
   std::vector<uint64_t> s_s_shape_;
@@ -114,6 +160,8 @@ class Correlation : public State {
  public:
   // cache interface
   void BeaverTriple_cache(size_t num) { b_num_ += num; }
+  void BeaverTripleSet_cache(size_t num) { b_s_num_ += num; }
+  void BeaverTripleGet_cache(size_t num) { b_g_num_ += num; }
   void RandomSet_cache(size_t num) { r_s_num_ += num; }
   void RandomGet_cache(size_t num) { r_g_num_ += num; }
   void RandomAuth_cache(size_t num) {
@@ -130,26 +178,34 @@ class Correlation : public State {
   // force cache
   void force_cache() {
     SPDLOG_INFO(
-        "[P{}] FORCE CACHE!!! beaver num : {} , random set num : {} , random "
+        "[P{}] FORCE CACHE!!! beaver num : {} , beaver get num : {} , beaver "
+        "set num : {} , random set num : {} , random "
         "get num: {} , shuffle set num: {} , shuffle get num: {} ",
-        ctx_->GetRank(), b_num_, r_s_num_, r_g_num_, s_s_shape_.size(),
-        s_g_shape_.size());
-    force_cache(b_num_, r_s_num_, r_g_num_, s_s_shape_, s_g_shape_);
+        ctx_->GetRank(), b_num_, b_s_num_, b_g_num_, r_s_num_, r_g_num_,
+        s_s_shape_.size(), s_g_shape_.size());
+    force_cache(b_num_, b_s_num_, b_g_num_, r_s_num_, r_g_num_, s_s_shape_,
+                s_g_shape_);
   }
 
-  void force_cache(size_t beaver_num, size_t rand_set_num, size_t rand_get_num,
+  void force_cache(size_t beaver_num, size_t beaver_set_num,
+                   size_t beaver_get_num, size_t rand_set_num,
+                   size_t rand_get_num,
                    const std::vector<uint64_t>& shuffle_set_shape = {},
                    const std::vector<uint64_t>& shuffle_get_shape = {});
 };
 
 struct CorrelationCache {
   BeaverTy beaver_cache;
+  BeaverSetTy beaver_set_cache;
+  BeaverGetTy beaver_get_cache;
   AuthTy random_set_cache;
   AuthTy random_get_cache;
   std::unordered_map<uint64_t, std::vector<ShuffleSTy>> shuffle_set_cache;
   std::unordered_map<uint64_t, std::vector<ShuffleGTy>> shuffle_get_cache;
 
   size_t BeaverCacheSize() { return beaver_cache.a.size(); }
+  size_t BeaverSetCacheSize() { return beaver_set_cache.a.size(); }
+  size_t BeaverGetCacheSize() { return beaver_get_cache.a.size(); }
   size_t RandomSetSize() { return random_set_cache.data.size(); }
   size_t RandomGetSize() { return random_get_cache.data.size(); }
   size_t ShuffleSetCount(size_t num, size_t repeat = 1) {
@@ -162,6 +218,8 @@ struct CorrelationCache {
   }
 
   BeaverTy BeaverTriple(size_t num);
+  BeaverSetTy BeaverTripleSet(size_t num);
+  BeaverGetTy BeaverTripleGet(size_t num);
   AuthTy RandomSet(size_t num);
   AuthTy RandomGet(size_t num);
   ShuffleSTy ShuffleSet(size_t num, size_t repeat = 1);

@@ -63,8 +63,8 @@ std::vector<ATy> MulAA(std::shared_ptr<Context>& ctx, absl::Span<const ATy> lhs,
   auto [a, b, c] = ctx->GetState<Correlation>()->BeaverTriple(size);
   auto u = SubAA(ctx, lhs, a);  // x-a
   auto v = SubAA(ctx, rhs, b);  // y-b
-  auto u_p = A2P(ctx, u);
-  auto v_p = A2P(ctx, v);
+  auto u_p = A2P_delay(ctx, u);
+  auto v_p = A2P_delay(ctx, v);
 
   // ret = c + x(y-b) + (x-a)y - (x-a)(y-b)
   auto xyb = MulAP(ctx, lhs, v_p);
@@ -88,8 +88,8 @@ std::vector<ATy> MulAA_cache([[maybe_unused]] std::shared_ptr<Context>& ctx,
   std::vector<ATy> c(size);
   auto u = SubAA_cache(ctx, lhs, a);  // x-a
   auto v = SubAA_cache(ctx, rhs, b);  // y-b
-  auto u_p = A2P_cache(ctx, u);
-  auto v_p = A2P_cache(ctx, v);
+  auto u_p = A2P_delay_cache(ctx, u);
+  auto v_p = A2P_delay_cache(ctx, v);
 
   // ret = c + x(y-b) + (x-a)y - (x-a)(y-b)
   auto xyb = MulAP_cache(ctx, lhs, v_p);
@@ -142,7 +142,7 @@ std::vector<ATy> InvA(std::shared_ptr<Context>& ctx, absl::Span<const ATy> in) {
   // r * in
   auto mul = MulAA(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(in));
   // reveal r * in
-  auto pub = A2P(ctx, absl::MakeConstSpan(mul));
+  auto pub = A2P_delay(ctx, absl::MakeConstSpan(mul));
   // inv = (r * in)^{-1}
   auto inv = InvP(ctx, absl::MakeConstSpan(pub));
   // r * inv = in^{-1}
@@ -157,7 +157,7 @@ std::vector<ATy> InvA_cache(std::shared_ptr<Context>& ctx,
   // r * in
   auto mul = MulAA_cache(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(in));
   // reveal r * in
-  auto pub = A2P_cache(ctx, absl::MakeConstSpan(mul));
+  auto pub = A2P_delay_cache(ctx, absl::MakeConstSpan(mul));
   // inv = (r * in)^{-1}
   auto inv = InvP_cache(ctx, absl::MakeConstSpan(pub));
   // r * inv = in^{-1}
@@ -754,7 +754,7 @@ std::vector<ATy> ZeroOneA(std::shared_ptr<Context>& ctx, size_t num) {
   // s = r * r
   auto s = MulAA(ctx, r, r);
   // reveal s
-  auto p = A2P(ctx, s);
+  auto p = A2P_delay(ctx, s);
   auto root = op::Sqrt(absl::MakeSpan(p));
 
   auto tmp = DivAP(ctx, r, root);
@@ -770,7 +770,7 @@ std::vector<ATy> ZeroOneA_cache(std::shared_ptr<Context>& ctx, size_t num) {
   // s = r * r
   auto s = MulAA_cache(ctx, r, r);
   // reveal s
-  auto p = A2P_cache(ctx, s);
+  auto p = A2P_delay_cache(ctx, s);
   auto root = op::Sqrt(absl::MakeSpan(p));
 
   auto tmp = DivAP_cache(ctx, r, root);
@@ -891,6 +891,156 @@ std::vector<PTy> FairA2P_cache(std::shared_ptr<Context>& ctx,
   auto check = SubAP_cache(ctx, in, ret);
   [[maybe_unused]] auto zeros = A2P_cache(ctx, check);
   return ret;
+}
+
+std::vector<ATy> MulAASet(std::shared_ptr<Context>& ctx,
+                          absl::Span<const ATy> lhs,
+                          absl::Span<const ATy> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  const size_t size = lhs.size();
+  auto [a, b, c] = ctx->GetState<Correlation>()->BeaverTriple(size);
+  auto u = SubAA(ctx, lhs, a);  // x-a
+  auto v = SubAA(ctx, rhs, b);  // y-b
+  auto u_p = A2P_delay(ctx, u);
+  auto v_p = A2P_delay(ctx, v);
+
+  // ret = c + x(y-b) + (x-a)y - (x-a)(y-b)
+  auto xyb = MulAP(ctx, lhs, v_p);
+  auto xay = MulPA(ctx, u_p, rhs);
+  auto xayb = MulPP(ctx, u_p, v_p);
+  auto oooo = P2A(ctx, absl::MakeSpan(xayb));
+  c = AddAA(ctx, absl::MakeSpan(c), absl::MakeSpan(xyb));
+  c = AddAA(ctx, absl::MakeSpan(c), absl::MakeSpan(xay));
+  c = SubAA(ctx, absl::MakeSpan(c), absl::MakeSpan(oooo));
+  return c;
+}
+
+std::vector<ATy> MulAASet_cache([[maybe_unused]] std::shared_ptr<Context>& ctx,
+                                absl::Span<const ATy> lhs,
+                                absl::Span<const ATy> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  const size_t size = lhs.size();
+  ctx->GetState<Correlation>()->BeaverTriple_cache(size);
+  std::vector<ATy> a(size);
+  std::vector<ATy> b(size);
+  std::vector<ATy> c(size);
+  auto u = SubAA_cache(ctx, lhs, a);  // x-a
+  auto v = SubAA_cache(ctx, rhs, b);  // y-b
+  auto u_p = A2P_delay_cache(ctx, u);
+  auto v_p = A2P_delay_cache(ctx, v);
+
+  // ret = c + x(y-b) + (x-a)y - (x-a)(y-b)
+  auto xyb = MulAP_cache(ctx, lhs, v_p);
+  auto xay = MulPA_cache(ctx, u_p, rhs);
+  auto xayb = MulPP_cache(ctx, u_p, v_p);
+  auto oooo = P2A_cache(ctx, absl::MakeSpan(xayb));
+  c = AddAA_cache(ctx, absl::MakeSpan(c), absl::MakeSpan(xyb));
+  c = AddAA_cache(ctx, absl::MakeSpan(c), absl::MakeSpan(xay));
+  c = SubAA_cache(ctx, absl::MakeSpan(c), absl::MakeSpan(oooo));
+  return c;
+}
+
+std::vector<ATy> MulAAGet(std::shared_ptr<Context>& ctx,
+                          absl::Span<const ATy> lhs,
+                          absl::Span<const ATy> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  const size_t size = lhs.size();
+  auto [a, b, c] = ctx->GetState<Correlation>()->BeaverTriple(size);
+  auto u = SubAA(ctx, lhs, a);  // x-a
+  auto v = SubAA(ctx, rhs, b);  // y-b
+  auto u_p = A2P_delay(ctx, u);
+  auto v_p = A2P_delay(ctx, v);
+
+  // ret = c + x(y-b) + (x-a)y - (x-a)(y-b)
+  auto xyb = MulAP(ctx, lhs, v_p);
+  auto xay = MulPA(ctx, u_p, rhs);
+  auto xayb = MulPP(ctx, u_p, v_p);
+  auto oooo = P2A(ctx, absl::MakeSpan(xayb));
+  c = AddAA(ctx, absl::MakeSpan(c), absl::MakeSpan(xyb));
+  c = AddAA(ctx, absl::MakeSpan(c), absl::MakeSpan(xay));
+  c = SubAA(ctx, absl::MakeSpan(c), absl::MakeSpan(oooo));
+  return c;
+}
+
+std::vector<ATy> MulAAGet_cache([[maybe_unused]] std::shared_ptr<Context>& ctx,
+                                absl::Span<const ATy> lhs,
+                                absl::Span<const ATy> rhs) {
+  YACL_ENFORCE(lhs.size() == rhs.size());
+  const size_t size = lhs.size();
+  ctx->GetState<Correlation>()->BeaverTriple_cache(size);
+  std::vector<ATy> a(size);
+  std::vector<ATy> b(size);
+  std::vector<ATy> c(size);
+  auto u = SubAA_cache(ctx, lhs, a);  // x-a
+  auto v = SubAA_cache(ctx, rhs, b);  // y-b
+  auto u_p = A2P_delay_cache(ctx, u);
+  auto v_p = A2P_delay_cache(ctx, v);
+
+  // ret = c + x(y-b) + (x-a)y - (x-a)(y-b)
+  auto xyb = MulAP_cache(ctx, lhs, v_p);
+  auto xay = MulPA_cache(ctx, u_p, rhs);
+  auto xayb = MulPP_cache(ctx, u_p, v_p);
+  auto oooo = P2A_cache(ctx, absl::MakeSpan(xayb));
+  c = AddAA_cache(ctx, absl::MakeSpan(c), absl::MakeSpan(xyb));
+  c = AddAA_cache(ctx, absl::MakeSpan(c), absl::MakeSpan(xay));
+  c = SubAA_cache(ctx, absl::MakeSpan(c), absl::MakeSpan(oooo));
+  return c;
+}
+
+std::vector<PTy> A2P_delay(std::shared_ptr<Context>& ctx,
+                           absl::Span<const ATy> in) {
+  const size_t size = in.size();
+  auto [val, mac] = Unpack(absl::MakeSpan(in));
+  auto conn = ctx->GetState<Connection>();
+  auto val_bv = yacl::ByteContainerView(val.data(), size * sizeof(PTy));
+  std::vector<PTy> real_val(size);
+
+  auto buf = conn->Exchange(val_bv);
+  op::Add(absl::MakeConstSpan(reinterpret_cast<const PTy*>(buf.data()), size),
+          absl::MakeConstSpan(val), absl::MakeSpan(real_val));
+
+  typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
+
+  std::vector<INTEGER> randomness(size, 0);
+  std::transform(randomness.begin(), randomness.end(),
+                 reinterpret_cast<INTEGER*>(val.data()), randomness.begin(),
+                 std::bit_xor<INTEGER>());
+  std::transform(randomness.begin(), randomness.end(),
+                 reinterpret_cast<INTEGER*>(buf.data()), randomness.begin(),
+                 std::bit_xor<INTEGER>());
+  std::transform(randomness.begin(), randomness.end(),
+                 reinterpret_cast<INTEGER*>(real_val.data()),
+                 randomness.begin(), std::bit_xor<INTEGER>());
+
+  auto seeds = yacl::crypto::Sm3(yacl::ByteContainerView(
+      randomness.data(), randomness.size() * sizeof(INTEGER)));
+  uint128_t sync_seed = 0;
+  std::memcpy(&seeds, &sync_seed, sizeof(uint128_t));
+
+  auto coef = internal::op::Rand(sync_seed, size);
+
+  // linear combination
+  auto real_val_affine =
+      internal::op::InPro(absl::MakeSpan(coef), absl::MakeSpan(real_val));
+  auto mac_affine =
+      internal::op::InPro(absl::MakeSpan(coef), absl::MakeSpan(mac));
+
+  auto key = ctx->GetState<Protocol>()->GetKey();
+  auto zero_mac = mac_affine - real_val_affine * key;
+
+  // Append to Buffer
+  if (ctx->GetRank() == 0) {
+    ctx->GetState<Protocol>()->CheckBufferAppend(zero_mac);
+  } else {
+    ctx->GetState<Protocol>()->CheckBufferAppend(PTy::Neg(zero_mac));
+  }
+  return real_val;
+}
+
+std::vector<PTy> A2P_delay_cache([[maybe_unused]] std::shared_ptr<Context>& ctx,
+                                 absl::Span<const ATy> in) {
+  const size_t size = in.size();
+  return std::vector<PTy>(size, 0);
 }
 
 }  // namespace mcpsi::internal

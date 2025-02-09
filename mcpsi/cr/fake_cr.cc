@@ -37,6 +37,58 @@ void FakeCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   }
 }
 
+void FakeCorrelation::BeaverTripleSet(absl::Span<internal::ATy> a,
+                                      absl::Span<internal::ATy> b,
+                                      absl::Span<internal::ATy> c) {
+  const size_t num = c.size();
+  YACL_ENFORCE(num == a.size());
+  YACL_ENFORCE(num == b.size());
+
+  auto a0 = internal::op::Rand(*ctx_->GetState<Prg>(), num);
+  auto a1 = internal::op::Rand(*ctx_->GetState<Prg>(), num);
+  auto bb = internal::op::Rand(*ctx_->GetState<Prg>(), num);
+  auto c0 = internal::op::Rand(*ctx_->GetState<Prg>(), num);
+
+  auto aa = internal::op::Add(absl::MakeConstSpan(a0), absl::MakeConstSpan(a1));
+  auto cc = internal::op::Mul(absl::MakeConstSpan(aa), absl::MakeConstSpan(bb));
+  auto c1 = internal::op::Sub(absl::MakeConstSpan(cc), absl::MakeConstSpan(c0));
+
+  auto a_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(aa));
+  auto b_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(bb));
+  auto c_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(cc));
+
+  internal::Pack(absl::MakeConstSpan(a0), absl::MakeConstSpan(a_mac), a);
+  internal::Pack(absl::MakeConstSpan(bb), absl::MakeConstSpan(b_mac), b);
+  internal::Pack(absl::MakeConstSpan(c0), absl::MakeConstSpan(c_mac), c);
+}
+
+void FakeCorrelation::BeaverTripleGet(absl::Span<internal::ATy> a,
+                                      absl::Span<internal::ATy> b,
+                                      absl::Span<internal::ATy> c) {
+  const size_t num = c.size();
+  YACL_ENFORCE(num == a.size());
+  YACL_ENFORCE(num == b.size());
+
+  auto a0 = internal::op::Rand(*ctx_->GetState<Prg>(), num);
+  auto a1 = internal::op::Rand(*ctx_->GetState<Prg>(), num);
+  auto bb = internal::op::Rand(*ctx_->GetState<Prg>(), num);
+  auto c0 = internal::op::Rand(*ctx_->GetState<Prg>(), num);
+
+  auto aa = internal::op::Add(absl::MakeConstSpan(a0), absl::MakeConstSpan(a1));
+  auto cc = internal::op::Mul(absl::MakeConstSpan(aa), absl::MakeConstSpan(bb));
+  auto c1 = internal::op::Sub(absl::MakeConstSpan(cc), absl::MakeConstSpan(c0));
+
+  auto a_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(aa));
+  auto b_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(bb));
+  auto c_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(cc));
+
+  auto zeros = internal::op::Zeros(num);
+
+  internal::Pack(absl::MakeConstSpan(a1), absl::MakeConstSpan(a_mac), a);
+  internal::Pack(absl::MakeConstSpan(zeros), absl::MakeConstSpan(b_mac), b);
+  internal::Pack(absl::MakeConstSpan(c1), absl::MakeConstSpan(c_mac), c);
+}
+
 void FakeCorrelation::RandomSet(absl::Span<internal::ATy> out) {
   const size_t num = out.size();
   auto rands = internal::op::Rand(*ctx_->GetState<Prg>(), num);

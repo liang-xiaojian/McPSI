@@ -26,6 +26,8 @@ class Protocol : public State {
   std::shared_ptr<Context> ctx_;
   // SPDZ key
   PTy key_;
+  // check buffer
+  std::vector<PTy> check_buff_;
 
   // DY-PRF
   bool init_prf_{false};
@@ -190,6 +192,11 @@ class Protocol : public State {
   std::vector<ATy> FairCPSI(absl::Span<const ATy> set0,
                             absl::Span<const ATy> set1,
                             absl::Span<const ATy> data, bool cache = false);
+
+  // check buffer
+  void CheckBufferAppend(absl::Span<const PTy> in);
+  void CheckBufferAppend(const PTy& in);
+  bool DelayCheck();
 };
 
 }  // namespace mcpsi

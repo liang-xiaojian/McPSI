@@ -290,6 +290,7 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
       prot->Mul(absl::MakeConstSpan(result_s), absl::MakeConstSpan(result_s));
   auto sum_square_s = prot->SumA(square_result);
   auto sum_square_p = prot->A2P(sum_square_s);
+  YACL_ENFORCE(prot->DelayCheck());
   TIMER_END(result_sum_square);    // stop result_sum_square timer
   COMM_END(result_sum_square);     // stop
   TIMER_PRINT(result_sum_square);  // print info
