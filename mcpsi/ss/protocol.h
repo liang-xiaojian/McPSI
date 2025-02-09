@@ -26,14 +26,15 @@ class Protocol : public State {
   std::shared_ptr<Context> ctx_;
   // SPDZ key
   PTy key_;
-  // check buffer
-  std::vector<PTy> check_buff_;
 
   // DY-PRF
   bool init_prf_{false};
   std::shared_ptr<yc::EcGroup> group_{nullptr};
   GTy g_;  // the generator for PRF
   ATy k_;  // the distributed key for PRF
+
+  // check buffer
+  std::vector<PTy> check_buff_;
 
  public:
   static const std::string id;

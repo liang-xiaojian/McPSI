@@ -21,7 +21,7 @@ auto toy_mc_psi() -> std::pair<uint128_t, uint128_t> {
 
     auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
-
+    YACL_ENFORCE(prot->DelayCheck());
     auto ret =
         std::accumulate(result_p.begin(), result_p.end(), PTy(0), PTy::Add);
     return uint128_t(ret.GetVal());
@@ -37,7 +37,7 @@ auto toy_mc_psi() -> std::pair<uint128_t, uint128_t> {
 
     auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
-
+    YACL_ENFORCE(prot->DelayCheck());
     auto ret =
         std::accumulate(result_p.begin(), result_p.end(), PTy(0), PTy::Add);
     return uint128_t(ret.GetVal());

@@ -49,7 +49,9 @@ auto toy_psi() -> std::pair<std::vector<size_t>, std::vector<size_t>> {
     auto reveal0 = prot->DyOprf(shuffle0);
     auto reveal1 = prot->DyOprf(shuffle1);
 
-    return intersection(prot->GetGroup(), reveal0, reveal1);
+    auto result = intersection(prot->GetGroup(), reveal0, reveal1);
+    YACL_ENFORCE(prot->DelayCheck());
+    return result;
   });
   auto rank1 = std::async([&] {
     auto prot = context[1]->GetState<Protocol>();
@@ -63,7 +65,9 @@ auto toy_psi() -> std::pair<std::vector<size_t>, std::vector<size_t>> {
     auto reveal0 = prot->DyOprf(shuffle0);
     auto reveal1 = prot->DyOprf(shuffle1);
 
-    return intersection(prot->GetGroup(), reveal0, reveal1);
+    auto result = intersection(prot->GetGroup(), reveal0, reveal1);
+    YACL_ENFORCE(prot->DelayCheck());
+    return result;
   });
 
   auto result0 = rank0.get();

@@ -1,316 +1,114 @@
 #include "mcpsi/cr/cr.h"
 
+#include <future>
+
+#include "gtest/gtest.h"
+#include "mcpsi/context/register.h"
+#include "mcpsi/utils/test_util.h"
+#include "mcpsi/utils/vec_op.h"
+
 namespace mcpsi {
 
-// register string
-const std::string Correlation::id = std::string("Correlation");
+class TestParam {
+ public:
+  static std::vector<std::shared_ptr<Context>> ctx;
 
-BeaverTy Correlation::BeaverTriple(size_t num) {
-  if (cache_ != nullptr && cache_->BeaverCacheSize() >= num) {
-    return cache_->BeaverTriple(num);
-  }
-  SPDLOG_DEBUG("Miss match");
-  std::vector<internal::ATy> a(num);
-  std::vector<internal::ATy> b(num);
-  std::vector<internal::ATy> c(num);
-  BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-  return BeaverTy(std::move(a), std::move(b), std::move(c));
-}
-
-BeaverGetTy Correlation::BeaverTripleGet(size_t num) {
-  if (cache_ != nullptr && cache_->BeaverGetCacheSize() >= num) {
-    return cache_->BeaverTripleGet(num);
-  }
-  SPDLOG_DEBUG("Miss match");
-  std::vector<internal::ATy> a(num);
-  std::vector<internal::ATy> b(num);
-  std::vector<internal::ATy> c(num);
-  BeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-  return BeaverGetTy(std::move(a), std::move(b), std::move(c));
-}
-
-BeaverSetTy Correlation::BeaverTripleSet(size_t num) {
-  if (cache_ != nullptr && cache_->BeaverSetCacheSize() >= num) {
-    return cache_->BeaverTripleSet(num);
-  }
-  SPDLOG_DEBUG("Miss match");
-  std::vector<internal::ATy> a(num);
-  std::vector<internal::ATy> b(num);
-  std::vector<internal::ATy> c(num);
-  BeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-  return BeaverSetTy(std::move(a), std::move(b), std::move(c));
-}
-
-AuthTy Correlation::RandomSet(size_t num) {
-  if (cache_ != nullptr && cache_->RandomSetSize() >= num) {
-    return cache_->RandomSet(num);
-  }
-  SPDLOG_DEBUG("Miss match");
-  std::vector<internal::ATy> ret(num);
-  RandomSet(absl::MakeSpan(ret));
-  return AuthTy(std::move(ret));
-}
-
-AuthTy Correlation::RandomGet(size_t num) {
-  if (cache_ != nullptr && cache_->RandomGetSize() >= num) {
-    return cache_->RandomGet(num);
-  }
-  SPDLOG_DEBUG("Miss match");
-  std::vector<internal::ATy> ret(num);
-  RandomGet(absl::MakeSpan(ret));
-  return AuthTy(std::move(ret));
-}
-
-AuthTy Correlation::RandomAuth(size_t num) {
-  if (cache_ != nullptr && cache_->RandomSetSize() >= num &&
-      cache_->RandomGetSize() >= num) {
-    AuthTy set = cache_->RandomSet(num);
-    AuthTy get = cache_->RandomGet(num);
-    std::vector<internal::ATy> out(num);
-    internal::op::Add(
-        absl::MakeConstSpan(
-            reinterpret_cast<const internal::PTy*>(set.data.data()), 2 * num),
-        absl::MakeConstSpan(
-            reinterpret_cast<const internal::PTy*>(get.data.data()), 2 * num),
-        absl::MakeSpan(reinterpret_cast<internal::PTy*>(out.data()), 2 * num));
-    return AuthTy(std::move(out));
-  }
-  SPDLOG_DEBUG("Miss match");
-  std::vector<internal::ATy> ret(num);
-  RandomAuth(absl::MakeSpan(ret));
-  return AuthTy(std::move(ret));
-}
-
-ShuffleSTy Correlation::ShuffleSet(size_t num, size_t repeat) {
-  if (cache_ != nullptr && cache_->ShuffleSetCount(num, repeat)) {
-    return cache_->ShuffleSet(num, repeat);
-  }
-  SPDLOG_DEBUG("Miss match");
-  std::vector<internal::PTy> delta(num * repeat);
-  std::vector<size_t> perm = GenPerm(num);
-  ShuffleSet(absl::MakeSpan(perm), absl::MakeSpan(delta), repeat);
-  return ShuffleSTy(std::move(delta), std::move(perm));
-}
-
-ShuffleGTy Correlation::ShuffleGet(size_t num, size_t repeat) {
-  if (cache_ != nullptr && cache_->ShuffleGetCount(num, repeat)) {
-    return cache_->ShuffleGet(num, repeat);
-  }
-  SPDLOG_DEBUG("Miss match");
-  std::vector<internal::PTy> a(num * repeat);
-  std::vector<internal::PTy> b(num * repeat);
-  ShuffleGet(absl::MakeSpan(a), absl::MakeSpan(b), repeat);
-  return ShuffleGTy(std::move(a), std::move(b));
-}
-
-// cache
-void Correlation::force_cache(size_t beaver_num, size_t beaver_set_num,
-                              size_t beaver_get_num, size_t rand_set_num,
-                              size_t rand_get_num,
-                              const std::vector<uint64_t>& shuffle_set_shape,
-                              const std::vector<uint64_t>& shuffle_get_shape) {
-  cache_ = std::make_unique<CorrelationCache>();
-  // beaver
-  if (beaver_num != 0) {
-    cache_->beaver_cache = BeaverTy(beaver_num);
-    auto& a = cache_->beaver_cache.a;
-    auto& b = cache_->beaver_cache.b;
-    auto& c = cache_->beaver_cache.c;
-    BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-  } else {
-    SPDLOG_DEBUG("BEAVER NUM is zero, skip it");
-  }
-  if (ctx_->GetRank() == 0) {
-    // BEAVER SET
-    if (beaver_set_num != 0) {
-      cache_->beaver_set_cache = BeaverSetTy(beaver_set_num);
-      auto& a = cache_->beaver_set_cache.a;
-      auto& b = cache_->beaver_set_cache.b;
-      auto& c = cache_->beaver_set_cache.c;
-      BeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-    } else {
-      SPDLOG_DEBUG("BEAVER SET NUM is zero, skip it");
+  // Getter
+  static std::vector<std::shared_ptr<Context>>& GetContext() {
+    if (ctx.empty()) {
+      ctx = Setup();
     }
-    // BEAVER GET
-    if (beaver_get_num != 0) {
-      cache_->beaver_get_cache = BeaverGetTy(beaver_get_num);
-      auto& a = cache_->beaver_get_cache.a;
-      auto& b = cache_->beaver_get_cache.b;
-      auto& c = cache_->beaver_get_cache.c;
-      BeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-    } else {
-      SPDLOG_DEBUG("BEAVER GET NUM is zero, skip it");
-    }
-  } else {
-    // BEAVER GET
-    if (beaver_get_num != 0) {
-      cache_->beaver_get_cache = BeaverGetTy(beaver_get_num);
-      auto& a = cache_->beaver_get_cache.a;
-      auto& b = cache_->beaver_get_cache.b;
-      auto& c = cache_->beaver_get_cache.c;
-      BeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-    } else {
-      SPDLOG_DEBUG("BEAVER GET NUM is zero, skip it");
-    }
-    // BEAVER SET
-    if (beaver_set_num != 0) {
-      cache_->beaver_set_cache = BeaverSetTy(beaver_set_num);
-      auto& a = cache_->beaver_set_cache.a;
-      auto& b = cache_->beaver_set_cache.b;
-      auto& c = cache_->beaver_set_cache.c;
-      BeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-    } else {
-      SPDLOG_DEBUG("BEAVER SET NUM is zero, skip it");
-    }
+    return ctx;
   }
-  // random
-  {
-    cache_->random_set_cache = AuthTy(rand_set_num);
-    cache_->random_get_cache = AuthTy(rand_get_num);
-    auto& set_data = cache_->random_set_cache.data;
-    auto& get_data = cache_->random_get_cache.data;
-    if (ctx_->GetRank() == 0) {
-      RandomSet(absl::MakeSpan(set_data));
-      RandomGet(absl::MakeSpan(get_data));
-    } else {
-      RandomGet(absl::MakeSpan(get_data));
-      RandomSet(absl::MakeSpan(set_data));
-    }
+
+  static std::vector<std::shared_ptr<Context>> Setup() {
+    auto ctx = MockContext(2);
+    MockSetupContext(ctx);
+    return ctx;
   }
-  // shuffle
-  {
-    auto& set_map = cache_->shuffle_set_cache;
-    auto& get_map = cache_->shuffle_get_cache;
-    if (ctx_->GetRank() == 0) {
-      // set
-      for (const auto index : shuffle_set_shape) {
-        ShuffleSTy tmp(index >> 8, index & 0xFF);
-        tmp.perm = GenPerm(index >> 8);
-        ShuffleSet(absl::MakeSpan(tmp.perm), absl::MakeSpan(tmp.delta),
-                   index & 0xFF);
-        auto& vec = set_map[index];
-        vec.emplace_back(tmp);
-      }
-      // get
-      for (const auto index : shuffle_get_shape) {
-        ShuffleGTy tmp(index >> 8, index & 0xFF);
-        ShuffleGet(absl::MakeSpan(tmp.a), absl::MakeSpan(tmp.b), index & 0xFF);
-        auto& vec = get_map[index];
-        vec.emplace_back(tmp);
-      }
-    } else {
-      // get
-      for (const auto index : shuffle_get_shape) {
-        ShuffleGTy tmp(index >> 8, index & 0xFF);
-        ShuffleGet(absl::MakeSpan(tmp.a), absl::MakeSpan(tmp.b), index & 0xFF);
-        auto& vec = get_map[index];
-        vec.emplace_back(tmp);
-      }
-      // set
-      for (const auto index : shuffle_set_shape) {
-        ShuffleSTy tmp(index >> 8, index & 0xFF);
-        tmp.perm = GenPerm(index >> 8);
-        ShuffleSet(absl::MakeSpan(tmp.perm), absl::MakeSpan(tmp.delta),
-                   index & 0xFF);
-        auto& vec = set_map[index];
-        vec.emplace_back(tmp);
-      }
-    }
+};
+
+std::vector<std::shared_ptr<Context>> TestParam::ctx =
+    std::vector<std::shared_ptr<Context>>();
+
+TEST(Setup, InitializeWork) {
+  auto context = TestParam::GetContext();
+  EXPECT_EQ(context.size(), 2);
+}
+
+TEST(CrTest, AuthBeaverWork) {
+  auto context = TestParam::GetContext();
+  const size_t num = 10000;
+
+  auto rank0 = std::async([&] {
+    auto cr = context[0]->GetState<Correlation>();
+    std::vector<internal::ATy> a(num, {0, 0});
+    std::vector<internal::ATy> b(num, {0, 0});
+    std::vector<internal::ATy> c(num, {0, 0});
+    cr->BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
+    return std::make_tuple(a, b, c);
+  });
+  auto rank1 = std::async([&] {
+    auto cr = context[1]->GetState<Correlation>();
+    std::vector<internal::ATy> a(num, {0, 0});
+    std::vector<internal::ATy> b(num, {0, 0});
+    std::vector<internal::ATy> c(num, {0, 0});
+    cr->BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
+    return std::make_tuple(a, b, c);
+  });
+
+  auto [a0, b0, c0] = rank0.get();
+  auto [a1, b1, c1] = rank1.get();
+
+  auto a0_val = internal::ExtractVal(a0);
+  auto a1_val = internal::ExtractVal(a1);
+  auto b0_val = internal::ExtractVal(b0);
+  auto b1_val = internal::ExtractVal(b1);
+  auto c0_val = internal::ExtractVal(c0);
+  auto c1_val = internal::ExtractVal(c1);
+
+  auto a = internal::op::Add(absl::MakeSpan(a0_val), absl::MakeSpan(a1_val));
+  auto b = internal::op::Add(absl::MakeSpan(b0_val), absl::MakeSpan(b1_val));
+  auto c = internal::op::Add(absl::MakeSpan(c0_val), absl::MakeSpan(c1_val));
+
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(a[i] * b[i], c[i]);
   }
 }
 
-BeaverTy CorrelationCache::BeaverTriple(size_t num) {
-  const size_t remain = BeaverCacheSize();
-  YACL_ENFORCE(num <= remain);
-  // copy
-  std::vector<internal::ATy> a(beaver_cache.a.end() - num,
-                               beaver_cache.a.end());
-  std::vector<internal::ATy> b(beaver_cache.b.end() - num,
-                               beaver_cache.b.end());
-  std::vector<internal::ATy> c(beaver_cache.c.end() - num,
-                               beaver_cache.c.end());
-  // resize
-  beaver_cache.a.resize(remain - num);
-  beaver_cache.b.resize(remain - num);
-  beaver_cache.c.resize(remain - num);
+TEST(CrTest, AuthBeaverCacheWork) {
+  auto context = TestParam::GetContext();
+  const size_t num = 10000;
 
-  return BeaverTy(std::move(a), std::move(b), std::move(c));
+  auto rank0 = std::async([&] {
+    auto cr = context[0]->GetState<Correlation>();
+    cr->force_cache(num, 0, 0, 0, 0);
+    auto [a, b, c] = cr->BeaverTriple(num);
+    return std::make_tuple(a, b, c);
+  });
+  auto rank1 = std::async([&] {
+    auto cr = context[1]->GetState<Correlation>();
+    cr->force_cache(num, 0, 0, 0, 0);
+    auto [a, b, c] = cr->BeaverTriple(num);
+    return std::make_tuple(a, b, c);
+  });
+
+  auto [a0, b0, c0] = rank0.get();
+  auto [a1, b1, c1] = rank1.get();
+
+  auto a0_val = internal::ExtractVal(a0);
+  auto a1_val = internal::ExtractVal(a1);
+  auto b0_val = internal::ExtractVal(b0);
+  auto b1_val = internal::ExtractVal(b1);
+  auto c0_val = internal::ExtractVal(c0);
+  auto c1_val = internal::ExtractVal(c1);
+
+  auto a = internal::op::Add(absl::MakeSpan(a0_val), absl::MakeSpan(a1_val));
+  auto b = internal::op::Add(absl::MakeSpan(b0_val), absl::MakeSpan(b1_val));
+  auto c = internal::op::Add(absl::MakeSpan(c0_val), absl::MakeSpan(c1_val));
+
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_EQ(a[i] * b[i], c[i]);
+  }
 }
-
-BeaverSetTy CorrelationCache::BeaverTripleSet(size_t num) {
-  const size_t remain = BeaverSetCacheSize();
-  YACL_ENFORCE(num <= remain);
-  // copy
-  std::vector<internal::ATy> a(beaver_set_cache.a.end() - num,
-                               beaver_set_cache.a.end());
-  std::vector<internal::ATy> b(beaver_set_cache.b.end() - num,
-                               beaver_set_cache.b.end());
-  std::vector<internal::ATy> c(beaver_set_cache.c.end() - num,
-                               beaver_set_cache.c.end());
-  // resize
-  beaver_set_cache.a.resize(remain - num);
-  beaver_set_cache.b.resize(remain - num);
-  beaver_set_cache.c.resize(remain - num);
-
-  return BeaverSetTy(std::move(a), std::move(b), std::move(c));
-}
-
-BeaverGetTy CorrelationCache::BeaverTripleGet(size_t num) {
-  const size_t remain = BeaverGetCacheSize();
-  YACL_ENFORCE(num <= remain);
-  // copy
-  std::vector<internal::ATy> a(beaver_get_cache.a.end() - num,
-                               beaver_get_cache.a.end());
-  std::vector<internal::ATy> b(beaver_get_cache.b.end() - num,
-                               beaver_get_cache.b.end());
-  std::vector<internal::ATy> c(beaver_get_cache.c.end() - num,
-                               beaver_get_cache.c.end());
-  // resize
-  beaver_get_cache.a.resize(remain - num);
-  beaver_get_cache.b.resize(remain - num);
-  beaver_get_cache.c.resize(remain - num);
-
-  return BeaverGetTy(std::move(a), std::move(b), std::move(c));
-}
-
-AuthTy CorrelationCache::RandomSet(size_t num) {
-  const size_t remain = RandomSetSize();
-  YACL_ENFORCE(num <= remain);
-  // copy
-  std::vector<internal::ATy> data(random_set_cache.data.end() - num,
-                                  random_set_cache.data.end());
-  // resize
-  random_set_cache.data.resize(remain - num);
-
-  return AuthTy(std::move(data));
-}
-
-AuthTy CorrelationCache::RandomGet(size_t num) {
-  const size_t remain = RandomGetSize();
-  YACL_ENFORCE(num <= remain);
-  // copy
-  std::vector<internal::ATy> data(random_get_cache.data.end() - num,
-                                  random_get_cache.data.end());
-  // resize
-  random_get_cache.data.resize(remain - num);
-
-  return AuthTy(std::move(data));
-}
-
-ShuffleSTy CorrelationCache::ShuffleSet(size_t num, size_t repeat) {
-  YACL_ENFORCE(ShuffleSetCount(num, repeat) > 0);
-  const uint64_t index = ((num << 8) | repeat);
-  ShuffleSTy ret = std::move(shuffle_set_cache[index].back());
-  shuffle_set_cache[index].pop_back();
-  return ret;
-}
-
-ShuffleGTy CorrelationCache::ShuffleGet(size_t num, size_t repeat) {
-  YACL_ENFORCE(ShuffleGetCount(num, repeat) > 0);
-  const uint64_t index = ((num << 8) | repeat);
-  ShuffleGTy ret = std::move(shuffle_get_cache[index].back());
-  shuffle_get_cache[index].pop_back();
-  return ret;
-}
-
 }  // namespace mcpsi
