@@ -46,6 +46,7 @@ CTestTestfile.cmake
 trace.*log
 
 dump/
+thirdparty/
 
 # clangd cache
 .cache

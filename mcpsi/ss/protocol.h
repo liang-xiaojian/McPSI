@@ -33,12 +33,18 @@ class Protocol : public State {
   GTy g_;  // the generator for PRF
   ATy k_;  // the distributed key for PRF
 
+  // plaintext check buffer
+  std::vector<PTy> check_buff_;
+  // a-share check buffer
+  std::vector<std::vector<PTy>> val_buff_;
+  std::vector<std::vector<PTy>> mac_buff_;
+
  public:
   static const std::string id;
 
   Protocol(std::shared_ptr<Context> ctx) : ctx_(ctx) {
     // SPDZ key setup
-    key_ = PTy(yacl::crypto::SecureRandU64());
+    key_ = PTy(yacl::crypto::SecureRandU128());
   }
   // SPDZ key
   PTy GetKey() const { return key_; }
@@ -49,10 +55,27 @@ class Protocol : public State {
       return;
     }
     // avoid communication
-    group_ = yc::EcGroupFactory::Instance().Create("secp128r2",
-                                                   yacl::ArgLib = "openssl");
+    // group_ = yc::EcGroupFactory::Instance().Create("secp128r2",
+    //                                                yacl::ArgLib = "openssl");
+    group_ = yc::EcGroupFactory::Instance().Create(
+        internal::kCurveName, yacl::ArgLib = internal::kCurveLib);
     g_ = group_->GetGenerator();
     k_ = RandA(1)[0];
+    init_prf_ = true;
+  }
+
+  void SetupPrf(const ATy& dy_key) {
+    k_ = dy_key;
+
+    if (init_prf_ == true) {
+      return;
+    }
+    // avoid communication
+    // group_ = yc::EcGroupFactory::Instance().Create("secp128r2",
+    //                                                yacl::ArgLib = "openssl");
+    group_ = yc::EcGroupFactory::Instance().Create(
+        internal::kCurveName, yacl::ArgLib = internal::kCurveLib);
+    g_ = group_->GetGenerator();
     init_prf_ = true;
   }
 
@@ -158,11 +181,28 @@ class Protocol : public State {
   std::vector<ATy> ScalarMulAP(const ATy& scalar, absl::Span<const PTy> in,
                                bool cache = false);
 
-  std::vector<MTy> ScalarA2M(const ATy& scalar, absl::Span<const ATy> in,
-                             bool cache = false);
+  // DY-PRF
+  std::vector<ATy> DyExp(absl::Span<const ATy> in, bool cache = false);
+  std::vector<ATy> DyExpSet(absl::Span<const PTy> in, bool cache = false);
+  std::vector<ATy> DyExpGet(size_t num, bool cache = false);
 
-  std::vector<GTy> ScalarA2G(const ATy& scalar, absl::Span<const ATy> in,
-                             bool cache = false);
+  std::vector<ATy> ScalarDyExp(const ATy& scalar, absl::Span<const ATy> in,
+                               bool cache = false);
+  std::vector<ATy> ScalarDyExpSet(const ATy& scalar, absl::Span<const PTy> in,
+                                  bool cache = false);
+  std::vector<ATy> ScalarDyExpGet(const ATy& scalar, size_t num,
+                                  bool cache = false);
+
+  std::vector<GTy> DyOprf(absl::Span<const ATy> in, bool cache = false);
+  std::vector<GTy> DyOprfSet(absl::Span<const PTy> in, bool cache = false);
+  std::vector<GTy> DyOprfGet(size_t num, bool cache = false);
+
+  std::vector<GTy> ScalarDyOprf(const ATy& scalar, absl::Span<const ATy> in,
+                                bool cache = false);
+  std::vector<GTy> ScalarDyOprfSet(const ATy& scalar, absl::Span<const PTy> in,
+                                   bool cache = false);
+  std::vector<GTy> ScalarDyOprfGet(const ATy& scalar, size_t num,
+                                   bool cache = false);
 
   // circuit PSI entry
   std::vector<ATy> CPSI(absl::Span<const ATy> set0, absl::Span<const ATy> set1,
@@ -171,6 +211,16 @@ class Protocol : public State {
   std::vector<ATy> FairCPSI(absl::Span<const ATy> set0,
                             absl::Span<const ATy> set1,
                             absl::Span<const ATy> data, bool cache = false);
+
+  // a-share check buffer
+  void AShareBufferAppend(absl::Span<const ATy> in);
+  void AShareBufferAppend(const ATy& in);
+  bool AShareDelayCheck();
+
+  // plaintext check buffer
+  void CheckBufferAppend(absl::Span<const PTy> in);
+  void CheckBufferAppend(const PTy& in);
+  bool DelayCheck();
 };
 
 }  // namespace mcpsi

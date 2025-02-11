@@ -17,6 +17,36 @@ BeaverTy Correlation::BeaverTriple(size_t num) {
   return BeaverTy(std::move(a), std::move(b), std::move(c));
 }
 
+DyBeaverGetTy Correlation::DyBeaverTripleGet(size_t num) {
+  if (cache_ != nullptr && cache_->DyBeaverGetCacheSize() >= num) {
+    return cache_->DyBeaverTripleGet(num);
+  }
+  SPDLOG_DEBUG("Miss match");
+  std::vector<internal::ATy> a(num);
+  std::vector<internal::ATy> b(num);
+  std::vector<internal::ATy> c(num);
+  std::vector<internal::ATy> r(num);
+  DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                    absl::MakeSpan(r));
+  return DyBeaverGetTy(std::move(a), std::move(b), std::move(c), std::move(r),
+                       dy_key_);
+}
+
+DyBeaverSetTy Correlation::DyBeaverTripleSet(size_t num) {
+  if (cache_ != nullptr && cache_->DyBeaverSetCacheSize() >= num) {
+    return cache_->DyBeaverTripleSet(num);
+  }
+  SPDLOG_DEBUG("Miss match");
+  std::vector<internal::ATy> a(num);
+  std::vector<internal::ATy> b(num);
+  std::vector<internal::ATy> c(num);
+  std::vector<internal::ATy> r(num);
+  DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                    absl::MakeSpan(r));
+  return DyBeaverSetTy(std::move(a), std::move(b), std::move(c), std::move(r),
+                       dy_key_);
+}
+
 AuthTy Correlation::RandomSet(size_t num) {
   if (cache_ != nullptr && cache_->RandomSetSize() >= num) {
     return cache_->RandomSet(num);
@@ -80,11 +110,13 @@ ShuffleGTy Correlation::ShuffleGet(size_t num, size_t repeat) {
 }
 
 // cache
-void Correlation::force_cache(size_t beaver_num, size_t rand_set_num,
+void Correlation::force_cache(size_t beaver_num, size_t dy_beaver_set_num,
+                              size_t dy_beaver_get_num, size_t rand_set_num,
                               size_t rand_get_num,
                               const std::vector<uint64_t>& shuffle_set_shape,
                               const std::vector<uint64_t>& shuffle_get_shape) {
-  cache_ = std::make_unique<CorrelationCache>();
+  cache_ = std::make_shared<CorrelationCache>();
+  YACL_ENFORCE(cache_ != nullptr);
   // beaver
   if (beaver_num != 0) {
     cache_->beaver_cache = BeaverTy(beaver_num);
@@ -94,6 +126,61 @@ void Correlation::force_cache(size_t beaver_num, size_t rand_set_num,
     BeaverTriple(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
   } else {
     SPDLOG_DEBUG("BEAVER NUM is zero, skip it");
+  }
+  if (ctx_->GetRank() == 0) {
+    // BEAVER SET
+    if (dy_beaver_set_num != 0) {
+      cache_->dy_beaver_set_cache = DyBeaverSetTy(dy_beaver_set_num);
+      auto& a = cache_->dy_beaver_set_cache.a;
+      auto& b = cache_->dy_beaver_set_cache.b;
+      auto& c = cache_->dy_beaver_set_cache.c;
+      auto& r = cache_->dy_beaver_set_cache.r;
+      DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                        absl::MakeSpan(r));
+      cache_->dy_beaver_set_cache.k = {dy_key_};
+    } else {
+      SPDLOG_DEBUG("DY-BEAVER SET NUM is zero, skip it");
+    }
+    // BEAVER GET
+    if (dy_beaver_get_num != 0) {
+      cache_->dy_beaver_get_cache = DyBeaverGetTy(dy_beaver_get_num);
+      auto& a = cache_->dy_beaver_get_cache.a;
+      auto& b = cache_->dy_beaver_get_cache.b;
+      auto& c = cache_->dy_beaver_get_cache.c;
+      auto& r = cache_->dy_beaver_get_cache.r;
+      DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                        absl::MakeSpan(r));
+      cache_->dy_beaver_get_cache.k = {dy_key_};
+    } else {
+      SPDLOG_DEBUG("DY-BEAVER GET NUM is zero, skip it");
+    }
+  } else {
+    // BEAVER GET
+    if (dy_beaver_get_num != 0) {
+      cache_->dy_beaver_get_cache = DyBeaverGetTy(dy_beaver_get_num);
+      auto& a = cache_->dy_beaver_get_cache.a;
+      auto& b = cache_->dy_beaver_get_cache.b;
+      auto& c = cache_->dy_beaver_get_cache.c;
+      auto& r = cache_->dy_beaver_get_cache.r;
+      DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                        absl::MakeSpan(r));
+      cache_->dy_beaver_get_cache.k = {dy_key_};
+    } else {
+      SPDLOG_DEBUG("DY-BEAVER GET NUM is zero, skip it");
+    }
+    // BEAVER SET
+    if (dy_beaver_set_num != 0) {
+      cache_->dy_beaver_set_cache = DyBeaverSetTy(dy_beaver_set_num);
+      auto& a = cache_->dy_beaver_set_cache.a;
+      auto& b = cache_->dy_beaver_set_cache.b;
+      auto& c = cache_->dy_beaver_set_cache.c;
+      auto& r = cache_->dy_beaver_set_cache.r;
+      DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                        absl::MakeSpan(r));
+      cache_->dy_beaver_set_cache.k = {dy_key_};
+    } else {
+      SPDLOG_DEBUG("DY-BEAVER SET NUM is zero, skip it");
+    }
   }
   // random
   {
@@ -167,6 +254,50 @@ BeaverTy CorrelationCache::BeaverTriple(size_t num) {
   beaver_cache.c.resize(remain - num);
 
   return BeaverTy(std::move(a), std::move(b), std::move(c));
+}
+
+DyBeaverSetTy CorrelationCache::DyBeaverTripleSet(size_t num) {
+  const size_t remain = DyBeaverSetCacheSize();
+  YACL_ENFORCE(num <= remain);
+  // copy
+  std::vector<internal::ATy> a(dy_beaver_set_cache.a.end() - num,
+                               dy_beaver_set_cache.a.end());
+  std::vector<internal::ATy> b(dy_beaver_set_cache.b.end() - num,
+                               dy_beaver_set_cache.b.end());
+  std::vector<internal::ATy> c(dy_beaver_set_cache.c.end() - num,
+                               dy_beaver_set_cache.c.end());
+  std::vector<internal::ATy> r(dy_beaver_set_cache.r.end() - num,
+                               dy_beaver_set_cache.r.end());
+  // resize
+  dy_beaver_set_cache.a.resize(remain - num);
+  dy_beaver_set_cache.b.resize(remain - num);
+  dy_beaver_set_cache.c.resize(remain - num);
+  dy_beaver_set_cache.r.resize(remain - num);
+
+  return DyBeaverSetTy(std::move(a), std::move(b), std::move(c), std::move(r),
+                       dy_beaver_set_cache.k);
+}
+
+DyBeaverGetTy CorrelationCache::DyBeaverTripleGet(size_t num) {
+  const size_t remain = DyBeaverGetCacheSize();
+  YACL_ENFORCE(num <= remain);
+  // copy
+  std::vector<internal::ATy> a(dy_beaver_get_cache.a.end() - num,
+                               dy_beaver_get_cache.a.end());
+  std::vector<internal::ATy> b(dy_beaver_get_cache.b.end() - num,
+                               dy_beaver_get_cache.b.end());
+  std::vector<internal::ATy> c(dy_beaver_get_cache.c.end() - num,
+                               dy_beaver_get_cache.c.end());
+  std::vector<internal::ATy> r(dy_beaver_get_cache.r.end() - num,
+                               dy_beaver_get_cache.r.end());
+  // resize
+  dy_beaver_get_cache.a.resize(remain - num);
+  dy_beaver_get_cache.b.resize(remain - num);
+  dy_beaver_get_cache.c.resize(remain - num);
+  dy_beaver_get_cache.r.resize(remain - num);
+
+  return DyBeaverGetTy(std::move(a), std::move(b), std::move(c), std::move(r),
+                       dy_beaver_get_cache.k);
 }
 
 AuthTy CorrelationCache::RandomSet(size_t num) {

@@ -1,7 +1,9 @@
 #include "mcpsi/ss/gshare.h"
 
 #include <unordered_set>
+#include <vector>
 
+#include "mcpsi/cr/cr.h"
 #include "mcpsi/ss/protocol.h"
 #include "yacl/base/byte_container_view.h"
 #include "yacl/math/mpint/mp_int.h"
@@ -9,26 +11,206 @@
 
 namespace mcpsi::internal {
 
+// DY-exponent
+std::vector<ATy> DyExp(std::shared_ptr<Context> &ctx,
+                       absl::Span<const ATy> in) {
+  const size_t num = in.size();
+  auto prot = ctx->GetState<Protocol>();
+
+  // DY-PRF = g^{1/(k+x)}
+  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
+  auto ext_k = std::vector<ATy>(num, prf_k);
+  auto add = AddAA(ctx, in, ext_k);
+  auto inv = InvA(ctx, add);
+  return inv;
+}
+
+std::vector<ATy> DyExp_cache(std::shared_ptr<Context> &ctx,
+                             absl::Span<const ATy> in) {
+  const size_t num = in.size();
+  auto prot = ctx->GetState<Protocol>();
+
+  // DY-PRF = g^{1/(k+x)}
+  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
+  auto ext_k = std::vector<ATy>(num, prf_k);
+  auto add = AddAA_cache(ctx, in, ext_k);
+  auto inv = InvA_cache(ctx, add);
+  return inv;
+}
+
+std::vector<ATy> DyExpGet(std::shared_ptr<Context> &ctx, size_t num) {
+  // auto inA = GetA(ctx, num);
+  // return DyExp(ctx, inA);
+  auto prot = ctx->GetState<Protocol>();
+  auto conn = ctx->GetState<Connection>();
+  auto cr = ctx->GetState<Correlation>();
+  auto [a, b, c, r, prf_k] = cr->DyBeaverTripleGet(num);
+
+  YACL_ENFORCE(prf_k.val == prot->GetPrfK().val);
+
+  auto [b_val, b_mac] = Unpack(b);
+  auto [c_val, c_mac] = Unpack(c);
+
+  auto buff = conn->Recv(ctx->NextRank(), "DyExpSetGet");
+  auto diff = absl::MakeSpan(reinterpret_cast<PTy *>(buff.data()), num);
+
+  auto new_b_mac = MulPP(ctx, b_mac, diff);
+  Pack(absl::MakeConstSpan(b_val), absl::MakeConstSpan(new_b_mac),
+       absl::MakeSpan(b));
+  prot->AShareBufferAppend(b);
+
+  auto new_c_val = MulPP(ctx, c_val, diff);
+  auto new_c_mac = MulPP(ctx, c_mac, diff);
+
+  Pack(absl::MakeConstSpan(new_c_val), absl::MakeConstSpan(new_c_mac),
+       absl::MakeSpan(c));
+
+  auto val = AddAA(ctx, r, c);
+  auto val_p = A2P(ctx, val);
+  auto inv_p = InvP(ctx, val_p);
+
+  return MulAP(ctx, a, inv_p);
+}
+
+std::vector<ATy> DyExpGet_cache(std::shared_ptr<Context> &ctx, size_t num) {
+  auto cr = ctx->GetState<Correlation>();
+
+  cr->DyBeaverTripleGet_cache(num);
+  auto inv_p = ZerosA_cache(ctx, num);
+  return inv_p;
+}
+
+std::vector<ATy> DyExpSet(std::shared_ptr<Context> &ctx,
+                          absl::Span<const PTy> in) {
+  // auto inA = SetA(ctx, in);
+  const size_t num = in.size();
+  auto prot = ctx->GetState<Protocol>();
+  auto conn = ctx->GetState<Connection>();
+  auto cr = ctx->GetState<Correlation>();
+  auto [a, b, c, r, prf_k] = cr->DyBeaverTripleSet(num);
+
+  YACL_ENFORCE(prf_k.val == prot->GetPrfK().val);
+
+  auto [b_val, b_mac] = Unpack(b);
+  auto [c_val, c_mac] = Unpack(c);
+
+  auto diff = DivPP(ctx, in, b_val);
+
+  conn->SendAsync(
+      conn->NextRank(),
+      yacl::ByteContainerView(diff.data(), diff.size() * sizeof(PTy)),
+      "DyExpSetGet");
+
+  auto new_b_mac = MulPP(ctx, b_mac, diff);
+  Pack(absl::MakeConstSpan(in), absl::MakeConstSpan(new_b_mac),
+       absl::MakeSpan(b));
+  prot->AShareBufferAppend(b);
+
+  auto new_c_val = MulPP(ctx, c_val, diff);
+  auto new_c_mac = MulPP(ctx, c_mac, diff);
+
+  Pack(absl::MakeConstSpan(new_c_val), absl::MakeConstSpan(new_c_mac),
+       absl::MakeSpan(c));
+
+  auto val = AddAA(ctx, r, c);
+  auto val_p = A2P(ctx, val);
+  auto inv_p = InvP(ctx, val_p);
+
+  return MulAP(ctx, a, inv_p);
+  // return DyExp(ctx, inA);
+}
+
+std::vector<ATy> DyExpSet_cache(std::shared_ptr<Context> &ctx,
+                                absl::Span<const PTy> in) {
+  const size_t num = in.size();
+  auto cr = ctx->GetState<Correlation>();
+  cr->DyBeaverTripleSet_cache(num);
+  auto zeros = ZerosA_cache(ctx, num);
+
+  return MulAP(ctx, zeros, in);
+}
+
+// fair-DY-exponent
+std::vector<ATy> ScalarDyExp(std::shared_ptr<Context> &ctx, const ATy &scalar,
+                             absl::Span<const ATy> in) {
+  const size_t num = in.size();
+  auto prot = ctx->GetState<Protocol>();
+  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
+
+  // in + k
+  auto ext_k = std::vector<ATy>(num, prf_k);
+  auto add = AddAA(ctx, in, ext_k);
+  // scalar / (in + k)
+  auto r = RandA(ctx, num);
+  // r * in
+  auto mul = MulAA(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(add));
+  // reveal r * in
+  auto pub = A2P(ctx, absl::MakeConstSpan(mul));
+  // inv = (r * in)^{-1}
+  auto inv_pub = InvP(ctx, absl::MakeConstSpan(pub));
+  auto scalar_inv_pub = ScalarMulAP(ctx, scalar, inv_pub);
+  return MulAA(ctx, absl::MakeConstSpan(r),
+               absl::MakeConstSpan(scalar_inv_pub));
+}
+
+std::vector<ATy> ScalarDyExp_cache(std::shared_ptr<Context> &ctx,
+                                   const ATy &scalar,
+                                   absl::Span<const ATy> in) {
+  const size_t num = in.size();
+  auto prot = ctx->GetState<Protocol>();
+  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
+
+  // in + k
+  auto ext_k = std::vector<ATy>(num, prf_k);
+  auto add = AddAA_cache(ctx, in, ext_k);
+  // scalar / (in + k)
+  auto r = RandA_cache(ctx, num);
+  // r * in
+  auto mul = MulAA_cache(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(add));
+  // reveal r * in
+  auto pub = A2P_cache(ctx, absl::MakeConstSpan(mul));
+  // inv = (r * in)^{-1}
+  auto inv_pub = InvP_cache(ctx, absl::MakeConstSpan(pub));
+  auto scalar_inv_pub = ScalarMulAP_cache(ctx, scalar, inv_pub);
+  return MulAA_cache(ctx, absl::MakeConstSpan(r),
+                     absl::MakeConstSpan(scalar_inv_pub));
+}
+
+std::vector<ATy> ScalarDyExpGet(std::shared_ptr<Context> &ctx,
+                                const ATy &scalar, size_t num) {
+  auto inA = GetA(ctx, num);
+  return ScalarDyExp(ctx, scalar, inA);
+}
+std::vector<ATy> ScalarDyExpGet_cache(std::shared_ptr<Context> &ctx,
+                                      const ATy &scalar, size_t num) {
+  auto inA = GetA_cache(ctx, num);
+  return ScalarDyExp_cache(ctx, scalar, inA);
+}
+
+std::vector<ATy> ScalarDyExpSet(std::shared_ptr<Context> &ctx,
+                                const ATy &scalar, absl::Span<const PTy> in) {
+  auto inA = SetA(ctx, in);
+  return ScalarDyExp(ctx, scalar, inA);
+}
+std::vector<ATy> ScalarDyExpSet_cache(std::shared_ptr<Context> &ctx,
+                                      const ATy &scalar,
+                                      absl::Span<const PTy> in) {
+  auto inA = SetA_cache(ctx, in);
+  return ScalarDyExp_cache(ctx, scalar, inA);
+}
+
 std::vector<MTy> A2M(std::shared_ptr<Context> &ctx, absl::Span<const ATy> in) {
   const size_t num = in.size();
-
   auto prot = ctx->GetState<Protocol>();
-  // auto prf_g = prot->GetPrfG();  // generator for PRF
-  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
   auto Ggroup = prot->GetGroup();
-  auto ext_k = std::vector<ATy>(num, prf_k);
-  // in + k
-  auto add = AddAA(ctx, in, ext_k);
-  // 1 / (in + k)
-  auto inv = InvA(ctx, add);
 
   auto ret = std::vector<MTy>(num);
   // Unpack by hand
 
   yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
     for (auto i = bg; i < ed; ++i) {
-      ret[i].val = Ggroup->MulBase(ym::MPInt(inv[i].val.GetVal()));
-      ret[i].mac = Ggroup->MulBase(ym::MPInt(inv[i].mac.GetVal()));
+      ret[i].val = Ggroup->MulBase(ym::MPInt(in[i].val.GetVal()));
+      ret[i].mac = Ggroup->MulBase(ym::MPInt(in[i].mac.GetVal()));
     }
   });
 
@@ -39,77 +221,9 @@ std::vector<MTy> A2M(std::shared_ptr<Context> &ctx, absl::Span<const ATy> in) {
   return ret;
 }
 
-std::vector<MTy> A2M_cache(std::shared_ptr<Context> &ctx,
+std::vector<MTy> A2M_cache([[maybe_unused]] std::shared_ptr<Context> &ctx,
                            absl::Span<const ATy> in) {
   const size_t num = in.size();
-
-  auto ext_k = std::vector<ATy>(num);
-  auto add = AddAA_cache(ctx, in, ext_k);
-  [[maybe_unused]] auto inv = InvA_cache(ctx, add);
-  return std::vector<MTy>(num);
-}
-
-std::vector<MTy> ScalarA2M(std::shared_ptr<Context> &ctx, const ATy &scalar,
-                           absl::Span<const ATy> in) {
-  const size_t num = in.size();
-
-  auto prot = ctx->GetState<Protocol>();
-  // auto prf_g = prot->GetPrfG();  // generator for PRF
-  auto prf_k = prot->GetPrfK();  // distributed key for PRF (A-share)
-  auto Ggroup = prot->GetGroup();
-  auto ext_k = std::vector<ATy>(num, prf_k);
-  // in + k
-  auto add = AddAA(ctx, in, ext_k);
-  // scalar / (in + k)
-
-  auto r = RandA(ctx, num);
-  // r * in
-  auto mul = MulAA(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(add));
-  // reveal r * in
-  auto pub = A2P(ctx, absl::MakeConstSpan(mul));
-  // inv = (r * in)^{-1}
-  auto inv_pub = InvP(ctx, absl::MakeConstSpan(pub));
-  auto scalar_inv_pub = ScalarMulAP(ctx, scalar, inv_pub);
-  auto scalar_inv =
-      MulAA(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(scalar_inv_pub));
-
-  auto ret = std::vector<MTy>(num);
-  // Unpack by hand
-
-  yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
-    for (auto i = bg; i < ed; ++i) {
-      ret[i].val = Ggroup->MulBase(ym::MPInt(scalar_inv[i].val.GetVal()));
-      ret[i].mac = Ggroup->MulBase(ym::MPInt(scalar_inv[i].mac.GetVal()));
-    }
-  });
-
-  // for (size_t i = 0; i < num; ++i) {
-  //   ret[i].val = Ggroup->MulBase(ym::MPInt(scalar_inv[i].val.GetVal()));
-  //   ret[i].mac = Ggroup->MulBase(ym::MPInt(scalar_inv[i].mac.GetVal()));
-  // }
-  return ret;
-}
-
-std::vector<MTy> ScalarA2M_cache(std::shared_ptr<Context> &ctx,
-                                 const ATy &scalar, absl::Span<const ATy> in) {
-  const size_t num = in.size();
-
-  auto ext_k = std::vector<ATy>(num);
-  // in + k
-  auto add = AddAA_cache(ctx, in, ext_k);
-  // scalar / (in + k)
-
-  auto r = RandA_cache(ctx, num);
-  // r * in
-  auto mul = MulAA_cache(ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(in));
-  // reveal r * in
-  auto pub = A2P_cache(ctx, absl::MakeConstSpan(mul));
-  // inv = (r * in)^{-1}
-  auto inv_pub = InvP_cache(ctx, absl::MakeConstSpan(pub));
-  auto scalar_inv_pub = ScalarMulAP_cache(ctx, scalar, inv_pub);
-  [[maybe_unused]] auto scalar_inv = MulAA_cache(
-      ctx, absl::MakeConstSpan(r), absl::MakeConstSpan(scalar_inv_pub));
-
   return std::vector<MTy>(num);
 }
 
@@ -124,18 +238,17 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
 
   std::vector<GTy> ret(num);
 
-  auto GTy_size =
-      Ggroup->GetSerializeLength(yc::PointOctetFormat::X962Compressed);
+  auto GTy_size = Ggroup->GetSerializeLength(kOctetFormat);
   yacl::Buffer send_buf = yacl::Buffer(GTy_size * num);
 
   yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
     for (auto i = bg; i < ed; ++i) {
-      Ggroup->SerializePoint(in[i].val, yc::PointOctetFormat::X962Compressed,
+      Ggroup->SerializePoint(in[i].val, kOctetFormat,
                              send_buf.data<uint8_t>() + i * GTy_size, GTy_size);
     }
   });
   // for (size_t i = 0; i < num; ++i) {
-  //   Ggroup->SerializePoint(in[i].val, yc::PointOctetFormat::X962Compressed,
+  //   Ggroup->SerializePoint(in[i].val, kOctetFormat,
   //                          send_buf.data<uint8_t>() + i * GTy_size,
   //                          GTy_size);
   // }
@@ -156,8 +269,7 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   yacl::parallel_for(0, num, [&](uint64_t bg, uint64_t ed) {
     for (auto i = bg; i < ed; ++i) {
       ret[i] = Ggroup->DeserializePoint(
-          {buf.data<uint8_t>() + i * GTy_size, GTy_size},
-          yc::PointOctetFormat::X962Compressed);
+          {buf.data<uint8_t>() + i * GTy_size, GTy_size}, kOctetFormat);
       Ggroup->AddInplace(&ret[i], in[i].val);
     }
   });
@@ -166,7 +278,7 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   //   ret[i] =
   //       Ggroup->DeserializePoint({buf.data<uint8_t>() + i * GTy_size,
   //       GTy_size},
-  //                                yc::PointOctetFormat::X962Compressed);
+  //                                kOctetFormat);
   //   Ggroup->AddInplace(&ret[i], in[i].val);
   // }
 
@@ -252,13 +364,12 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
   auto zero_mac_GTy = Ggroup->Sub(mac_affine, local_mac_GTy);
 
   yacl::Buffer zero_mac_buf(GTy_size);
-  Ggroup->SerializePoint(zero_mac_GTy, yc::PointOctetFormat::X962Compressed,
+  Ggroup->SerializePoint(zero_mac_GTy, kOctetFormat,
                          zero_mac_buf.data<uint8_t>(), GTy_size);
 
   auto remote_mac_buf = conn->ExchangeWithCommit(zero_mac_buf);
-  GTy remote_mac_GTy =
-      Ggroup->DeserializePoint({remote_mac_buf.data<uint8_t>(), GTy_size},
-                               yc::PointOctetFormat::X962Compressed);
+  GTy remote_mac_GTy = Ggroup->DeserializePoint(
+      {remote_mac_buf.data<uint8_t>(), GTy_size}, kOctetFormat);
 
   YACL_ENFORCE(
       Ggroup->PointEqual(Ggroup->Add(zero_mac_GTy, remote_mac_GTy), prf_zero));
@@ -284,22 +395,76 @@ std::vector<GTy> A2G_cache(std::shared_ptr<Context> &ctx,
   return M2G_cache(ctx, in_m);
 }
 
-std::vector<GTy> ScalarA2G(std::shared_ptr<Context> &ctx, const ATy &scalar,
-                           absl::Span<const ATy> in) {
-  auto in_m = ScalarA2M(ctx, scalar, in);
-  return M2G(ctx, in_m);
+// DY-OPRF
+std::vector<GTy> DyOprf(std::shared_ptr<Context> &ctx,
+                        absl::Span<const ATy> in) {
+  auto dy_exp = DyExp(ctx, in);
+  return A2G(ctx, dy_exp);
+}
+std::vector<GTy> DyOprf_cache(std::shared_ptr<Context> &ctx,
+                              absl::Span<const ATy> in) {
+  auto dy_exp = DyExp_cache(ctx, in);
+  return A2G_cache(ctx, dy_exp);
 }
 
-std::vector<GTy> ScalarA2G_cache(std::shared_ptr<Context> &ctx,
-                                 const ATy &scalar, absl::Span<const ATy> in) {
-  auto in_m = ScalarA2M_cache(ctx, scalar, in);
-  return M2G_cache(ctx, in_m);
+std::vector<GTy> DyOprfGet(std::shared_ptr<Context> &ctx, size_t num) {
+  auto dy_exp = DyExpGet(ctx, num);
+  return A2G(ctx, dy_exp);
+}
+std::vector<GTy> DyOprfGet_cache(std::shared_ptr<Context> &ctx, size_t num) {
+  auto dy_exp = DyExpGet_cache(ctx, num);
+  return A2G_cache(ctx, dy_exp);
 }
 
-// std::vector<GTy> P2G([[maybe_unused]] std::shared_ptr<Context>& ctx,
-//                      absl::Span<const PTy> in) {
-//   return std::vector<GTy>(in.size());
-// }
+std::vector<GTy> DyOprfSet(std::shared_ptr<Context> &ctx,
+                           absl::Span<const PTy> in) {
+  auto dy_exp = DyExpSet(ctx, in);
+  return A2G(ctx, dy_exp);
+}
+std::vector<GTy> DyOprfSet_cache(std::shared_ptr<Context> &ctx,
+                                 absl::Span<const PTy> in) {
+  auto dy_exp = DyExpSet_cache(ctx, in);
+  return A2G_cache(ctx, dy_exp);
+}
+
+// Scalar-DY-OPRF
+std::vector<GTy> ScalarDyOprf(std::shared_ptr<Context> &ctx, const ATy &scalar,
+                              absl::Span<const ATy> in) {
+  auto scalar_dy_exp = ScalarDyExp(ctx, scalar, in);
+  return A2G(ctx, scalar_dy_exp);
+}
+
+std::vector<GTy> ScalarDyOprf_cache(std::shared_ptr<Context> &ctx,
+                                    const ATy &scalar,
+                                    absl::Span<const ATy> in) {
+  auto scalar_dy_exp = ScalarDyExp_cache(ctx, scalar, in);
+  return A2G_cache(ctx, scalar_dy_exp);
+}
+
+std::vector<GTy> ScalarDyOprfGet(std::shared_ptr<Context> &ctx,
+                                 const ATy &scalar, size_t num) {
+  auto scalar_dy_exp = ScalarDyExpGet(ctx, scalar, num);
+  return A2G(ctx, scalar_dy_exp);
+}
+
+std::vector<GTy> ScalarDyOprfGet_cache(std::shared_ptr<Context> &ctx,
+                                       const ATy &scalar, size_t num) {
+  auto scalar_dy_exp = ScalarDyExpGet_cache(ctx, scalar, num);
+  return A2G_cache(ctx, scalar_dy_exp);
+}
+
+std::vector<GTy> ScalarDyOprfSet(std::shared_ptr<Context> &ctx,
+                                 const ATy &scalar, absl::Span<const PTy> in) {
+  auto scalar_dy_exp = ScalarDyExpSet(ctx, scalar, in);
+  return A2G(ctx, scalar_dy_exp);
+}
+
+std::vector<GTy> ScalarDyOprfSet_cache(std::shared_ptr<Context> &ctx,
+                                       const ATy &scalar,
+                                       absl::Span<const PTy> in) {
+  auto scalar_dy_exp = ScalarDyExpSet_cache(ctx, scalar, in);
+  return A2G_cache(ctx, scalar_dy_exp);
+}
 
 std::vector<ATy> CPSI(std::shared_ptr<Context> &ctx, absl::Span<const ATy> set0,
                       absl::Span<const ATy> set1, absl::Span<const ATy> data) {
@@ -312,8 +477,8 @@ std::vector<ATy> CPSI(std::shared_ptr<Context> &ctx, absl::Span<const ATy> set0,
   auto &shuffle1 = _shuffle_tmp[0];
   auto &shuffle_data = _shuffle_tmp[1];
 
-  auto reveal0 = A2G(ctx, shuffle0);
-  auto reveal1 = A2G(ctx, shuffle1);
+  auto reveal0 = DyOprf(ctx, shuffle0);
+  auto reveal1 = DyOprf(ctx, shuffle1);
 
   auto group_hash = [&Ggroup](const GTy &val) {
     return Ggroup->HashPoint(val);
@@ -348,8 +513,8 @@ std::vector<ATy> CPSI_cache(std::shared_ptr<Context> &ctx,
   auto &shuffle1 = _shuffle_tmp[0];
   auto &shuffle_data = _shuffle_tmp[1];
 
-  [[maybe_unused]] auto reveal0 = A2G_cache(ctx, shuffle0);
-  [[maybe_unused]] auto reveal1 = A2G_cache(ctx, shuffle1);
+  [[maybe_unused]] auto reveal0 = DyOprf_cache(ctx, shuffle0);
+  [[maybe_unused]] auto reveal1 = DyOprf_cache(ctx, shuffle1);
 
   std::vector<size_t> indexes(data.size());
 
@@ -372,8 +537,8 @@ std::vector<ATy> FairCPSI(std::shared_ptr<Context> &ctx,
   auto &shuffle_data = _shuffle_tmp[1];
 
   auto [scalar_a, bits] = RandFairA(ctx, 1);
-  auto reveal0 = ScalarA2G(ctx, scalar_a[0], shuffle0);
-  auto reveal1 = A2G(ctx, shuffle1);
+  auto reveal0 = ScalarDyOprf(ctx, scalar_a[0], shuffle0);
+  auto reveal1 = DyOprf(ctx, shuffle1);
 
   auto scalar_p = FairA2P(ctx, scalar_a, bits);
   auto scalar_mp = ym::MPInt(scalar_p[0].GetVal());
@@ -415,8 +580,9 @@ std::vector<ATy> FairCPSI_cache(std::shared_ptr<Context> &ctx,
   auto &shuffle_data = _shuffle_tmp[1];
 
   auto [scalar_a, bits] = RandFairA_cache(ctx, 1);
-  [[maybe_unused]] auto reveal0 = ScalarA2G_cache(ctx, scalar_a[0], shuffle0);
-  [[maybe_unused]] auto reveal1 = A2G_cache(ctx, shuffle1);
+  [[maybe_unused]] auto reveal0 =
+      ScalarDyOprf_cache(ctx, scalar_a[0], shuffle0);
+  [[maybe_unused]] auto reveal1 = DyOprf_cache(ctx, shuffle1);
   [[maybe_unused]] auto scalar_p = FairA2P_cache(ctx, scalar_a, bits);
 
   std::vector<size_t> indexes(data.size());

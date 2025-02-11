@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include "mcpsi/utils/config.h"
 #include "yacl/crypto/base/hash/hash_utils.h"
 #include "yacl/crypto/tools/prg.h"
 #include "yacl/crypto/utils/rand.h"
@@ -68,9 +69,13 @@ class Connection : public State, public yacl::link::Context {
     return seed ^ ExchangeWithCommit(seed);
   }
 
+  uint256_t Exchange(uint256_t val);
+
   uint128_t Exchange(uint128_t val);
 
   uint64_t Exchange(uint64_t val);
+
+  uint256_t ExchangeWithCommit(uint256_t val);
 
   uint128_t ExchangeWithCommit(uint128_t val);
 

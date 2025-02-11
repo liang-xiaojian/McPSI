@@ -1,17 +1,18 @@
+#include "config.h"
+#include "field.h"
 
-
-template <typename T, typename UT> class montctx_t {
-private:
+template <typename T, typename UT>
+class montctx_t {
+ private:
   typedef T val_t;
   typedef UT mval_t;
   static const int tlen = sizeof(val_t) * 8;
 
-public:
+ public:
   val_t mdn, mdn2, p2, r;
   montctx_t(val_t x)
       : mdn(x), mdn2(x << 1), p2((~mval_t(mdn) + 1) % mdn), r(1) {
-    for (int i = 1; i < tlen; i <<= 1)
-      r *= 2 + r * mdn;
+    for (int i = 1; i < tlen; i <<= 1) r *= 2 + r * mdn;
   }
   inline val_t redc(mval_t x) const {
     return static_cast<val_t>(
@@ -23,15 +24,17 @@ public:
 };
 
 typedef montctx_t<uint128_t, uint256_t> montctx128_t;
+typedef montctx_t<uint256_t, uint512_t> montctx256_t;
 
-template <typename T, typename UT> class mont_e_t {
-private:
+template <typename T, typename UT>
+class mont_e_t {
+ private:
   typedef T val_t;
   typedef UT mval_t;
   static montctx_t<T, UT> ctx;
   val_t v;
 
-public:
+ public:
   static montctx_t<T, UT> getctx() { return ctx; }
   static void setctx(const montctx_t<T, UT> &x) { ctx = x; }
 
@@ -77,7 +80,12 @@ public:
 };
 
 typedef mont_e_t<uint128_t, uint256_t> mont128_t;
-template <> montctx128_t mont128_t::ctx = montctx128_t(Prime128);
+template <>
+montctx128_t mont128_t::ctx = montctx128_t(Prime128);
+
+typedef mont_e_t<uint256_t, uint512_t> mont256_t;
+template <>
+montctx256_t mont256_t::ctx = montctx256_t(Prime256);
 
 // Mongtomary Multiplication are not as efficient as respected.
 // 1 million multiplication over kPrime128

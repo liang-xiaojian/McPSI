@@ -8,7 +8,8 @@
 
 namespace mcpsi {
 
-using uint256_t = boost::multiprecision::uint256_t;
+// using uint256_t = boost::multiprecision::uint256_t;
+using uint512_t = boost::multiprecision::uint512_t;
 
 namespace {
 
@@ -35,6 +36,18 @@ uint128_t inline exgcd128(uint128_t a, uint128_t b, uint128_t &x,
   return a;
 }
 
+uint256_t inline exgcd256(uint256_t a, uint256_t b, uint256_t &x,
+                          uint256_t &y) {
+  uint256_t x1 = 1, x2 = 0, x3 = 0, x4 = 1;
+  while (b != static_cast<uint256_t>(0)) {
+    uint256_t c = a / b;
+    std::tie(x1, x2, x3, x4, a, b) =
+        std::make_tuple(x3, x4, x1 - x3 * c, x2 - x4 * c, b, a - b * c);
+  }
+  x = x1, y = x2;
+  return a;
+}
+
 // Invert function in GMP is not as efficient as repect
 // 10000 times "Div" ( GMP 27ms v.s. exgcd 12ms )
 
@@ -48,10 +61,25 @@ uint128_t inline exgcd128(uint128_t a, uint128_t b, uint128_t &x,
 //   return mpz_get_ui(ret);
 // }
 
-} // namespace
+}  // namespace
+
+inline uint512_t ToUint512(const uint128_t &val128) {
+  return uint512_t(val128);
+}
+
+inline uint512_t ToUint512(const uint256_t &val256) {
+  return ToUint512(uint128_t(val256)) +
+         (ToUint512(uint128_t(val256 >> 128)) << 128);
+}
+
+inline uint256_t ToUint256(const uint512_t &val512) {
+  auto low128 = static_cast<uint128_t>(val512);
+  auto high128 = static_cast<uint128_t>(val512 >> 128);
+  return uint256_t(high128, low128);
+}
 
 class kFp64 {
-public:
+ public:
   kFp64() : val_(0) {}
 
   kFp64(int val) : val_(val % Prime64) {}
@@ -111,12 +139,12 @@ public:
 
   static kFp64 Zero() { return kFp64(0); }
 
-protected:
+ protected:
   uint64_t val_;
 };
 
 class kFp128 {
-public:
+ public:
   kFp128() : val_(yacl::MakeUint128(0, 0)) {}
 
   kFp128(int val) : kFp128(val + Prime128) {}
@@ -178,8 +206,82 @@ public:
 
   static kFp128 Zero() { return kFp128(0); }
 
-protected:
+ protected:
   uint128_t val_;
 };
 
-}; // namespace mcpsi
+class kFp256 {
+ public:
+  kFp256() : val_(yacl::MakeUint128(0, 0)) {}
+
+  kFp256(int val) : val_(val) {}
+
+  kFp256(uint64_t val) : val_(yacl::MakeUint128(0, val)) {}
+
+  kFp256(uint128_t val) : val_(val) {}
+
+  kFp256(uint256_t val) : val_(val % Prime256) {}
+
+  kFp256(uint512_t val) {
+    uint512_t _prime = ToUint512(Prime256);
+    uint512_t val512 = val % _prime;
+    val_ = ToUint256(val512);
+  }
+
+  kFp256 operator+(const kFp256 &rhs) const { return kFp256(val_ + rhs.val_); }
+
+  kFp256 operator-(const kFp256 &rhs) const {
+    return kFp256(val_ + Prime256 - rhs.val_);
+  }
+
+  kFp256 operator*(const kFp256 &rhs) const {
+    auto l = ToUint512(val_);
+    auto r = ToUint512(rhs.val_);
+    return kFp256(l * r);
+  }
+
+  kFp256 operator/(const kFp256 &rhs) const { return (*this) * Inv(rhs); }
+
+  bool operator==(const kFp256 &rhs) const { return this->val_ == rhs.val_; }
+
+  bool operator!=(const kFp256 &rhs) const { return !(*this == rhs); }
+
+  uint256_t GetVal() const { return val_; }
+
+  static kFp256 Add(const kFp256 &lhs, const kFp256 &rhs) { return lhs + rhs; }
+
+  static kFp256 Sub(const kFp256 &lhs, const kFp256 &rhs) { return lhs - rhs; }
+
+  static kFp256 Mul(const kFp256 &lhs, const kFp256 &rhs) { return lhs * rhs; }
+
+  static kFp256 Div(const kFp256 &lhs, const kFp256 &rhs) { return lhs / rhs; }
+
+  static kFp256 Inv(const kFp256 &in) {
+    // uint64_t result = gmp_invert(in.val_);
+    uint256_t result = 0, _ = 0;
+    uint256_t check = exgcd256(in.val_, Prime256, result, _);
+    YACL_ENFORCE(check == 1, "current check is {}", check);
+    return kFp256(result + Prime256);
+  }
+
+  static kFp256 Neg(const kFp256 &in) { return kFp256(Prime256 - in.val_); }
+
+  static bool Equal(const kFp256 &lhs, const kFp256 &rhs) { return lhs == rhs; }
+
+  static kFp256 Rand() {
+    uint256_t rand_val;
+    yacl::crypto::FillRand(reinterpret_cast<char *>(&rand_val), 32);
+    return kFp256(rand_val);
+  }
+
+  static uint256_t GetPrime() { return Prime256; }
+
+  static kFp256 One() { return kFp256(1); }
+
+  static kFp256 Zero() { return kFp256(0); }
+
+ protected:
+  uint256_t val_;
+};
+
+};  // namespace mcpsi

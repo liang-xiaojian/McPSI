@@ -20,6 +20,7 @@ mcpsi_cc_library(
         "@yacl//yacl/crypto/base/hash:hash_utils",
         "@yacl//yacl/crypto/utils:rand",
         "@yacl//yacl/link",
+        "//mcpsi/utils:config",
     ],
 )
 

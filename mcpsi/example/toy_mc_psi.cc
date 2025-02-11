@@ -9,7 +9,7 @@ using namespace mcpsi;
 
 // Proof of Work (Malicious Circuit-PSI)
 
-auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
+auto toy_mc_psi() -> std::pair<uint128_t, uint128_t> {
   auto context = MockContext(2);
   MockSetupContext(context);
   auto rank0 = std::async([&] {
@@ -21,9 +21,10 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
 
     auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
-    auto ret = std::vector<uint64_t>(1);
-    ret[0] = result_p[0].GetVal();
-    return ret;
+    YACL_ENFORCE(prot->DelayCheck());
+    auto ret =
+        std::accumulate(result_p.begin(), result_p.end(), PTy(0), PTy::Add);
+    return uint128_t(ret.GetVal());
   });
   auto rank1 = std::async([&] {
     auto prot = context[1]->GetState<Protocol>();
@@ -36,9 +37,10 @@ auto toy_mc_psi() -> std::pair<std::vector<uint64_t>, std::vector<uint64_t>> {
 
     auto result_s = prot->CPSI(share0, share1, secret);
     auto result_p = prot->A2P(result_s);
-    auto ret = std::vector<uint64_t>(1);
-    ret[0] = result_p[0].GetVal();
-    return ret;
+    YACL_ENFORCE(prot->DelayCheck());
+    auto ret =
+        std::accumulate(result_p.begin(), result_p.end(), PTy(0), PTy::Add);
+    return uint128_t(ret.GetVal());
   });
 
   auto result0 = rank0.get();
@@ -66,8 +68,8 @@ int main() {
   auto [result0, result1] = toy_mc_psi();
 
   std::cout << std::endl;
-  std::cout << "P0 result (sum): " << result0[0] << std::endl;
-  std::cout << "P1 result (sum): " << result1[0] << std::endl;
+  std::cout << "P0 result (sum): " << result0 << std::endl;
+  std::cout << "P1 result (sum): " << result1 << std::endl;
 
   return 0;
 }

@@ -92,184 +92,267 @@ RegConvert(A, M);
 RegConvert(M, G);
 RegConvert(A, G);
 
+#define DispatchAll(name, ...)                        \
+  if (cache) {                                        \
+    return internal::name##_cache(ctx_, __VA_ARGS__); \
+  }                                                   \
+  return internal::name(ctx_, __VA_ARGS__)
+
 std::vector<PTy> Protocol::ZerosP(size_t num, bool cache) {
-  if (cache) {
-    return internal::ZerosP_cache(ctx_, num);
-  }
-  return internal::ZerosP(ctx_, num);
+  DispatchAll(ZerosP, num);
 }
 
 std::vector<PTy> Protocol::RandP(size_t num, bool cache) {
-  if (cache) {
-    return internal::RandP_cache(ctx_, num);
-  }
-  return internal::RandP(ctx_, num);
+  DispatchAll(RandP, num);
 }
 
 std::vector<ATy> Protocol::ZerosA(size_t num, bool cache) {
-  if (cache) {
-    return internal::ZerosA_cache(ctx_, num);
-  }
-  return internal::ZerosA(ctx_, num);
+  DispatchAll(ZerosA, num);
 }
 
 std::vector<ATy> Protocol::RandA(size_t num, bool cache) {
-  if (cache) {
-    return internal::RandA_cache(ctx_, num);
-  }
-  return internal::RandA(ctx_, num);
+  DispatchAll(RandA, num);
 }
 
 std::vector<ATy> Protocol::SetA(absl::Span<const PTy> in, bool cache) {
-  if (cache) {
-    return internal::SetA_cache(ctx_, in);
-  }
-  return internal::SetA(ctx_, in);
+  DispatchAll(SetA, in);
 }
 
 std::vector<ATy> Protocol::GetA(size_t num, bool cache) {
-  if (cache) {
-    return internal::GetA_cache(ctx_, num);
-  }
-  return internal::GetA(ctx_, num);
+  DispatchAll(GetA, num);
 }
 
 std::vector<ATy> Protocol::SumA(absl::Span<const ATy> in, bool cache) {
-  if (cache) {
-    return internal::SumA_cache(ctx_, in);
-  }
-  return internal::SumA(ctx_, in);
+  DispatchAll(SumA, in);
 }
 
 std::vector<ATy> Protocol::FilterA(absl::Span<const ATy> in,
                                    absl::Span<const size_t> indexes,
                                    bool cache) {
-  if (cache) {
-    internal::FilterA_cache(ctx_, in, indexes);
-  }
-  return internal::FilterA(ctx_, in, indexes);
+  DispatchAll(FilterA, in, indexes);
 }
 
 // shuffle
 std::vector<ATy> Protocol::ShuffleA(absl::Span<const ATy> in, bool cache) {
-  if (cache) {
-    return internal::ShuffleA_cache(ctx_, in);
-  }
-  return internal::ShuffleA(ctx_, in);
+  DispatchAll(ShuffleA, in);
 }
 
 std::vector<ATy> Protocol::ShuffleASet(absl::Span<const ATy> in, bool cache) {
-  if (cache) {
-    return internal::ShuffleASet_cache(ctx_, in);
-  }
-  return internal::ShuffleASet(ctx_, in);
+  DispatchAll(ShuffleASet, in);
 }
 std::vector<ATy> Protocol::ShuffleAGet(absl::Span<const ATy> in, bool cache) {
-  if (cache) {
-    return internal::ShuffleAGet_cache(ctx_, in);
-  }
-  return internal::ShuffleAGet(ctx_, in);
+  DispatchAll(ShuffleAGet, in);
 }
 
 std::array<std::vector<ATy>, 2> Protocol::ShuffleA(absl::Span<const ATy> in0,
                                                    absl::Span<const ATy> in1,
                                                    bool cache) {
-  if (cache) {
-    return internal::ShuffleA_cache(ctx_, in0, in1);
-  }
-  return internal::ShuffleA(ctx_, in0, in1);
+  DispatchAll(ShuffleA, in0, in1);
 }
 
 std::array<std::vector<ATy>, 2> Protocol::ShuffleASet(absl::Span<const ATy> in0,
                                                       absl::Span<const ATy> in1,
                                                       bool cache) {
-  if (cache) {
-    return internal::ShuffleASet_cache(ctx_, in0, in1);
-  }
-  return internal::ShuffleASet(ctx_, in0, in1);
+  DispatchAll(ShuffleASet, in0, in1);
 }
 
 std::array<std::vector<ATy>, 2> Protocol::ShuffleAGet(absl::Span<const ATy> in0,
                                                       absl::Span<const ATy> in1,
                                                       bool cache) {
-  if (cache) {
-    return internal::ShuffleAGet_cache(ctx_, in0, in1);
-  }
-  return internal::ShuffleAGet(ctx_, in0, in1);
+  DispatchAll(ShuffleAGet, in0, in1);
 }
 
 std::vector<ATy> Protocol::ZeroOneA(size_t num, bool cache) {
-  if (cache) {
-    return internal::ZeroOneA_cache(ctx_, num);
-  } else {
-    return internal::ZeroOneA(ctx_, num);
-  }
+  DispatchAll(ZeroOneA, num);
 }
 
 std::vector<ATy> Protocol::ScalarMulPA(const PTy& scalar,
                                        absl::Span<const ATy> in, bool cache) {
-  if (cache) {
-    return internal::ScalarMulPA_cache(ctx_, scalar, in);
-  }
-  return internal::ScalarMulPA(ctx_, scalar, in);
+  DispatchAll(ScalarMulPA, scalar, in);
 }
 
 std::vector<ATy> Protocol::ScalarMulAP(const ATy& scalar,
                                        absl::Span<const PTy> in, bool cache) {
-  if (cache) {
-    return internal::ScalarMulAP_cache(ctx_, scalar, in);
-  }
-  return internal::ScalarMulAP(ctx_, scalar, in);
+  DispatchAll(ScalarMulAP, scalar, in);
 }
 
 std::pair<std::vector<ATy>, std::vector<ATy>> Protocol::RandFairA(size_t num,
                                                                   bool cache) {
-  if (cache) {
-    return internal::RandFairA_cache(ctx_, num);
-  }
-  return internal::RandFairA(ctx_, num);
+  DispatchAll(RandFairA, num);
 }
 
 std::vector<PTy> Protocol::FairA2P(absl::Span<const ATy> in,
                                    absl::Span<const ATy> bits, bool cache) {
-  if (cache) {
-    return internal::FairA2P_cache(ctx_, in, bits);
-  }
-  return internal::FairA2P(ctx_, in, bits);
+  DispatchAll(FairA2P, in, bits);
 }
 
-std::vector<MTy> Protocol::ScalarA2M(const ATy& scalar,
-                                     absl::Span<const ATy> in, bool cache) {
-  if (cache) {
-    return internal::ScalarA2M_cache(ctx_, scalar, in);
-  }
-  return internal::ScalarA2M(ctx_, scalar, in);
+std::vector<ATy> Protocol::DyExp(absl::Span<const ATy> in, bool cache) {
+  DispatchAll(DyExp, in);
 }
 
-std::vector<GTy> Protocol::ScalarA2G(const ATy& scalar,
-                                     absl::Span<const ATy> in, bool cache) {
-  if (cache) {
-    return internal::ScalarA2G_cache(ctx_, scalar, in);
-  }
-  return internal::ScalarA2G(ctx_, scalar, in);
+std::vector<ATy> Protocol::DyExpSet(absl::Span<const PTy> in, bool cache) {
+  DispatchAll(DyExpSet, in);
+}
+
+std::vector<ATy> Protocol::DyExpGet(size_t num, bool cache) {
+  DispatchAll(DyExpGet, num);
+}
+
+std::vector<ATy> Protocol::ScalarDyExp(const ATy& scalar,
+                                       absl::Span<const ATy> in, bool cache) {
+  DispatchAll(ScalarDyExp, scalar, in);
+}
+
+std::vector<ATy> Protocol::ScalarDyExpSet(const ATy& scalar,
+                                          absl::Span<const PTy> in,
+                                          bool cache) {
+  DispatchAll(ScalarDyExpSet, scalar, in);
+}
+
+std::vector<ATy> Protocol::ScalarDyExpGet(const ATy& scalar, size_t num,
+                                          bool cache) {
+  DispatchAll(ScalarDyExpGet, scalar, num);
+}
+
+std::vector<GTy> Protocol::DyOprf(absl::Span<const ATy> in, bool cache) {
+  DispatchAll(DyOprf, in);
+}
+
+std::vector<GTy> Protocol::DyOprfSet(absl::Span<const PTy> in, bool cache) {
+  DispatchAll(DyOprfSet, in);
+}
+
+std::vector<GTy> Protocol::DyOprfGet(size_t num, bool cache) {
+  DispatchAll(DyOprfGet, num);
+}
+
+std::vector<GTy> Protocol::ScalarDyOprf(const ATy& scalar,
+                                        absl::Span<const ATy> in, bool cache) {
+  DispatchAll(ScalarDyOprf, scalar, in);
+}
+
+std::vector<GTy> Protocol::ScalarDyOprfSet(const ATy& scalar,
+                                           absl::Span<const PTy> in,
+                                           bool cache) {
+  DispatchAll(ScalarDyOprfSet, scalar, in);
+}
+
+std::vector<GTy> Protocol::ScalarDyOprfGet(const ATy& scalar, size_t num,
+                                           bool cache) {
+  DispatchAll(ScalarDyOprfGet, scalar, num);
 }
 
 std::vector<ATy> Protocol::CPSI(absl::Span<const ATy> set0,
                                 absl::Span<const ATy> set1,
                                 absl::Span<const ATy> data, bool cache) {
-  if (cache) {
-    return internal::CPSI_cache(ctx_, set0, set1, data);
-  }
-  return internal::CPSI(ctx_, set0, set1, data);
+  DispatchAll(CPSI, set0, set1, data);
 }
 
 std::vector<ATy> Protocol::FairCPSI(absl::Span<const ATy> set0,
                                     absl::Span<const ATy> set1,
                                     absl::Span<const ATy> data, bool cache) {
-  if (cache) {
-    return internal::FairCPSI_cache(ctx_, set0, set1, data);
+  DispatchAll(FairCPSI, set0, set1, data);
+}
+
+void Protocol::AShareBufferAppend(absl::Span<const ATy> in) {
+  auto [in_val, in_mac] = Unpack(in);
+  val_buff_.emplace_back(std::move(in_val));
+  mac_buff_.emplace_back(std::move(in_mac));
+
+  const size_t DelayMaxSize = 1 << 24;
+
+  size_t ashare_size = 0;
+  for (const auto& sub_buff : val_buff_) {
+    ashare_size = ashare_size + sub_buff.size();
   }
-  return internal::FairCPSI(ctx_, set0, set1, data);
+
+  if (ashare_size >= DelayMaxSize) {
+    SPDLOG_DEBUG("Ndss Buffer size is {}, greater than {}", ashare_size,
+                 DelayMaxSize);
+    auto flag = AShareDelayCheck();
+    YACL_ENFORCE(flag == true);
+  }
+}
+
+void Protocol::AShareBufferAppend(const ATy& in) {
+  std::vector<ATy> in_vec(1, in);
+  AShareBufferAppend(absl::MakeConstSpan(in_vec));
+}
+
+bool Protocol::AShareDelayCheck() {
+  YACL_ENFORCE(val_buff_.size() == mac_buff_.size());
+  if (val_buff_.size() == 0) {
+    return true;
+  }
+  const size_t seed_len = val_buff_.size();
+
+  auto conn = ctx_->GetConnection();
+  auto sync_seed = conn->SyncSeed();
+
+  auto prg = yacl::crypto::Prg<uint128_t>(sync_seed);
+  std::vector<uint128_t> ext_seed(seed_len);
+  prg.Fill(absl::MakeSpan(ext_seed));
+
+  auto r = RandA(1);
+  auto& r_val = r[0].val;
+  auto& r_mac = r[0].mac;
+
+  for (size_t i = 0; i < seed_len; ++i) {
+    YACL_ENFORCE(val_buff_[i].size() == mac_buff_[i].size());
+
+    auto cur_len = val_buff_[i].size();
+    auto coef = internal::op::Rand(ext_seed[i], cur_len);
+    auto val_affine =
+        internal::op::InPro(absl::MakeSpan(coef), absl::MakeSpan(val_buff_[i]));
+    auto mac_affine =
+        internal::op::InPro(absl::MakeSpan(coef), absl::MakeSpan(mac_buff_[i]));
+    r_val = r_val + val_affine;
+    r_mac = r_mac + mac_affine;
+  }
+
+  auto remote_r_val = conn->Exchange(r_val.GetVal());
+  auto real_val = r_val + PTy(remote_r_val);
+  auto zero_mac = r_mac - real_val * key_;
+
+  if (ctx_->GetRank() == 0) {
+    zero_mac = PTy::Neg(zero_mac);
+  }
+
+  auto bv = yacl::ByteContainerView(&zero_mac, sizeof(PTy));
+  auto remote_bv = conn->ExchangeWithCommit(bv);
+  bool flag = (bv == yacl::ByteContainerView(remote_bv));
+  SPDLOG_INFO("AShareDelayCheck is {}", flag);
+
+  val_buff_.clear();
+  mac_buff_.clear();
+
+  return flag;
+}
+
+void Protocol::CheckBufferAppend(absl::Span<const PTy> in) {
+  std::copy(in.begin(), in.end(), std::back_inserter(check_buff_));
+}
+
+void Protocol::CheckBufferAppend(const PTy& in) {
+  check_buff_.emplace_back(in);
+}
+
+bool Protocol::DelayCheck() {
+  if (check_buff_.size() == 0) {
+    return true;
+  }
+  auto conn = ctx_->GetConnection();
+
+  auto hash_val = yacl::crypto::Sm3(yacl::ByteContainerView(
+      check_buff_.data(), check_buff_.size() * sizeof(internal::PTy)));
+  check_buff_.clear();
+
+  auto remote_hash_val = conn->ExchangeWithCommit(
+      yacl::ByteContainerView(hash_val.data(), hash_val.size()));
+  auto flag = (yacl::ByteContainerView(hash_val.data(), hash_val.size()) ==
+               yacl::ByteContainerView(remote_hash_val));
+  SPDLOG_INFO("delay check result: {} ", flag);
+  return flag;
 }
 
 }  // namespace mcpsi

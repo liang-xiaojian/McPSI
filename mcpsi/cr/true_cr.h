@@ -23,6 +23,9 @@ class TrueCorrelation : public Correlation {
   // Vole adapter
   std::shared_ptr<vole::VoleAdapter> vole_sender_;
   std::shared_ptr<vole::VoleAdapter> vole_receiver_;
+  // DyKey Vole adapter
+  std::shared_ptr<vole::VoleAdapter> dy_key_sender_;
+  std::shared_ptr<vole::VoleAdapter> dy_key_receiver_;
 
   TrueCorrelation(std::shared_ptr<Context> ctx) : Correlation(ctx) {}
 
@@ -77,10 +80,34 @@ class TrueCorrelation : public Correlation {
   }
 
   void OneTimeSetup() override {
-    if (setup_ot_ == true) return;
-    InitOtAdapter();
-    if (setup_vole_ == true) return;
-    InitVoleAdapter();
+    if (setup_ot_ == false) {
+      InitOtAdapter();
+    }
+
+    if (setup_vole_ == false) {
+      InitVoleAdapter();
+    }
+
+    RandomAuth(absl::MakeSpan(&dy_key_, 1));
+
+    auto conn = ctx_->GetConnection();
+    if (ctx_->GetRank() == 0) {
+      dy_key_sender_ = std::make_shared<vole::WolverineVoleAdapter>(
+          conn, ot_sender_, dy_key_.val);
+      dy_key_sender_->OneTimeSetup();
+
+      dy_key_receiver_ =
+          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_receiver_);
+      dy_key_receiver_->OneTimeSetup();
+    } else {
+      dy_key_receiver_ =
+          std::make_shared<vole::WolverineVoleAdapter>(conn, ot_receiver_);
+      dy_key_receiver_->OneTimeSetup();
+
+      dy_key_sender_ = std::make_shared<vole::WolverineVoleAdapter>(
+          conn, ot_sender_, dy_key_.val);
+      dy_key_sender_->OneTimeSetup();
+    }
   }
 
   internal::PTy GetKey() const override { return key_; }
@@ -96,6 +123,14 @@ class TrueCorrelation : public Correlation {
   // entry
   void BeaverTriple(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
                     absl::Span<internal::ATy> c) override;
+  void DyBeaverTripleSet(absl::Span<internal::ATy> a,
+                         absl::Span<internal::ATy> b,
+                         absl::Span<internal::ATy> c,
+                         absl::Span<internal::ATy> r) override;
+  void DyBeaverTripleGet(absl::Span<internal::ATy> a,
+                         absl::Span<internal::ATy> b,
+                         absl::Span<internal::ATy> c,
+                         absl::Span<internal::ATy> r) override;
 
   // entry
   void RandomSet(absl::Span<internal::ATy> out) override;

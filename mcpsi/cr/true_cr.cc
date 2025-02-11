@@ -21,9 +21,11 @@ void TrueCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
   auto p_A = p_abcAC_span.subspan(3 * num, num);
   auto p_C = p_abcAC_span.subspan(4 * num, num);
 
+  internal::op::Rand(absl::MakeSpan(p_b));
+
   auto conn = ctx_->GetConnection();
   ot::OtHelper(ot_sender_, ot_receiver_)
-      .BeaverTripleExtend(conn, p_a, p_b, p_c, p_A, p_C);
+      .BeaverTripleExtendWithChosenB(conn, p_a, p_b, p_c, p_A, p_C);
 
   std::vector<internal::ATy> auth_abcAC(num * 5);
   auto auth_abcAC_span = absl::MakeSpan(auth_abcAC);
@@ -116,6 +118,322 @@ void TrueCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
     YACL_ENFORCE(cC[i] == aA[i], "{} : cC is {}", i, cC[i].GetVal());
   }
   // ---- consistency check ----
+}
+
+// TODO: Current is the same as BeaverTriple
+void TrueCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
+                                        absl::Span<internal::ATy> b,
+                                        absl::Span<internal::ATy> c,
+                                        absl::Span<internal::ATy> r) {
+  const size_t num = c.size();
+  YACL_ENFORCE(num == a.size());
+  YACL_ENFORCE(num == b.size());
+
+  auto p_abcAC = internal::op::Zeros(num * 5);
+  auto p_abcAC_span = absl::MakeSpan(p_abcAC);
+  auto p_a = p_abcAC_span.subspan(0 * num, num);
+  auto p_b = p_abcAC_span.subspan(1 * num, num);
+  auto p_c = p_abcAC_span.subspan(2 * num, num);
+  auto p_A = p_abcAC_span.subspan(3 * num, num);
+  auto p_C = p_abcAC_span.subspan(4 * num, num);
+
+  auto conn = ctx_->GetConnection();
+  ot::OtHelper(ot_sender_, ot_receiver_)
+      .MulPPExtendRecvWithChosenB(conn, p_a, p_c, p_A, p_C);
+
+  std::vector<internal::ATy> auth_abcAC(num * 5);
+  auto auth_abcAC_span = absl::MakeSpan(auth_abcAC);
+
+  std::vector<internal::ATy> remote_auth_abcAC(num * 5);
+  auto remote_auth_abcAC_span = absl::MakeSpan(remote_auth_abcAC);
+
+  if (ctx_->GetRank() == 0) {
+    AuthSet(p_abcAC_span, auth_abcAC_span);
+    AuthGet(remote_auth_abcAC_span);
+  } else {
+    AuthGet(remote_auth_abcAC_span);
+    AuthSet(p_abcAC_span, auth_abcAC_span);
+  }
+
+  // length double
+  internal::op::Add(
+      absl::MakeConstSpan(
+          reinterpret_cast<const internal::PTy*>(auth_abcAC.data()), 10 * num),
+      absl::MakeConstSpan(
+          reinterpret_cast<const internal::PTy*>(remote_auth_abcAC.data()),
+          10 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_abcAC.data()),
+                     10 * num));
+
+  // return value
+  auto auth_a = auth_abcAC_span.subspan(0 * num, num);
+  auto auth_b = auth_abcAC_span.subspan(1 * num, num);
+  auto auth_c = auth_abcAC_span.subspan(2 * num, num);
+  memcpy(a.data(), auth_a.data(), num * sizeof(internal::ATy));
+  memcpy(b.data(), auth_b.data(), num * sizeof(internal::ATy));
+  memcpy(c.data(), auth_c.data(), num * sizeof(internal::ATy));
+
+  // ---- consistency check ----
+  auto auth_A = auth_abcAC_span.subspan(3 * num, num);
+  auto auth_C = auth_abcAC_span.subspan(4 * num, num);
+  auto seed = conn->SyncSeed();
+  auto p_coef = internal::op::Rand(seed, num);
+  std::vector<internal::ATy> coef(num, {0, 0});
+  std::transform(p_coef.cbegin(), p_coef.cend(), coef.begin(),
+                 [](const internal::PTy& val) -> internal::ATy {
+                   return {val, val};
+                 });
+
+  internal::op::Mul(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_A.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(coef.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_A.data()), 2 * num));
+
+  internal::op::Add(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_a.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_A.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_A.data()), 2 * num));
+
+  internal::op::Mul(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_C.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(coef.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_C.data()), 2 * num));
+
+  internal::op::Add(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_c.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_C.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_C.data()), 2 * num));
+
+  // internal::PTy type
+  auto aA_cC = OpenAndCheck(auth_abcAC_span.subspan(3 * num, 2 * num));
+  auto aA_cC_span = absl::MakeSpan(aA_cC);
+  auto aA = aA_cC_span.subspan(0, num);
+  auto cC = aA_cC_span.subspan(num, num);
+
+  internal::op::Mul(aA, p_b, aA);
+
+  auto buf = conn->Exchange(
+      yacl::ByteContainerView(aA.data(), num * sizeof(internal::PTy)));
+  YACL_ENFORCE(static_cast<uint64_t>(buf.size()) ==
+               num * sizeof(internal::PTy));
+  auto remote_aA =
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(buf.data()), num);
+
+  internal::op::Add(aA, remote_aA, aA);
+  for (size_t i = 0; i < num; ++i) {
+    YACL_ENFORCE(cC[i] == aA[i], "{} : cC is {}", i, cC[i].GetVal());
+  }
+  // ---- consistency check ----
+  // Dy
+  auto delta = dy_key_.val;
+  std::vector<internal::PTy> R(num * 2, 0);
+  std::vector<internal::PTy> A(num * 2, 0);
+  std::vector<internal::PTy> B(num * 2, 0);
+
+  dy_key_sender_->rsend(absl::MakeSpan(R));
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BaseVoleSend(conn, delta, absl::MakeSpan(R));
+  dy_key_receiver_->rrecv(absl::MakeSpan(A), absl::MakeSpan(B));
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BaseVoleRecv(conn, absl::MakeSpan(A), absl::MakeSpan(B));
+
+  internal::op::SubInplace(absl::MakeSpan(R), absl::MakeSpan(B));
+  internal::op::AddInplace(
+      absl::MakeSpan(R),
+      internal::op::ScalarMul(
+          delta,
+          absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
+                              2 * num)));
+
+  auto diff_A = internal::op::Sub(
+      absl::MakeConstSpan(A),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
+                          2 * num));
+
+  auto diff_buf = conn->Exchange(
+      yacl::ByteContainerView(diff_A.data(), 2 * num * sizeof(internal::PTy)));
+  YACL_ENFORCE(static_cast<uint64_t>(diff_buf.size()) ==
+               2 * num * sizeof(internal::PTy));
+  auto remote_diff_A = absl::MakeSpan(
+      reinterpret_cast<internal::PTy*>(diff_buf.data()), 2 * num);
+
+  internal::op::SubInplace(absl::MakeSpan(R),
+                           internal::op::ScalarMul(delta, remote_diff_A));
+
+  memcpy(reinterpret_cast<internal::PTy*>(r.data()), R.data(),
+         2 * num * sizeof(internal::PTy));
+}
+
+// TODO: Current is the same as BeaverTriple
+void TrueCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
+                                        absl::Span<internal::ATy> b,
+                                        absl::Span<internal::ATy> c,
+                                        absl::Span<internal::ATy> r) {
+  const size_t num = c.size();
+  YACL_ENFORCE(num == a.size());
+  YACL_ENFORCE(num == b.size());
+
+  auto p_abcAC = internal::op::Zeros(num * 5);
+  auto p_abcAC_span = absl::MakeSpan(p_abcAC);
+  auto p_a = p_abcAC_span.subspan(0 * num, num);
+  auto p_b = p_abcAC_span.subspan(1 * num, num);
+  auto p_c = p_abcAC_span.subspan(2 * num, num);
+  auto p_A = p_abcAC_span.subspan(3 * num, num);
+  auto p_C = p_abcAC_span.subspan(4 * num, num);
+
+  internal::op::Rand(absl::MakeSpan(p_b));
+
+  auto conn = ctx_->GetConnection();
+  ot::OtHelper(ot_sender_, ot_receiver_)
+      .MulPPExtendSendWithChosenB(conn, p_b, p_c, p_C);
+
+  internal::op::Rand(absl::MakeSpan(p_a));
+  internal::op::Rand(absl::MakeSpan(p_A));
+
+  internal::op::AddInplace(p_c, internal::op::Mul(p_a, p_b));
+  internal::op::AddInplace(p_C, internal::op::Mul(p_A, p_b));
+
+  // auto conn = ctx_->GetConnection();
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BeaverTripleExtendWithChosenB(conn, p_a, p_b, p_c, p_A, p_C);
+
+  std::vector<internal::ATy> auth_abcAC(num * 5);
+  auto auth_abcAC_span = absl::MakeSpan(auth_abcAC);
+
+  std::vector<internal::ATy> remote_auth_abcAC(num * 5);
+  auto remote_auth_abcAC_span = absl::MakeSpan(remote_auth_abcAC);
+
+  if (ctx_->GetRank() == 0) {
+    AuthSet(p_abcAC_span, auth_abcAC_span);
+    AuthGet(remote_auth_abcAC_span);
+  } else {
+    AuthGet(remote_auth_abcAC_span);
+    AuthSet(p_abcAC_span, auth_abcAC_span);
+  }
+
+  // length double
+  internal::op::Add(
+      absl::MakeConstSpan(
+          reinterpret_cast<const internal::PTy*>(auth_abcAC.data()), 10 * num),
+      absl::MakeConstSpan(
+          reinterpret_cast<const internal::PTy*>(remote_auth_abcAC.data()),
+          10 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_abcAC.data()),
+                     10 * num));
+
+  // return value
+  auto auth_a = auth_abcAC_span.subspan(0 * num, num);
+  auto auth_b = auth_abcAC_span.subspan(1 * num, num);
+  auto auth_c = auth_abcAC_span.subspan(2 * num, num);
+  memcpy(a.data(), auth_a.data(), num * sizeof(internal::ATy));
+  memcpy(b.data(), auth_b.data(), num * sizeof(internal::ATy));
+  memcpy(c.data(), auth_c.data(), num * sizeof(internal::ATy));
+
+  // ---- consistency check ----
+  auto auth_A = auth_abcAC_span.subspan(3 * num, num);
+  auto auth_C = auth_abcAC_span.subspan(4 * num, num);
+  auto seed = conn->SyncSeed();
+  auto p_coef = internal::op::Rand(seed, num);
+  std::vector<internal::ATy> coef(num, {0, 0});
+  std::transform(p_coef.cbegin(), p_coef.cend(), coef.begin(),
+                 [](const internal::PTy& val) -> internal::ATy {
+                   return {val, val};
+                 });
+
+  internal::op::Mul(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_A.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(coef.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_A.data()), 2 * num));
+
+  internal::op::Add(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_a.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_A.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_A.data()), 2 * num));
+
+  internal::op::Mul(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_C.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(coef.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_C.data()), 2 * num));
+
+  internal::op::Add(
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_c.data()),
+                          2 * num),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(auth_C.data()),
+                          2 * num),
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(auth_C.data()), 2 * num));
+
+  // internal::PTy type
+  auto aA_cC = OpenAndCheck(auth_abcAC_span.subspan(3 * num, 2 * num));
+  auto aA_cC_span = absl::MakeSpan(aA_cC);
+  auto aA = aA_cC_span.subspan(0, num);
+  auto cC = aA_cC_span.subspan(num, num);
+
+  internal::op::Mul(aA, p_b, aA);
+
+  auto buf = conn->Exchange(
+      yacl::ByteContainerView(aA.data(), num * sizeof(internal::PTy)));
+  YACL_ENFORCE(static_cast<uint64_t>(buf.size()) ==
+               num * sizeof(internal::PTy));
+  auto remote_aA =
+      absl::MakeSpan(reinterpret_cast<internal::PTy*>(buf.data()), num);
+
+  internal::op::Add(aA, remote_aA, aA);
+  for (size_t i = 0; i < num; ++i) {
+    YACL_ENFORCE(cC[i] == aA[i], "{} : cC is {}", i, cC[i].GetVal());
+  }
+  // ---- consistency check ----
+  // Dy
+  auto delta = dy_key_.val;
+  std::vector<internal::PTy> R(num * 2, 0);
+  std::vector<internal::PTy> A(num * 2, 0);
+  std::vector<internal::PTy> B(num * 2, 0);
+
+  dy_key_receiver_->rrecv(absl::MakeSpan(A), absl::MakeSpan(B));
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BaseVoleRecv(conn, absl::MakeSpan(A), absl::MakeSpan(B));
+  dy_key_sender_->rsend(absl::MakeSpan(R));
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BaseVoleSend(conn, delta, absl::MakeSpan(R));
+
+  internal::op::SubInplace(absl::MakeSpan(R), absl::MakeSpan(B));
+  internal::op::AddInplace(
+      absl::MakeSpan(R),
+      internal::op::ScalarMul(
+          delta,
+          absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
+                              2 * num)));
+
+  auto diff_A = internal::op::Sub(
+      absl::MakeConstSpan(A),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
+                          2 * num));
+
+  auto diff_buf = conn->Exchange(
+      yacl::ByteContainerView(diff_A.data(), 2 * num * sizeof(internal::PTy)));
+  YACL_ENFORCE(static_cast<uint64_t>(diff_buf.size()) ==
+               2 * num * sizeof(internal::PTy));
+  auto remote_diff_A = absl::MakeSpan(
+      reinterpret_cast<internal::PTy*>(diff_buf.data()), 2 * num);
+
+  internal::op::SubInplace(absl::MakeSpan(R),
+                           internal::op::ScalarMul(delta, remote_diff_A));
+
+  memcpy(reinterpret_cast<internal::PTy*>(r.data()), R.data(),
+         2 * num * sizeof(internal::PTy));
 }
 
 void TrueCorrelation::RandomSet(absl::Span<internal::ATy> out) {
@@ -259,4 +577,5 @@ std::vector<internal::PTy> TrueCorrelation::OpenAndCheck(
                internal::PTy::Zero());
   return real_val;
 }
+
 }  // namespace mcpsi
