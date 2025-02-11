@@ -254,6 +254,81 @@ std::vector<ATy> Protocol::FairCPSI(absl::Span<const ATy> set0,
   DispatchAll(FairCPSI, set0, set1, data);
 }
 
+void Protocol::AShareBufferAppend(absl::Span<const ATy> in) {
+  auto [in_val, in_mac] = Unpack(in);
+  val_buff_.emplace_back(std::move(in_val));
+  mac_buff_.emplace_back(std::move(in_mac));
+
+  const size_t DelayMaxSize = 1 << 24;
+
+  size_t ashare_size = 0;
+  for (const auto& sub_buff : val_buff_) {
+    ashare_size = ashare_size + sub_buff.size();
+  }
+
+  if (ashare_size >= DelayMaxSize) {
+    SPDLOG_DEBUG("Ndss Buffer size is {}, greater than {}", ashare_size,
+                 DelayMaxSize);
+    auto flag = AShareDelayCheck();
+    YACL_ENFORCE(flag == true);
+  }
+}
+
+void Protocol::AShareBufferAppend(const ATy& in) {
+  std::vector<ATy> in_vec(1, in);
+  AShareBufferAppend(absl::MakeConstSpan(in_vec));
+}
+
+bool Protocol::AShareDelayCheck() {
+  YACL_ENFORCE(val_buff_.size() == mac_buff_.size());
+  if (val_buff_.size() == 0) {
+    return true;
+  }
+  const size_t seed_len = val_buff_.size();
+
+  auto conn = ctx_->GetConnection();
+  auto sync_seed = conn->SyncSeed();
+
+  auto prg = yacl::crypto::Prg<uint128_t>(sync_seed);
+  std::vector<uint128_t> ext_seed(seed_len);
+  prg.Fill(absl::MakeSpan(ext_seed));
+
+  auto r = RandA(1);
+  auto& r_val = r[0].val;
+  auto& r_mac = r[0].mac;
+
+  for (size_t i = 0; i < seed_len; ++i) {
+    YACL_ENFORCE(val_buff_[i].size() == mac_buff_[i].size());
+
+    auto cur_len = val_buff_[i].size();
+    auto coef = internal::op::Rand(ext_seed[i], cur_len);
+    auto val_affine =
+        internal::op::InPro(absl::MakeSpan(coef), absl::MakeSpan(val_buff_[i]));
+    auto mac_affine =
+        internal::op::InPro(absl::MakeSpan(coef), absl::MakeSpan(mac_buff_[i]));
+    r_val = r_val + val_affine;
+    r_mac = r_mac + mac_affine;
+  }
+
+  auto remote_r_val = conn->Exchange(r_val.GetVal());
+  auto real_val = r_val + PTy(remote_r_val);
+  auto zero_mac = r_mac - real_val * key_;
+
+  if (ctx_->GetRank() == 0) {
+    zero_mac = PTy::Neg(zero_mac);
+  }
+
+  auto bv = yacl::ByteContainerView(&zero_mac, sizeof(PTy));
+  auto remote_bv = conn->ExchangeWithCommit(bv);
+  bool flag = (bv == yacl::ByteContainerView(remote_bv));
+  SPDLOG_INFO("AShareDelayCheck is {}", flag);
+
+  val_buff_.clear();
+  mac_buff_.clear();
+
+  return flag;
+}
+
 void Protocol::CheckBufferAppend(absl::Span<const PTy> in) {
   std::copy(in.begin(), in.end(), std::back_inserter(check_buff_));
 }

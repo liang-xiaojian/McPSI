@@ -245,8 +245,10 @@ TEST(ProtocolTest, ShuffleTwoSideTest) {
 
     std::vector<INTEGER> sort_r(num);
     std::vector<INTEGER> sort_s(num);
-    memcpy(sort_r.data(), r_p.data(), num * sizeof(internal::PTy));
-    memcpy(sort_s.data(), s_p.data(), num * sizeof(internal::PTy));
+    memcpy(sort_r.data(), reinterpret_cast<INTEGER*>(r_p.data()),
+           num * sizeof(internal::PTy));
+    memcpy(sort_s.data(), reinterpret_cast<INTEGER*>(s_p.data()),
+           num * sizeof(internal::PTy));
 
     std::sort(sort_r.begin(), sort_r.end());
     std::sort(sort_s.begin(), sort_s.end());
@@ -265,8 +267,10 @@ TEST(ProtocolTest, ShuffleTwoSideTest) {
 
     std::vector<INTEGER> sort_r(num);
     std::vector<INTEGER> sort_s(num);
-    memcpy(sort_r.data(), r_p.data(), num * sizeof(internal::PTy));
-    memcpy(sort_s.data(), s_p.data(), num * sizeof(internal::PTy));
+    memcpy(sort_r.data(), reinterpret_cast<INTEGER*>(r_p.data()),
+           num * sizeof(internal::PTy));
+    memcpy(sort_s.data(), reinterpret_cast<INTEGER*>(s_p.data()),
+           num * sizeof(internal::PTy));
 
     std::sort(sort_r.begin(), sort_r.end());
     std::sort(sort_s.begin(), sort_s.end());

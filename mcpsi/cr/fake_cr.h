@@ -19,17 +19,19 @@ class FakeCorrelation : public Correlation {
 
   void SetKey(internal::PTy key) override { key_ = key; }
 
-  void OneTimeSetup() override { ; }
+  void OneTimeSetup() override { RandomAuth(absl::MakeSpan(&dy_key_, 1)); }
 
   // entry
   void BeaverTriple(absl::Span<internal::ATy> a, absl::Span<internal::ATy> b,
                     absl::Span<internal::ATy> c) override;
   void DyBeaverTripleSet(absl::Span<internal::ATy> a,
                          absl::Span<internal::ATy> b,
-                         absl::Span<internal::ATy> c) override;
+                         absl::Span<internal::ATy> c,
+                         absl::Span<internal::ATy> r) override;
   void DyBeaverTripleGet(absl::Span<internal::ATy> a,
                          absl::Span<internal::ATy> b,
-                         absl::Span<internal::ATy> c) override;
+                         absl::Span<internal::ATy> c,
+                         absl::Span<internal::ATy> r) override;
 
   // entry
   void RandomSet(absl::Span<internal::ATy> out) override;

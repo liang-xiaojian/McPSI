@@ -148,32 +148,46 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
     std::vector<PTy> empty_set0(set0.size());
     std::vector<PTy> empty_set1(set1.size());
     std::vector<PTy> empty_val1(val1.size());
-    auto share0 = (rank == 0 ? prot->SetA(empty_set0, true)
-                             : prot->GetA(empty_set0.size(), true));
-    auto share1 = (rank == 1 ? prot->SetA(empty_set1, true)
-                             : prot->GetA(empty_set1.size(), true));
-    auto secret = (rank == 1 ? prot->SetA(empty_val1, true)
-                             : prot->GetA(empty_val1.size(), true));
     // auto result_s = prot->CPSI(share0, share1, secret, true);
     // same as CPSI with cache
-    auto shuffle0 = (rank == 0 ? prot->ShuffleASet(share0, true)
-                               : prot->ShuffleAGet(share0, true));
-    auto [shuffle1, shuffle_data] =
-        (rank == 1 ? prot->ShuffleASet(share1, secret, true)
-                   : prot->ShuffleAGet(share1, secret, true));
+    auto secret = (rank == 1 ? prot->SetA(empty_val1, true)
+                             : prot->GetA(empty_val1.size(), true));
+
     // reveal G-share
     if (fairness) {
+      auto share0 = (rank == 0 ? prot->SetA(empty_set0, true)
+                               : prot->GetA(empty_set0.size(), true));
+      auto share1 = (rank == 1 ? prot->SetA(empty_set1, true)
+                               : prot->GetA(empty_set1.size(), true));
+      auto shuffle0 = (rank == 0 ? prot->ShuffleASet(share0, true)
+                                 : prot->ShuffleAGet(share0, true));
+      auto [shuffle1, shuffle_data] =
+          (rank == 1 ? prot->ShuffleASet(share1, secret, true)
+                     : prot->ShuffleAGet(share1, secret, true));
+
       auto [scalar_a, bits] = prot->RandFairA(1, true);
+
       auto reveal0 = prot->ScalarDyOprf(scalar_a[0], shuffle0, true);
       auto reveal1 = prot->DyOprf(shuffle1, true);
       auto scalar_p = prot->FairA2P(scalar_a, bits, true);
     } else {
-      auto reveal0 = prot->DyOprf(shuffle0, true);
-      auto reveal1 = prot->DyOprf(shuffle1, true);
+      auto share0 = (rank == 0 ? prot->DyExpSet(empty_set0, true)
+                               : prot->DyExpGet(empty_set0.size(), true));
+      auto share1 = (rank == 1 ? prot->DyExpSet(empty_set1, true)
+                               : prot->DyExpGet(empty_set1.size(), true));
+      auto shuffle0 = (rank == 0 ? prot->ShuffleASet(share0, true)
+                                 : prot->ShuffleAGet(share0, true));
+      auto [shuffle1, shuffle_data] =
+          (rank == 1 ? prot->ShuffleASet(share1, secret, true)
+                     : prot->ShuffleAGet(share1, secret, true));
+      auto reveal0 = prot->A2G(shuffle0, true);
+      auto reveal1 = prot->A2G(shuffle1, true);
     }
 
+    auto s_data = prot->ZerosA(secret.size(), true);
+
     auto indexes = std::vector<size_t>(secret.size());
-    auto result_s = prot->FilterA(absl::MakeConstSpan(shuffle_data),
+    auto result_s = prot->FilterA(absl::MakeConstSpan(s_data),
                                   absl::MakeConstSpan(indexes), true);
     auto sum_s = prot->SumA(result_s, true);
     [[maybe_unused]] auto result_p = prot->A2P(sum_s, true);
@@ -200,35 +214,35 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
   COMM_START(online);
   TIMER_START(online);
   SPDLOG_INFO("[P{}] uploading data", rank);
-  auto share0 = (rank == 0 ? prot->SetA(set0) : prot->GetA(set0.size()));
-  auto share1 = (rank == 1 ? prot->SetA(set1) : prot->GetA(set1.size()));
   auto secret = (rank == 1 ? prot->SetA(val1) : prot->GetA(val1.size()));
   SPDLOG_INFO("[P{}] Then, executing Circuit-PSI, set0 {} && set1 {}", rank,
-              share0.size(), share1.size());
+              set0.size(), set1.size());
 
   // auto result_s = prot->CPSI(share0, share1, secret);
   // same as CPSI
-
-  // ----- MARK -----
-  // Shuffle times and communication
-  COMM_START(shuffle);
-  TIMER_START(shuffle);
-  auto shuffle0 =
-      (rank == 0 ? prot->ShuffleASet(share0) : prot->ShuffleAGet(share0));
-  auto [shuffle1, shuffle_data] =
-      (rank == 1 ? prot->ShuffleASet(share1, secret)
-                 : prot->ShuffleAGet(share1, secret));
-  TIMER_END(shuffle);
-  TIMER_PRINT(shuffle);
-  COMM_END(shuffle);
-  COMM_PRINT(shuffle);
-
   std::vector<size_t> indexes;
+  auto s_data = prot->ZerosA(val1.size());
 
   if (fairness) {
+    auto share0 = (rank == 0 ? prot->SetA(set0) : prot->GetA(set0.size()));
+    auto share1 = (rank == 1 ? prot->SetA(set1) : prot->GetA(set1.size()));
+    // ----- MARK -----
+    // Shuffle times and communication
+    COMM_START(shuffle);
+    TIMER_START(shuffle);
+    auto shuffle0 =
+        (rank == 0 ? prot->ShuffleASet(share0) : prot->ShuffleAGet(share0));
+    auto [shuffle1, shuffle_data] =
+        (rank == 1 ? prot->ShuffleASet(share1, secret)
+                   : prot->ShuffleAGet(share1, secret));
+    s_data = std::move(shuffle_data);
+    TIMER_END(shuffle);
+    TIMER_PRINT(shuffle);
+    COMM_END(shuffle);
+    COMM_PRINT(shuffle);
     // ---- MARK ----
-    COMM_START(a2g);   // start
-    TIMER_START(a2g);  // start a2g_timer
+    COMM_START(DyOprf);   // start
+    TIMER_START(DyOprf);  // start a2g_timer
     auto [scalar_a, bits] = prot->RandFairA(1);
     auto reveal0 = prot->ScalarDyOprf(scalar_a[0], shuffle0);
     auto reveal1 = prot->DyOprf(shuffle1);
@@ -237,10 +251,10 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
     for (size_t i = 0; i < reveal1.size(); ++i) {
       Ggroup->MulInplace(&reveal1[i], scalar_mp);
     }
-    TIMER_END(a2g);    // stop a2g_timer
-    COMM_END(a2g);     // stop
-    TIMER_PRINT(a2g);  // print info
-    COMM_PRINT(a2g);   // print info
+    TIMER_END(DyOprf);    // stop a2g_timer
+    COMM_END(DyOprf);     // stop
+    TIMER_PRINT(DyOprf);  // print info
+    COMM_PRINT(DyOprf);   // print info
 
     std::unordered_set<GTy, decltype(group_hash), decltype(group_equal)> lhs(
         reveal0.begin(), reveal0.end(), 2, group_hash, group_equal);
@@ -251,12 +265,38 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
       }
     }
   } else {
+    // ----- MARK -----
+    // DyExp times and communication
+    COMM_START(DyExp);
+    TIMER_START(DyExp);
+    auto share0 =
+        (rank == 0 ? prot->DyExpSet(set0) : prot->DyExpGet(set0.size()));
+    auto share1 =
+        (rank == 1 ? prot->DyExpSet(set1) : prot->DyExpGet(set1.size()));
+    TIMER_END(DyExp);
+    TIMER_PRINT(DyExp);
+    COMM_END(DyExp);
+    COMM_PRINT(DyExp);
+    // ----- MARK -----
+    // Shuffle times and communication
+    COMM_START(shuffle);
+    TIMER_START(shuffle);
+    auto shuffle0 =
+        (rank == 0 ? prot->ShuffleASet(share0) : prot->ShuffleAGet(share0));
+    auto [shuffle1, shuffle_data] =
+        (rank == 1 ? prot->ShuffleASet(share1, secret)
+                   : prot->ShuffleAGet(share1, secret));
+    s_data = std::move(shuffle_data);
+    TIMER_END(shuffle);
+    TIMER_PRINT(shuffle);
+    COMM_END(shuffle);
+    COMM_PRINT(shuffle);
     // reveal G-share
     // ---- MARK ----
     COMM_START(a2g);   // start
     TIMER_START(a2g);  // start a2g_timer
-    auto reveal0 = prot->DyOprf(shuffle0);
-    auto reveal1 = prot->DyOprf(shuffle1);
+    auto reveal0 = prot->A2G(shuffle0);
+    auto reveal1 = prot->A2G(shuffle1);
     TIMER_END(a2g);    // stop a2g_timer
     COMM_END(a2g);     // stop
     TIMER_PRINT(a2g);  // print info
@@ -271,8 +311,8 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
       }
     }
   }
-  auto result_s = prot->FilterA(absl::MakeConstSpan(shuffle_data),
-                                absl::MakeConstSpan(indexes));
+  auto result_s =
+      prot->FilterA(absl::MakeConstSpan(s_data), absl::MakeConstSpan(indexes));
 
   SPDLOG_INFO("[P{}] interset size {}", rank, result_s.size());
   COMM_START(result_sum);   // start
@@ -291,6 +331,7 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
   auto sum_square_s = prot->SumA(square_result);
   auto sum_square_p = prot->A2P(sum_square_s);
   YACL_ENFORCE(prot->DelayCheck());
+  YACL_ENFORCE(prot->AShareDelayCheck());
   TIMER_END(result_sum_square);    // stop result_sum_square timer
   COMM_END(result_sum_square);     // stop
   TIMER_PRINT(result_sum_square);  // print info

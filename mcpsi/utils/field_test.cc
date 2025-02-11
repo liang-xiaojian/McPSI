@@ -3,6 +3,12 @@
 #include "gtest/gtest.h"
 namespace mcpsi {
 
+TEST(SizeTest, Work) {
+  EXPECT_EQ(sizeof(kFp64), 8);
+  EXPECT_EQ(sizeof(kFp128), 16);
+  EXPECT_EQ(sizeof(kFp256), 32);
+}
+
 TEST(kFp64Test, AddWork) {
   auto lhs = kFp64::Rand();
   auto rhs = kFp64::Rand();

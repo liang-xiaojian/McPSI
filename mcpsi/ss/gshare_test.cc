@@ -107,4 +107,34 @@ TEST(ProtocolTest, ScalarDyOprfTest) {
   }
 };
 
+TEST(ProtocolTest, DyOprfGetSetTest) {
+  auto context = TestParam::GetContext();
+  size_t num = 10000;
+  auto rank0 = std::async([&] {
+    auto prot = context[0]->GetState<Protocol>();
+    auto r_p = prot->RandP(num);
+    auto ret0 = prot->DyOprfSet(r_p);
+    auto ret1 = prot->DyOprfGet(num);
+    return context[0]->GetRank() == 0 ? ret0 : ret1;
+  });
+  auto rank1 = std::async([&] {
+    auto prot = context[1]->GetState<Protocol>();
+    auto r_p = prot->RandP(num);
+    auto ret0 = prot->DyOprfGet(num);
+    auto ret1 = prot->DyOprfSet(r_p);
+    return context[1]->GetRank() == 0 ? ret0 : ret1;
+  });
+  auto r_a = rank0.get();
+  auto r_b = rank1.get();
+
+  // auto group = yc::EcGroupFactory::Instance().Create("secp128r2",
+  //                                                    yacl::ArgLib =
+  //                                                    "openssl");
+  auto group = yc::EcGroupFactory::Instance().Create(
+      internal::kCurveName, yacl::ArgLib = internal::kCurveLib);
+  for (size_t i = 0; i < num; ++i) {
+    EXPECT_TRUE(group->PointEqual(r_a[i], r_b[i]));
+  }
+};
+
 }  // namespace mcpsi

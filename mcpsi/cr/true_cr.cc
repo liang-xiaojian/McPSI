@@ -123,7 +123,8 @@ void TrueCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
 // TODO: Current is the same as BeaverTriple
 void TrueCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
                                         absl::Span<internal::ATy> b,
-                                        absl::Span<internal::ATy> c) {
+                                        absl::Span<internal::ATy> c,
+                                        absl::Span<internal::ATy> r) {
   const size_t num = c.size();
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
@@ -136,11 +137,9 @@ void TrueCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
   auto p_A = p_abcAC_span.subspan(3 * num, num);
   auto p_C = p_abcAC_span.subspan(4 * num, num);
 
-  internal::op::Rand(absl::MakeSpan(p_b));
-
   auto conn = ctx_->GetConnection();
   ot::OtHelper(ot_sender_, ot_receiver_)
-      .BeaverTripleExtendWithChosenB(conn, p_a, p_b, p_c, p_A, p_C);
+      .MulPPExtendRecvWithChosenB(conn, p_a, p_c, p_A, p_C);
 
   std::vector<internal::ATy> auth_abcAC(num * 5);
   auto auth_abcAC_span = absl::MakeSpan(auth_abcAC);
@@ -233,12 +232,51 @@ void TrueCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
     YACL_ENFORCE(cC[i] == aA[i], "{} : cC is {}", i, cC[i].GetVal());
   }
   // ---- consistency check ----
+  // Dy
+  auto delta = dy_key_.val;
+  std::vector<internal::PTy> R(num * 2, 0);
+  std::vector<internal::PTy> A(num * 2, 0);
+  std::vector<internal::PTy> B(num * 2, 0);
+
+  dy_key_sender_->rsend(absl::MakeSpan(R));
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BaseVoleSend(conn, delta, absl::MakeSpan(R));
+  dy_key_receiver_->rrecv(absl::MakeSpan(A), absl::MakeSpan(B));
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BaseVoleRecv(conn, absl::MakeSpan(A), absl::MakeSpan(B));
+
+  internal::op::SubInplace(absl::MakeSpan(R), absl::MakeSpan(B));
+  internal::op::AddInplace(
+      absl::MakeSpan(R),
+      internal::op::ScalarMul(
+          delta,
+          absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
+                              2 * num)));
+
+  auto diff_A = internal::op::Sub(
+      absl::MakeConstSpan(A),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
+                          2 * num));
+
+  auto diff_buf = conn->Exchange(
+      yacl::ByteContainerView(diff_A.data(), 2 * num * sizeof(internal::PTy)));
+  YACL_ENFORCE(static_cast<uint64_t>(diff_buf.size()) ==
+               2 * num * sizeof(internal::PTy));
+  auto remote_diff_A = absl::MakeSpan(
+      reinterpret_cast<internal::PTy*>(diff_buf.data()), 2 * num);
+
+  internal::op::SubInplace(absl::MakeSpan(R),
+                           internal::op::ScalarMul(delta, remote_diff_A));
+
+  memcpy(reinterpret_cast<internal::PTy*>(r.data()), R.data(),
+         2 * num * sizeof(internal::PTy));
 }
 
 // TODO: Current is the same as BeaverTriple
 void TrueCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
                                         absl::Span<internal::ATy> b,
-                                        absl::Span<internal::ATy> c) {
+                                        absl::Span<internal::ATy> c,
+                                        absl::Span<internal::ATy> r) {
   const size_t num = c.size();
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
@@ -255,7 +293,17 @@ void TrueCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
 
   auto conn = ctx_->GetConnection();
   ot::OtHelper(ot_sender_, ot_receiver_)
-      .BeaverTripleExtendWithChosenB(conn, p_a, p_b, p_c, p_A, p_C);
+      .MulPPExtendSendWithChosenB(conn, p_b, p_c, p_C);
+
+  internal::op::Rand(absl::MakeSpan(p_a));
+  internal::op::Rand(absl::MakeSpan(p_A));
+
+  internal::op::AddInplace(p_c, internal::op::Mul(p_a, p_b));
+  internal::op::AddInplace(p_C, internal::op::Mul(p_A, p_b));
+
+  // auto conn = ctx_->GetConnection();
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BeaverTripleExtendWithChosenB(conn, p_a, p_b, p_c, p_A, p_C);
 
   std::vector<internal::ATy> auth_abcAC(num * 5);
   auto auth_abcAC_span = absl::MakeSpan(auth_abcAC);
@@ -348,6 +396,44 @@ void TrueCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
     YACL_ENFORCE(cC[i] == aA[i], "{} : cC is {}", i, cC[i].GetVal());
   }
   // ---- consistency check ----
+  // Dy
+  auto delta = dy_key_.val;
+  std::vector<internal::PTy> R(num * 2, 0);
+  std::vector<internal::PTy> A(num * 2, 0);
+  std::vector<internal::PTy> B(num * 2, 0);
+
+  dy_key_receiver_->rrecv(absl::MakeSpan(A), absl::MakeSpan(B));
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BaseVoleRecv(conn, absl::MakeSpan(A), absl::MakeSpan(B));
+  dy_key_sender_->rsend(absl::MakeSpan(R));
+  // ot::OtHelper(ot_sender_, ot_receiver_)
+  //     .BaseVoleSend(conn, delta, absl::MakeSpan(R));
+
+  internal::op::SubInplace(absl::MakeSpan(R), absl::MakeSpan(B));
+  internal::op::AddInplace(
+      absl::MakeSpan(R),
+      internal::op::ScalarMul(
+          delta,
+          absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
+                              2 * num)));
+
+  auto diff_A = internal::op::Sub(
+      absl::MakeConstSpan(A),
+      absl::MakeConstSpan(reinterpret_cast<const internal::PTy*>(a.data()),
+                          2 * num));
+
+  auto diff_buf = conn->Exchange(
+      yacl::ByteContainerView(diff_A.data(), 2 * num * sizeof(internal::PTy)));
+  YACL_ENFORCE(static_cast<uint64_t>(diff_buf.size()) ==
+               2 * num * sizeof(internal::PTy));
+  auto remote_diff_A = absl::MakeSpan(
+      reinterpret_cast<internal::PTy*>(diff_buf.data()), 2 * num);
+
+  internal::op::SubInplace(absl::MakeSpan(R),
+                           internal::op::ScalarMul(delta, remote_diff_A));
+
+  memcpy(reinterpret_cast<internal::PTy*>(r.data()), R.data(),
+         2 * num * sizeof(internal::PTy));
 }
 
 void TrueCorrelation::RandomSet(absl::Span<internal::ATy> out) {
@@ -491,4 +577,5 @@ std::vector<internal::PTy> TrueCorrelation::OpenAndCheck(
                internal::PTy::Zero());
   return real_val;
 }
+
 }  // namespace mcpsi

@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "mcpsi/cr/cr.h"
 #include "mcpsi/ss/protocol.h"
 #include "yacl/base/byte_container_view.h"
 #include "yacl/math/mpint/mp_int.h"
@@ -38,25 +39,95 @@ std::vector<ATy> DyExp_cache(std::shared_ptr<Context> &ctx,
 }
 
 std::vector<ATy> DyExpGet(std::shared_ptr<Context> &ctx, size_t num) {
-  auto inA = GetA(ctx, num);
-  return DyExp(ctx, inA);
+  // auto inA = GetA(ctx, num);
+  // return DyExp(ctx, inA);
+  auto prot = ctx->GetState<Protocol>();
+  auto conn = ctx->GetState<Connection>();
+  auto cr = ctx->GetState<Correlation>();
+  auto [a, b, c, r, prf_k] = cr->DyBeaverTripleGet(num);
+
+  YACL_ENFORCE(prf_k.val == prot->GetPrfK().val);
+
+  auto [b_val, b_mac] = Unpack(b);
+  auto [c_val, c_mac] = Unpack(c);
+
+  auto buff = conn->Recv(ctx->NextRank(), "DyExpSetGet");
+  auto diff = absl::MakeSpan(reinterpret_cast<PTy *>(buff.data()), num);
+
+  auto new_b_mac = MulPP(ctx, b_mac, diff);
+  Pack(absl::MakeConstSpan(b_val), absl::MakeConstSpan(new_b_mac),
+       absl::MakeSpan(b));
+  prot->AShareBufferAppend(b);
+
+  auto new_c_val = MulPP(ctx, c_val, diff);
+  auto new_c_mac = MulPP(ctx, c_mac, diff);
+
+  Pack(absl::MakeConstSpan(new_c_val), absl::MakeConstSpan(new_c_mac),
+       absl::MakeSpan(c));
+
+  auto val = AddAA(ctx, r, c);
+  auto val_p = A2P(ctx, val);
+  auto inv_p = InvP(ctx, val_p);
+
+  return MulAP(ctx, a, inv_p);
 }
 
 std::vector<ATy> DyExpGet_cache(std::shared_ptr<Context> &ctx, size_t num) {
-  auto inA = GetA_cache(ctx, num);
-  return DyExp_cache(ctx, inA);
+  auto cr = ctx->GetState<Correlation>();
+
+  cr->DyBeaverTripleGet_cache(num);
+  auto inv_p = ZerosA_cache(ctx, num);
+  return inv_p;
 }
 
 std::vector<ATy> DyExpSet(std::shared_ptr<Context> &ctx,
                           absl::Span<const PTy> in) {
-  auto inA = SetA(ctx, in);
-  return DyExp(ctx, inA);
+  // auto inA = SetA(ctx, in);
+  const size_t num = in.size();
+  auto prot = ctx->GetState<Protocol>();
+  auto conn = ctx->GetState<Connection>();
+  auto cr = ctx->GetState<Correlation>();
+  auto [a, b, c, r, prf_k] = cr->DyBeaverTripleSet(num);
+
+  YACL_ENFORCE(prf_k.val == prot->GetPrfK().val);
+
+  auto [b_val, b_mac] = Unpack(b);
+  auto [c_val, c_mac] = Unpack(c);
+
+  auto diff = DivPP(ctx, in, b_val);
+
+  conn->SendAsync(
+      conn->NextRank(),
+      yacl::ByteContainerView(diff.data(), diff.size() * sizeof(PTy)),
+      "DyExpSetGet");
+
+  auto new_b_mac = MulPP(ctx, b_mac, diff);
+  Pack(absl::MakeConstSpan(in), absl::MakeConstSpan(new_b_mac),
+       absl::MakeSpan(b));
+  prot->AShareBufferAppend(b);
+
+  auto new_c_val = MulPP(ctx, c_val, diff);
+  auto new_c_mac = MulPP(ctx, c_mac, diff);
+
+  Pack(absl::MakeConstSpan(new_c_val), absl::MakeConstSpan(new_c_mac),
+       absl::MakeSpan(c));
+
+  auto val = AddAA(ctx, r, c);
+  auto val_p = A2P(ctx, val);
+  auto inv_p = InvP(ctx, val_p);
+
+  return MulAP(ctx, a, inv_p);
+  // return DyExp(ctx, inA);
 }
 
 std::vector<ATy> DyExpSet_cache(std::shared_ptr<Context> &ctx,
                                 absl::Span<const PTy> in) {
-  auto inA = SetA_cache(ctx, in);
-  return DyExp_cache(ctx, inA);
+  const size_t num = in.size();
+  auto cr = ctx->GetState<Correlation>();
+  cr->DyBeaverTripleSet_cache(num);
+  auto zeros = ZerosA_cache(ctx, num);
+
+  return MulAP(ctx, zeros, in);
 }
 
 // fair-DY-exponent

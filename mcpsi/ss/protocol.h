@@ -33,8 +33,11 @@ class Protocol : public State {
   GTy g_;  // the generator for PRF
   ATy k_;  // the distributed key for PRF
 
-  // check buffer
+  // plaintext check buffer
   std::vector<PTy> check_buff_;
+  // a-share check buffer
+  std::vector<std::vector<PTy>> val_buff_;
+  std::vector<std::vector<PTy>> mac_buff_;
 
  public:
   static const std::string id;
@@ -58,6 +61,21 @@ class Protocol : public State {
         internal::kCurveName, yacl::ArgLib = internal::kCurveLib);
     g_ = group_->GetGenerator();
     k_ = RandA(1)[0];
+    init_prf_ = true;
+  }
+
+  void SetupPrf(const ATy& dy_key) {
+    k_ = dy_key;
+
+    if (init_prf_ == true) {
+      return;
+    }
+    // avoid communication
+    // group_ = yc::EcGroupFactory::Instance().Create("secp128r2",
+    //                                                yacl::ArgLib = "openssl");
+    group_ = yc::EcGroupFactory::Instance().Create(
+        internal::kCurveName, yacl::ArgLib = internal::kCurveLib);
+    g_ = group_->GetGenerator();
     init_prf_ = true;
   }
 
@@ -194,7 +212,12 @@ class Protocol : public State {
                             absl::Span<const ATy> set1,
                             absl::Span<const ATy> data, bool cache = false);
 
-  // check buffer
+  // a-share check buffer
+  void AShareBufferAppend(absl::Span<const ATy> in);
+  void AShareBufferAppend(const ATy& in);
+  bool AShareDelayCheck();
+
+  // plaintext check buffer
   void CheckBufferAppend(absl::Span<const PTy> in);
   void CheckBufferAppend(const PTy& in);
   bool DelayCheck();

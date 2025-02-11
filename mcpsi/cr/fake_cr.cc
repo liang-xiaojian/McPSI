@@ -39,7 +39,8 @@ void FakeCorrelation::BeaverTriple(absl::Span<internal::ATy> a,
 
 void FakeCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
                                         absl::Span<internal::ATy> b,
-                                        absl::Span<internal::ATy> c) {
+                                        absl::Span<internal::ATy> c,
+                                        absl::Span<internal::ATy> r) {
   const size_t num = c.size();
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
@@ -53,6 +54,7 @@ void FakeCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
   auto cc = internal::op::Mul(absl::MakeConstSpan(aa), absl::MakeConstSpan(bb));
   auto c1 = internal::op::Sub(absl::MakeConstSpan(cc), absl::MakeConstSpan(c0));
 
+  // beaver
   auto a_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(aa));
   auto b_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(bb));
   auto c_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(cc));
@@ -60,11 +62,20 @@ void FakeCorrelation::DyBeaverTripleSet(absl::Span<internal::ATy> a,
   internal::Pack(absl::MakeConstSpan(a0), absl::MakeConstSpan(a_mac), a);
   internal::Pack(absl::MakeConstSpan(bb), absl::MakeConstSpan(b_mac), b);
   internal::Pack(absl::MakeConstSpan(c0), absl::MakeConstSpan(c_mac), c);
+
+  // dy-key
+  auto dy_key = dy_key_.val;
+  auto dy_mac = dy_key_.mac;
+
+  auto ak = internal::op::ScalarMul(dy_key, absl::MakeConstSpan(aa));
+  auto ak_mac = internal::op::ScalarMul(dy_mac, absl::MakeConstSpan(aa));
+  internal::Pack(absl::MakeConstSpan(ak), absl::MakeConstSpan(ak_mac), r);
 }
 
 void FakeCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
                                         absl::Span<internal::ATy> b,
-                                        absl::Span<internal::ATy> c) {
+                                        absl::Span<internal::ATy> c,
+                                        absl::Span<internal::ATy> r) {
   const size_t num = c.size();
   YACL_ENFORCE(num == a.size());
   YACL_ENFORCE(num == b.size());
@@ -78,6 +89,7 @@ void FakeCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
   auto cc = internal::op::Mul(absl::MakeConstSpan(aa), absl::MakeConstSpan(bb));
   auto c1 = internal::op::Sub(absl::MakeConstSpan(cc), absl::MakeConstSpan(c0));
 
+  // beaver
   auto a_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(aa));
   auto b_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(bb));
   auto c_mac = internal::op::ScalarMul(key_, absl::MakeConstSpan(cc));
@@ -87,6 +99,14 @@ void FakeCorrelation::DyBeaverTripleGet(absl::Span<internal::ATy> a,
   internal::Pack(absl::MakeConstSpan(a1), absl::MakeConstSpan(a_mac), a);
   internal::Pack(absl::MakeConstSpan(zeros), absl::MakeConstSpan(b_mac), b);
   internal::Pack(absl::MakeConstSpan(c1), absl::MakeConstSpan(c_mac), c);
+
+  // dy-key
+  auto dy_key = dy_key_.val;
+  auto dy_mac = dy_key_.mac;
+
+  auto ak = internal::op::ScalarMul(dy_key, absl::MakeConstSpan(aa));
+  auto ak_mac = internal::op::ScalarMul(dy_mac, absl::MakeConstSpan(aa));
+  internal::Pack(absl::MakeConstSpan(ak), absl::MakeConstSpan(ak_mac), r);
 }
 
 void FakeCorrelation::RandomSet(absl::Span<internal::ATy> out) {

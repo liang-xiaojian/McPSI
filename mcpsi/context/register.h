@@ -33,10 +33,12 @@ void inline SetupContext(std::shared_ptr<Context> ctx, bool CR_mode = false) {
   // 2. ctx->GetState<Correlation>()->OneTimeSetup();
   // Set SPDZ key
   ctx->GetState<Correlation>()->SetKey(key);
+  ctx->GetState<Correlation>()->OneTimeSetup();
+  auto dy_key = ctx->GetState<Correlation>()->GetDyKey();
   // strange !!!
   // But Prf setup need "RandA" (which need correlated randomness)
   // TODO: fix it
-  ctx->GetState<Protocol>()->SetupPrf();
+  ctx->GetState<Protocol>()->SetupPrf(dy_key);
 }
 
 void inline MockSetupContext(std::vector<std::shared_ptr<Context>>& ctxs) {

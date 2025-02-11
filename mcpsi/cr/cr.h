@@ -27,40 +27,58 @@ struct BeaverTy {
 };
 
 struct DyBeaverSetTy {
+  // half beaverTriple
   std::vector<internal::ATy> a;
   std::vector<internal::ATy> b;
   std::vector<internal::ATy> c;
+  // DyExp randomness
+  std::vector<internal::ATy> r;
+  internal::ATy k;
+
   DyBeaverSetTy() { ; }
   DyBeaverSetTy(std::vector<internal::ATy>&& aa,
                 std::vector<internal::ATy>&& bb,
-                std::vector<internal::ATy>&& cc) {
+                std::vector<internal::ATy>&& cc,
+                std::vector<internal::ATy>&& rr, const internal::ATy& kk) {
     a = std::move(aa);
     b = std::move(bb);
     c = std::move(cc);
+    r = std::move(rr);
+    k = kk;
   }
   DyBeaverSetTy(uint32_t n) {
     a.resize(n);
     b.resize(n);
     c.resize(n);
+    r.resize(n);
   }
 };
 
 struct DyBeaverGetTy {
+  // half beaver triple
   std::vector<internal::ATy> a;
   std::vector<internal::ATy> b;
   std::vector<internal::ATy> c;
+  // DyExp randomness
+  std::vector<internal::ATy> r;
+  internal::ATy k;
+
   DyBeaverGetTy() { ; }
   DyBeaverGetTy(std::vector<internal::ATy>&& aa,
                 std::vector<internal::ATy>&& bb,
-                std::vector<internal::ATy>&& cc) {
+                std::vector<internal::ATy>&& cc,
+                std::vector<internal::ATy>&& rr, const internal::ATy& kk) {
     a = std::move(aa);
     b = std::move(bb);
     c = std::move(cc);
+    r = std::move(rr);
+    k = kk;
   }
   DyBeaverGetTy(uint32_t n) {
     a.resize(n);
     b.resize(n);
     c.resize(n);
+    r.resize(n);
   }
 };
 
@@ -103,11 +121,15 @@ struct CorrelationCache;
 
 class Correlation : public State {
  protected:
+  // link
   std::shared_ptr<Context> ctx_;
+  // SPDZ key
   internal::PTy key_;
 
  public:
   static const std::string id;
+  // DY-OPRF key
+  internal::ATy dy_key_;
 
   Correlation(std::shared_ptr<Context> ctx) : ctx_(ctx) {}
 
@@ -117,6 +139,8 @@ class Correlation : public State {
 
   virtual void SetKey(internal::PTy key) { key_ = key; }
 
+  virtual internal::ATy GetDyKey() const { return dy_key_; }
+
   virtual void OneTimeSetup() = 0;
 
   // implementation
@@ -125,10 +149,13 @@ class Correlation : public State {
                             absl::Span<internal::ATy> c) = 0;
   virtual void DyBeaverTripleSet(absl::Span<internal::ATy> a,
                                  absl::Span<internal::ATy> b,
-                                 absl::Span<internal::ATy> c) = 0;
+                                 absl::Span<internal::ATy> c,
+                                 absl::Span<internal::ATy> r) = 0;
   virtual void DyBeaverTripleGet(absl::Span<internal::ATy> a,
                                  absl::Span<internal::ATy> b,
-                                 absl::Span<internal::ATy> c) = 0;
+                                 absl::Span<internal::ATy> c,
+                                 absl::Span<internal::ATy> r) = 0;
+
   virtual void RandomSet(absl::Span<internal::ATy> out) = 0;
   virtual void RandomGet(absl::Span<internal::ATy> out) = 0;
   virtual void RandomAuth(absl::Span<internal::ATy> out) = 0;
@@ -157,7 +184,7 @@ class Correlation : public State {
   size_t r_g_num_{0};
   std::vector<uint64_t> s_s_shape_;
   std::vector<uint64_t> s_g_shape_;
-  std::unique_ptr<CorrelationCache> cache_;
+  std::shared_ptr<CorrelationCache> cache_;
 
  public:
   // cache interface
@@ -217,6 +244,14 @@ struct CorrelationCache {
   size_t ShuffleGetCount(size_t num, size_t repeat = 1) {
     uint64_t idx = ((num << 8) | repeat);
     return shuffle_get_cache.count(idx) ? shuffle_get_cache[idx].size() : 0;
+  }
+
+  CorrelationCache() {
+    beaver_cache = BeaverTy();
+    dy_beaver_set_cache = DyBeaverSetTy();
+    dy_beaver_get_cache = DyBeaverGetTy();
+    random_set_cache = AuthTy();
+    random_get_cache = AuthTy();
   }
 
   BeaverTy BeaverTriple(size_t num);

@@ -214,7 +214,7 @@ class kFp256 {
  public:
   kFp256() : val_(yacl::MakeUint128(0, 0)) {}
 
-  kFp256(int val) : kFp256(val + Prime256) {}
+  kFp256(int val) : val_(val) {}
 
   kFp256(uint64_t val) : val_(yacl::MakeUint128(0, val)) {}
 

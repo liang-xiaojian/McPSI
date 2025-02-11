@@ -25,8 +25,11 @@ DyBeaverGetTy Correlation::DyBeaverTripleGet(size_t num) {
   std::vector<internal::ATy> a(num);
   std::vector<internal::ATy> b(num);
   std::vector<internal::ATy> c(num);
-  DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-  return DyBeaverGetTy(std::move(a), std::move(b), std::move(c));
+  std::vector<internal::ATy> r(num);
+  DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                    absl::MakeSpan(r));
+  return DyBeaverGetTy(std::move(a), std::move(b), std::move(c), std::move(r),
+                       dy_key_);
 }
 
 DyBeaverSetTy Correlation::DyBeaverTripleSet(size_t num) {
@@ -37,8 +40,11 @@ DyBeaverSetTy Correlation::DyBeaverTripleSet(size_t num) {
   std::vector<internal::ATy> a(num);
   std::vector<internal::ATy> b(num);
   std::vector<internal::ATy> c(num);
-  DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c));
-  return DyBeaverSetTy(std::move(a), std::move(b), std::move(c));
+  std::vector<internal::ATy> r(num);
+  DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                    absl::MakeSpan(r));
+  return DyBeaverSetTy(std::move(a), std::move(b), std::move(c), std::move(r),
+                       dy_key_);
 }
 
 AuthTy Correlation::RandomSet(size_t num) {
@@ -109,7 +115,8 @@ void Correlation::force_cache(size_t beaver_num, size_t dy_beaver_set_num,
                               size_t rand_get_num,
                               const std::vector<uint64_t>& shuffle_set_shape,
                               const std::vector<uint64_t>& shuffle_get_shape) {
-  cache_ = std::make_unique<CorrelationCache>();
+  cache_ = std::make_shared<CorrelationCache>();
+  YACL_ENFORCE(cache_ != nullptr);
   // beaver
   if (beaver_num != 0) {
     cache_->beaver_cache = BeaverTy(beaver_num);
@@ -127,8 +134,10 @@ void Correlation::force_cache(size_t beaver_num, size_t dy_beaver_set_num,
       auto& a = cache_->dy_beaver_set_cache.a;
       auto& b = cache_->dy_beaver_set_cache.b;
       auto& c = cache_->dy_beaver_set_cache.c;
-      DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b),
-                        absl::MakeSpan(c));
+      auto& r = cache_->dy_beaver_set_cache.r;
+      DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                        absl::MakeSpan(r));
+      cache_->dy_beaver_set_cache.k = {dy_key_};
     } else {
       SPDLOG_DEBUG("DY-BEAVER SET NUM is zero, skip it");
     }
@@ -138,8 +147,10 @@ void Correlation::force_cache(size_t beaver_num, size_t dy_beaver_set_num,
       auto& a = cache_->dy_beaver_get_cache.a;
       auto& b = cache_->dy_beaver_get_cache.b;
       auto& c = cache_->dy_beaver_get_cache.c;
-      DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b),
-                        absl::MakeSpan(c));
+      auto& r = cache_->dy_beaver_get_cache.r;
+      DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                        absl::MakeSpan(r));
+      cache_->dy_beaver_get_cache.k = {dy_key_};
     } else {
       SPDLOG_DEBUG("DY-BEAVER GET NUM is zero, skip it");
     }
@@ -150,8 +161,10 @@ void Correlation::force_cache(size_t beaver_num, size_t dy_beaver_set_num,
       auto& a = cache_->dy_beaver_get_cache.a;
       auto& b = cache_->dy_beaver_get_cache.b;
       auto& c = cache_->dy_beaver_get_cache.c;
-      DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b),
-                        absl::MakeSpan(c));
+      auto& r = cache_->dy_beaver_get_cache.r;
+      DyBeaverTripleGet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                        absl::MakeSpan(r));
+      cache_->dy_beaver_get_cache.k = {dy_key_};
     } else {
       SPDLOG_DEBUG("DY-BEAVER GET NUM is zero, skip it");
     }
@@ -161,8 +174,10 @@ void Correlation::force_cache(size_t beaver_num, size_t dy_beaver_set_num,
       auto& a = cache_->dy_beaver_set_cache.a;
       auto& b = cache_->dy_beaver_set_cache.b;
       auto& c = cache_->dy_beaver_set_cache.c;
-      DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b),
-                        absl::MakeSpan(c));
+      auto& r = cache_->dy_beaver_set_cache.r;
+      DyBeaverTripleSet(absl::MakeSpan(a), absl::MakeSpan(b), absl::MakeSpan(c),
+                        absl::MakeSpan(r));
+      cache_->dy_beaver_set_cache.k = {dy_key_};
     } else {
       SPDLOG_DEBUG("DY-BEAVER SET NUM is zero, skip it");
     }
@@ -251,12 +266,16 @@ DyBeaverSetTy CorrelationCache::DyBeaverTripleSet(size_t num) {
                                dy_beaver_set_cache.b.end());
   std::vector<internal::ATy> c(dy_beaver_set_cache.c.end() - num,
                                dy_beaver_set_cache.c.end());
+  std::vector<internal::ATy> r(dy_beaver_set_cache.r.end() - num,
+                               dy_beaver_set_cache.r.end());
   // resize
   dy_beaver_set_cache.a.resize(remain - num);
   dy_beaver_set_cache.b.resize(remain - num);
   dy_beaver_set_cache.c.resize(remain - num);
+  dy_beaver_set_cache.r.resize(remain - num);
 
-  return DyBeaverSetTy(std::move(a), std::move(b), std::move(c));
+  return DyBeaverSetTy(std::move(a), std::move(b), std::move(c), std::move(r),
+                       dy_beaver_set_cache.k);
 }
 
 DyBeaverGetTy CorrelationCache::DyBeaverTripleGet(size_t num) {
@@ -269,12 +288,16 @@ DyBeaverGetTy CorrelationCache::DyBeaverTripleGet(size_t num) {
                                dy_beaver_get_cache.b.end());
   std::vector<internal::ATy> c(dy_beaver_get_cache.c.end() - num,
                                dy_beaver_get_cache.c.end());
+  std::vector<internal::ATy> r(dy_beaver_get_cache.r.end() - num,
+                               dy_beaver_get_cache.r.end());
   // resize
   dy_beaver_get_cache.a.resize(remain - num);
   dy_beaver_get_cache.b.resize(remain - num);
   dy_beaver_get_cache.c.resize(remain - num);
+  dy_beaver_get_cache.r.resize(remain - num);
 
-  return DyBeaverGetTy(std::move(a), std::move(b), std::move(c));
+  return DyBeaverGetTy(std::move(a), std::move(b), std::move(c), std::move(r),
+                       dy_beaver_get_cache.k);
 }
 
 AuthTy CorrelationCache::RandomSet(size_t num) {
