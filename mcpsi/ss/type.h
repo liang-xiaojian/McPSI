@@ -14,8 +14,6 @@ namespace yc = yacl::crypto;
 
 // using PTy = kFp64;
 // using op = op64;
-// (DY-PRF) Group Type
-// using GTy = ym::MPInt;
 
 // using PTy = kFp128;
 // using op = op128;
@@ -24,16 +22,9 @@ using PTy = kFp256;
 using op = op256;
 using GTy = yc::EcPoint;
 
-// static auto Ggroup = yc::EcGroupFactory::Instance().Create(
-//     "secp128r2", yacl::ArgLib = "openssl");
-// static auto Ggroup =
-//     yc::openssl::OpensslGroup::Create(yc::GetCurveMetaByName("secp128r2"));
 
-[[maybe_unused]] static auto kCurveName = std::string("ed25519");
-[[maybe_unused]] static auto kCurveLib = std::string("libsodium");
-
-// [[maybe_unused]] static auto kCurveName = std::string("fourq");
-// [[maybe_unused]] static auto kCurveLib = std::string("FourQlib");
+[[maybe_unused]] static auto kCurveName = std::string("fourq");
+[[maybe_unused]] static auto kCurveLib = std::string("FourQlib");
 [[maybe_unused]] static auto kOctetFormat = yc::PointOctetFormat::Autonomous;
 
 #pragma pack(8)

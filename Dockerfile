@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM docker.1ms.run/library/ubuntu
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ RUN npm install -g @bazel/bazelisk
 RUN alias bazel='bazelisk'
 
 # copy source code
-COPY . /app
+# COPY . /app
 
 # It would complie and run all unit-test
-RUN bazel test -c opt //...
+# RUN bazel test -c opt //...
