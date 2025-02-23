@@ -25,7 +25,7 @@ using namespace mcpsi;
   double name##_ms =                                                       \
       std::chrono::duration_cast<std::chrono::milliseconds>(name##_elapse) \
           .count();                                                        \
-  SPDLOG_INFO("[P{}](TIMER) {} need {} ms (or {} s)", rank,                \
+  SPDLOG_INFO("[P{}] (TIMER) {} need {} ms (or {} s)", rank,               \
               std::string(#name), name##_ms, name##_ms / 1000);
 
 #define COMM_START(name)                                      \
@@ -42,13 +42,14 @@ using namespace mcpsi;
   name##_recv_bytes = name##_st_end->recv_bytes - name##_recv_bytes;     \
   name##_recv_action = name##_st_end->recv_actions - name##_recv_action;
 
-#define COMM_PRINT(name)                                                     \
-  SPDLOG_INFO(                                                               \
-      "[P{}](COMM) {} send bytes: {} && send actions: {} && recv bytes: {} " \
-      "&& "                                                                  \
-      "recv actions: {}",                                                    \
-      rank, std::string(#name), name##_send_bytes, name##_send_action,       \
-      name##_recv_bytes, name##_recv_action);
+#define COMM_PRINT(name)                                                    \
+  SPDLOG_INFO(                                                              \
+      "[P{}] (COMM)  {} send bytes: {} ({:.2f} MB) && send actions: {} && " \
+      "recv bytes: {} ({:.2f} MB) && recv actions: {}",                     \
+      rank, std::string(#name), name##_send_bytes,                          \
+      name##_send_bytes * 1.0 / 1024 / 1024, name##_send_action,            \
+      name##_recv_bytes, name##_recv_bytes * 1.0 / 1024 / 1024,             \
+      name##_recv_action);
 
 // ---------- CL -----------
 
@@ -136,14 +137,16 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
     return Ggroup->PointEqual(lhs, rhs);
   };
 
+  // `TIMER` and `COMM` usage:
+  //
   // TIMER_START(timer_name);
   // // the code ... such as, prot->Add(x,y);
   // TIMER_END(timer_name);
   // TIMER_PRINT(timer_name);
 
+  // --- BEGIN CACHE ---
   // For your information, "cache mode" would try to pre-compute the correlated
   // randomness for Circuit-PSI
-  // --- BEGIN CACHE ---
   if (cache) {
     std::vector<PTy> empty_set0(set0.size());
     std::vector<PTy> empty_set1(set1.size());
@@ -192,10 +195,10 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
     auto sum_s = prot->SumA(result_s, true);
     [[maybe_unused]] auto result_p = prot->A2P(sum_s, true);
 
-    auto square_result = prot->Mul(absl::MakeConstSpan(result_s),
-                                   absl::MakeConstSpan(result_s), true);
-    auto sum_square_s = prot->SumA(square_result, true);
-    [[maybe_unused]] auto sum_square_p = prot->A2P(sum_square_s, true);
+    // auto square_result = prot->Mul(absl::MakeConstSpan(result_s),
+    //                                absl::MakeConstSpan(result_s), true);
+    // auto sum_square_s = prot->SumA(square_result, true);
+    // [[maybe_unused]] auto sum_square_p = prot->A2P(sum_square_s, true);
     SPDLOG_INFO("[P{}] start cache all correlation", rank);
 
     // ---- MARK ----
@@ -324,25 +327,26 @@ auto mc_psi(const std::shared_ptr<yacl::link::Context> &lctx,
   TIMER_PRINT(result_sum);  // print info
   COMM_PRINT(result_sum);   // print info
 
-  COMM_START(result_sum_square);   // start
-  TIMER_START(result_sum_square);  // start result_sum_square timer
-  auto square_result =
-      prot->Mul(absl::MakeConstSpan(result_s), absl::MakeConstSpan(result_s));
-  auto sum_square_s = prot->SumA(square_result);
-  auto sum_square_p = prot->A2P(sum_square_s);
-  YACL_ENFORCE(prot->DelayCheck());
-  YACL_ENFORCE(prot->AShareDelayCheck());
-  TIMER_END(result_sum_square);    // stop result_sum_square timer
-  COMM_END(result_sum_square);     // stop
-  TIMER_PRINT(result_sum_square);  // print info
-  COMM_PRINT(result_sum_square);   // print info
+  // COMM_START(result_sum_square);   // start
+  // TIMER_START(result_sum_square);  // start result_sum_square timer
+  // auto square_result =
+  //     prot->Mul(absl::MakeConstSpan(result_s),
+  //     absl::MakeConstSpan(result_s));
+  // auto sum_square_s = prot->SumA(square_result);
+  // auto sum_square_p = prot->A2P(sum_square_s);
+  // YACL_ENFORCE(prot->DelayCheck());
+  // YACL_ENFORCE(prot->AShareDelayCheck());
+  // TIMER_END(result_sum_square);    // stop result_sum_square timer
+  // COMM_END(result_sum_square);     // stop
+  // TIMER_PRINT(result_sum_square);  // print info
+  // COMM_PRINT(result_sum_square);   // print info
 
   typedef decltype(std::declval<internal::PTy>().GetVal()) INTEGER;
   auto ret = std::vector<INTEGER>(2);
   ret[0] = result_p[0].GetVal();
-  ret[1] = sum_square_p[0].GetVal();
+  // ret[1] = sum_square_p[0].GetVal();
   SPDLOG_INFO("[P{}] sum is {}", rank, ret[0]);
-  SPDLOG_INFO("[P{}] square sum is {}", rank, ret[1]);
+  // SPDLOG_INFO("[P{}] square sum is {}", rank, ret[1]);
   TIMER_END(online);
   TIMER_PRINT(online);
   COMM_END(online);
@@ -405,6 +409,7 @@ std::shared_ptr<yacl::link::Context> MakeLink(const std::string &parties,
     lctx_desc.parties.emplace_back(id, hosts[rank]);
   }
   lctx_desc.throttle_window_size = 0;
+  lctx_desc.http_timeout_ms = 120 * 1000;  // 2 min
   auto lctx = yacl::link::FactoryBrpc().CreateContext(lctx_desc, rank);
   lctx->ConnectToMesh();
   return lctx;

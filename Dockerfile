@@ -1,4 +1,4 @@
-FROM docker.1ms.run/library/ubuntu
+FROM ubuntu
 
 WORKDIR /app
 
