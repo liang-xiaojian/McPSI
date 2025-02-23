@@ -45,12 +45,15 @@ run_p1:
 # network setting
 # make sure you have already install `tc`
 10M:
+	tc qdisc del dev lo root
 	tc qdisc add dev lo root handle 1:0 tbf rate 10Mbit latency 20ms burst 65536k
 	tc qdisc add dev lo parent 1:0 handle 10:0 netem delay 20ms
 100M:
+	tc qdisc del dev lo root
 	tc qdisc add dev lo root handle 1:0 tbf rate 100Mbit latency 20ms burst 65536k
 	tc qdisc add dev lo parent 1:0 handle 10:0 netem delay 20ms
 LAN:
+	tc qdisc del dev lo root
 	tc qdisc add dev lo root handle 1:0 tbf rate 1Gbit latency 20ms burst 65536k
 LO:
 	tc qdisc del dev lo root
