@@ -339,6 +339,11 @@ std::vector<GTy> M2G(std::shared_ptr<Context> &ctx, absl::Span<const MTy> in) {
     auto size = ed - bg;
     auto offset = bg / size;
 
+    // to avoid overflow
+    if (offset > num_threads) {
+      offset = num_threads + 1;
+    }
+
     auto val_affine_addr = &real_val_affine_vec[offset];
     auto mac_affine_addr = &mac_affine_vec[offset];
     for (auto i = bg; i < ed; ++i) {
