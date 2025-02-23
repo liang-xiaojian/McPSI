@@ -6,6 +6,7 @@ WARNING_FLAGS = [
     "-Wall",
     "-Wextra",
     "-Werror",
+    "-Wno-mismatched-new-delete",
 ]
 
 # set `SPDLOG_ACTIVE_LEVEL=1(SPDLOG_LEVEL_DEBUG)` to enable debug level log
@@ -80,3 +81,4 @@ def mcpsi_cc_test(
         linkstatic = True,
         **kwargs
     )
+

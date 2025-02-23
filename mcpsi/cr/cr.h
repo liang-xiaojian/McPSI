@@ -117,7 +117,46 @@ struct ShuffleGTy {
   }
 };
 
-struct CorrelationCache;
+
+struct CorrelationCache {
+  BeaverTy beaver_cache;
+  DyBeaverSetTy dy_beaver_set_cache;
+  DyBeaverGetTy dy_beaver_get_cache;
+  AuthTy random_set_cache;
+  AuthTy random_get_cache;
+  std::unordered_map<uint64_t, std::vector<ShuffleSTy>> shuffle_set_cache;
+  std::unordered_map<uint64_t, std::vector<ShuffleGTy>> shuffle_get_cache;
+
+  size_t BeaverCacheSize() { return beaver_cache.a.size(); }
+  size_t DyBeaverSetCacheSize() { return dy_beaver_set_cache.a.size(); }
+  size_t DyBeaverGetCacheSize() { return dy_beaver_get_cache.a.size(); }
+  size_t RandomSetSize() { return random_set_cache.data.size(); }
+  size_t RandomGetSize() { return random_get_cache.data.size(); }
+  size_t ShuffleSetCount(size_t num, size_t repeat = 1) {
+    uint64_t idx = ((num << 8) | repeat);
+    return shuffle_set_cache.count(idx) ? shuffle_set_cache[idx].size() : 0;
+  }
+  size_t ShuffleGetCount(size_t num, size_t repeat = 1) {
+    uint64_t idx = ((num << 8) | repeat);
+    return shuffle_get_cache.count(idx) ? shuffle_get_cache[idx].size() : 0;
+  }
+
+  CorrelationCache() {
+    beaver_cache = BeaverTy();
+    dy_beaver_set_cache = DyBeaverSetTy();
+    dy_beaver_get_cache = DyBeaverGetTy();
+    random_set_cache = AuthTy();
+    random_get_cache = AuthTy();
+  }
+
+  BeaverTy BeaverTriple(size_t num);
+  DyBeaverSetTy DyBeaverTripleSet(size_t num);
+  DyBeaverGetTy DyBeaverTripleGet(size_t num);
+  AuthTy RandomSet(size_t num);
+  AuthTy RandomGet(size_t num);
+  ShuffleSTy ShuffleSet(size_t num, size_t repeat = 1);
+  ShuffleGTy ShuffleGet(size_t num, size_t repeat = 1);
+};
 
 class Correlation : public State {
  protected:
@@ -184,7 +223,7 @@ class Correlation : public State {
   size_t r_g_num_{0};
   std::vector<uint64_t> s_s_shape_;
   std::vector<uint64_t> s_g_shape_;
-  std::shared_ptr<CorrelationCache> cache_;
+  CorrelationCache cache_;
 
  public:
   // cache interface
@@ -221,46 +260,6 @@ class Correlation : public State {
                    size_t rand_get_num,
                    const std::vector<uint64_t>& shuffle_set_shape = {},
                    const std::vector<uint64_t>& shuffle_get_shape = {});
-};
-
-struct CorrelationCache {
-  BeaverTy beaver_cache;
-  DyBeaverSetTy dy_beaver_set_cache;
-  DyBeaverGetTy dy_beaver_get_cache;
-  AuthTy random_set_cache;
-  AuthTy random_get_cache;
-  std::unordered_map<uint64_t, std::vector<ShuffleSTy>> shuffle_set_cache;
-  std::unordered_map<uint64_t, std::vector<ShuffleGTy>> shuffle_get_cache;
-
-  size_t BeaverCacheSize() { return beaver_cache.a.size(); }
-  size_t DyBeaverSetCacheSize() { return dy_beaver_set_cache.a.size(); }
-  size_t DyBeaverGetCacheSize() { return dy_beaver_get_cache.a.size(); }
-  size_t RandomSetSize() { return random_set_cache.data.size(); }
-  size_t RandomGetSize() { return random_get_cache.data.size(); }
-  size_t ShuffleSetCount(size_t num, size_t repeat = 1) {
-    uint64_t idx = ((num << 8) | repeat);
-    return shuffle_set_cache.count(idx) ? shuffle_set_cache[idx].size() : 0;
-  }
-  size_t ShuffleGetCount(size_t num, size_t repeat = 1) {
-    uint64_t idx = ((num << 8) | repeat);
-    return shuffle_get_cache.count(idx) ? shuffle_get_cache[idx].size() : 0;
-  }
-
-  CorrelationCache() {
-    beaver_cache = BeaverTy();
-    dy_beaver_set_cache = DyBeaverSetTy();
-    dy_beaver_get_cache = DyBeaverGetTy();
-    random_set_cache = AuthTy();
-    random_get_cache = AuthTy();
-  }
-
-  BeaverTy BeaverTriple(size_t num);
-  DyBeaverSetTy DyBeaverTripleSet(size_t num);
-  DyBeaverGetTy DyBeaverTripleGet(size_t num);
-  AuthTy RandomSet(size_t num);
-  AuthTy RandomGet(size_t num);
-  ShuffleSTy ShuffleSet(size_t num, size_t repeat = 1);
-  ShuffleGTy ShuffleGet(size_t num, size_t repeat = 1);
 };
 
 }  // namespace mcpsi

@@ -2,6 +2,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
+
 SECRETFLOW_GIT = "https://github.com/secretflow"
 
 YACL_COMMIT_ID = "0154c40a46c0ea64eeb5bcda42d19d5fe5105fc1"
@@ -67,6 +68,7 @@ def _rules_pkg():
         ],
         sha256 = "8f9ee2dc10c1ae514ee599a8b42ed99fa262b757058f65ad3c384289ff70c4b8",
     )
+
 
 def mcpsi_deps():
     _yacl()

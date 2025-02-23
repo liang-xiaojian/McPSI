@@ -11,16 +11,16 @@ The project depends on [YACL](https://github.com/secretflow/yacl), which provide
 + [context](mcpsi/context/): provide runtime environment
 + [cr](mcpsi/cr/): correlated-randomness (e.g. Beaver Triple, MAC generation) 
 + [ss](mcpsi/ss/): SPDZ-like protocol, supports several operators (e.g. Mul, Shuffle) between public value and arithmetic share.
-+ [utils](mcpsi/utils/): basic tools (e.g. 64bit / 128bit field)
++ [utils](mcpsi/utils/): basic tools (e.g. 64-bit / 128-bit / 256-bit field)
 
 ### Dependencies
 
 #### Linux
 ```sh
-Install gcc>=10.3, cmake, ninja, nasm
+Install gcc>=10.3, cmake, ninja, nasm, bazelisk
 ```
 
-#### macOS
+#### MacOS
 ```sh
 # Install Xcode
 https://apps.apple.com/us/app/xcode/id497799835?mt=12
@@ -35,7 +35,27 @@ https://brew.sh/
 brew install bazel cmake ninja nasm automake libtool
 ```
 
-### Build && Test
+### Build && Test (WITH makefile, Quick start)
+test components
+``` sh
+make test
+```
+
+run McPSI in one terminal
+``` sh
+make run
+# the size of SET0 and SET1 is defined in `.env`
+# you could change the size or PSI mode on your own
+```
+
+run McPSI with P0 and P1
+``` sh
+make run_p0 & make run_p1
+# the size of SET0 and SET1 is defined in `.env`
+# you could change the size or PSI mode on your own
+```
+
+### Build && Test (WITH bazel)
 
 debug mode (only for developing)
 ```sh
@@ -94,8 +114,16 @@ command line flags
 ### Abort Dockerfile
 ```sh
 # build docker image
-docker build -t mcpsi:latest .   
-docker run -it --name mcpsi-dev --cap-add=NET_ADMIN --privileged=true mcpsi:latest bash
+docker build -t mcpsi:latest . 
+# create container
+docker run -d -it --name mcpsi-dev \
+    --mount type=bind,source="$(pwd)",target=/home/admin/dev/ \
+    -w /home/admin/dev \
+    --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+    --cap-add=NET_ADMIN \
+    --privileged=true \
+    mcpsi:latest \
+    bash
 
 # re-enter it or stop it
 docker start mcpsi-dev          # start 
