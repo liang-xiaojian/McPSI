@@ -1,8 +1,12 @@
-# McPSI
+# Malicious Circuit-PSI
+Paper title: [Maliciously Secure Circuit Private Set Intersection via SPDZ-Compatible Oblivious PRF](https://eprint.iacr.org/2024/789)
 
-reference: [Maliciously Secure Circuit Private Set Intersection via SPDZ-Compatible Oblivious PRF](https://eprint.iacr.org/2024/789)
+Artifacts HotCRP Id: #1
 
-McPSI is short for Malicious Circuit Private Set Intersection. Our protocol could perform PSI with payload computation (under malicious setting).
+Requested Badge: Reproduced
+
+## Description
+This paper presents the first maliciously secure Circuit-PSI protocol. Our key innovation, the Distributed Dual-key Oblivious Pseudorandom Function (DDOPRF), enables the oblivious evaluation of secret-shared inputs using dual keys within the SPDZ MPC framework. Notably, this construction seamlessly ensures fairness within the Circuit-PSI. Compared to the state-of-the-art semi-honest Circuit-PSI protocol (PoPETS’22), experimental results demonstrate that our malicious Circuit-PSI protocol not only reduces communication costs but also enhances efficiency, particularly for modest input sets in the case of the WAN setting with high latency and limited bandwidth. Our protocol could also perform PSI with payload computation (under malicious setting).
 
 The project depends on [YACL](https://github.com/secretflow/yacl), which provides several cryptographic interfaces (e.g. prg, ot, network).
 
