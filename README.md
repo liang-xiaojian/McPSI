@@ -42,7 +42,6 @@ https://brew.sh/
 brew install bazel cmake ninja nasm automake libtool
 ```
 
-
 ### Main Results and Claims
 The main results of our protocol (McPSI) is the runnning time and communication costs of our protocol in different set sizes and different network situations.
 
