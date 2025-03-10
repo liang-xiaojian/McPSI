@@ -47,10 +47,10 @@ The main results of our protocol (McPSI) is the runnning time and communication 
 
 
 #### Main Result 1: The results in localhost setting.
-The resutl 1 is the running time (in seconds) and communication cost (in MB) of online and offline phases for different set sizes (\(n \in \{2^8,2^{10},2^{12},2^{14},2^{16},2^{18},2^{20}\}\)) in localhost setting. Pleasr refer to the Table 2 in our paper.
+The resutl 1 is the running time (in seconds) and communication cost (in MB) of online and offline phases for different set sizes ($n \in \{2^8, 2^{10}, 2^{12}, 2^{14}, 2^{16}, 2^{18}, 2^{20}\}$) in localhost setting. Pleasr refer to the Table 2 in our paper.
 
 #### Main Result 2: The results in LAN and WAN settings.
-The resutl 2 is the running time (in seconds) and communication cost (in MB) of online phases for different set sizes (\(n \in \{2^8,2^{10},2^{12},2^{14},2^{16},2^{18},2^{20}\}\)) in LAN and WAN settings. Pleasr refer to the Table 1 in our paper.
+The resutl 2 is the running time (in seconds) and communication cost (in MB) of online phases for different set sizes ($n \in \{2^8, 2^{10}, 2^{12}, 2^{14}, 2^{16}, 2^{18}, 2^{20}\}$) in LAN and WAN settings. Pleasr refer to the Table 1 in our paper.
 
 
 
