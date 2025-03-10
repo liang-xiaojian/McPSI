@@ -144,7 +144,7 @@ bazel run -c opt //mcpsi/example:mc_psi -- --set0 size_of_set0 --set1 size_of_se
 ```
 
 
-#### Experiment 2: Name
+#### Experiment 2: The results in LAN and WAN settings.
 To get the results as shown in the Main Resutl 2, we give the steps for performing the experiments.
 
 ```sh
