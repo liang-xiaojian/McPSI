@@ -125,7 +125,7 @@ command line flags
 --set0 size_of_set0         --> input size of party0 (default 10000)
 --set1 size_of_set1         --> input size of party1 (default 10000)
 --interset size_of_interset --> the size of intersect (default 100)
---CR 0/1                    --> 0 for fake correlation randomness (use PRG to simulate offline randomness), while 1 for true correlation randomness (use OT and VOLE to generate offline randomness)
+--CR 0/1                    --> 0 for fake correlation randomness (use PRG to simulate offline randomness), while 1 for true correlation randomness (use OT and VOLE to generate offline randomness). CR=0 runs only the online component. In contrast, CR=1 runs both online and offline components.
 --cache 0/1                 --> 0 for NO offline/online separating, generating CR when online is needed, while 1 for generating offline randomness before executing the online protocol.
 --fairness 0/1              --> 0 for normal OPRF, while 1 for fair OPRF
 --thread thread_num         --> number of threads for each party (default 1)
